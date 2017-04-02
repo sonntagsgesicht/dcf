@@ -1,0 +1,1180 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>businessdate &mdash; Businessdate alpha documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="author" title="About these documents"
+              href="../about.html"/>
+        <link rel="index" title="Index"
+              href="../genindex.html"/>
+        <link rel="search" title="Search" href="../search.html"/>
+    <link rel="top" title="Businessdate alpha documentation" href="../index.html"/>
+        <link rel="up" title="Module code" href="index.html"/> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Businessdate
+          
+
+          
+            
+            <img src="../_static/logo.png" class="logo" />
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.2
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul>
+<li class="toctree-l1"><a class="reference internal" href="../about.html">About</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../starting.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../releases.html">Releases</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../index.html">Businessdate</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="index.html">Module code</a> &raquo;</li>
+      
+    <li>businessdate</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for businessdate</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="c1">#  businessdate</span>
+<span class="c1">#  ------------</span>
+<span class="c1">#  A Python library for generating business dates inherited</span>
+<span class="c1">#  from float for fast date operations. Typical banking business methods</span>
+<span class="c1">#  are provided like business holidays adjustment, day count fractions.</span>
+<span class="c1">#  Beside dates generic business periods offer to create time periods like</span>
+<span class="c1">#  &#39;10Y&#39;, &#39;3 Months&#39; or &#39;2b&#39;. Periods can easily added to business dates.</span>
+<span class="c1">#</span>
+<span class="c1">#  Author:  pbrisk &lt;pbrisk@icloud.com&gt;</span>
+<span class="c1">#  Copyright: 2016, 2017 Deutsche Postbank AG</span>
+<span class="c1">#  Website: https://github.com/pbrisk/businessdate</span>
+<span class="c1">#  License: APACHE Version 2 License (see LICENSE file)</span>
+
+
+<span class="kn">from</span> <span class="nn">calendar</span> <span class="k">import</span> <span class="n">monthrange</span><span class="p">,</span> <span class="n">weekday</span><span class="p">,</span> <span class="n">WEDNESDAY</span><span class="p">,</span> <span class="n">FRIDAY</span>
+<span class="kn">from</span> <span class="nn">copy</span> <span class="k">import</span> <span class="n">copy</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">date</span><span class="p">,</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span>
+
+<span class="kn">from</span> <span class="nn">basedate</span> <span class="k">import</span> <span class="n">BaseDate</span><span class="p">,</span> <span class="n">BaseDateFloat</span><span class="p">,</span> <span class="n">BaseDatetimeDate</span><span class="p">,</span> \
+    <span class="n">is_leap_year</span><span class="p">,</span> <span class="n">is_valid_ymd</span><span class="p">,</span> <span class="n">days_in_year</span><span class="p">,</span> <span class="n">days_in_month</span><span class="p">,</span> \
+    <span class="n">from_ymd_to_excel</span><span class="p">,</span> <span class="n">from_excel_to_ymd</span>
+<span class="kn">from</span> <span class="nn">baseperiod</span> <span class="k">import</span> <span class="n">BasePeriod</span>
+<span class="kn">from</span> <span class="nn">businessholidays</span> <span class="k">import</span> <span class="n">BusinessHolidays</span>
+
+<span class="c1">#: int: Excel representation of 31.12.2015</span>
+<span class="n">BASE_DATE</span> <span class="o">=</span> <span class="mi">42369</span>
+<span class="c1">#: string: basic date format as string</span>
+<span class="n">DATE_FORMAT</span> <span class="o">=</span> <span class="s1">&#39;%Y%m</span><span class="si">%d</span><span class="s1">&#39;</span>
+<span class="c1">#: list: list of dates of default holiday calendar</span>
+<span class="n">DEFAULT_HOLIDAYS</span> <span class="o">=</span> <span class="n">BusinessHolidays</span><span class="p">()</span>
+<span class="n">DEFERRED_DAYS</span> <span class="o">=</span> <span class="mi">6</span>
+
+
+<div class="viewcode-block" id="BusinessDate"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate">[docs]</a><span class="k">class</span> <span class="nc">BusinessDate</span><span class="p">(</span><span class="n">BaseDate</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">date_value</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        fundamental date class</span>
+
+<span class="sd">        :param date_value: input value to create BusinessDate instance</span>
+<span class="sd">        :type date_value: int, float, string or datetime.date</span>
+<span class="sd">        :return: BusinessDate</span>
+
+<span class="sd">        creates new BusinessDate either from `int`, `float`, `string`, `datetime.date`</span>
+<span class="sd">        therefore the following will create the same</span>
+
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            BusinessDate(datetime.date(2015, 12, 31))</span>
+<span class="sd">            BusinessDate(20151231)</span>
+<span class="sd">            BusinessDate(2015-12-31)</span>
+<span class="sd">            BusinessDate(31.12.2015)</span>
+<span class="sd">            BusinessDate(12/31/2015)</span>
+<span class="sd">            BusinessDate(42369)</span>
+<span class="sd">            BusinessDate(42369.0)</span>
+<span class="sd">            BusinessDate(735963)</span>
+<span class="sd">            BusinessDate(735963.0)</span>
+<span class="sd">            BusinessDate()</span>
+
+<span class="sd">        **caution:** recommended is the use of classmethods BusinessDate.from_string, from_date etc.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">date_value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">new_date</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">from_excel</span><span class="p">(</span><span class="n">BASE_DATE</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">date_value</span><span class="p">,</span> <span class="n">BaseDateFloat</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">BusinessDate</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">date_value</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">date_value</span><span class="p">,</span> <span class="n">BaseDatetimeDate</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">BusinessDate</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">date_value</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="n">date_value</span><span class="o">.</span><span class="n">month</span><span class="p">,</span> <span class="n">date_value</span><span class="o">.</span><span class="n">day</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">date_value</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="n">date_value</span> <span class="o">&gt;</span> <span class="mi">19000101</span><span class="p">:</span>
+                <span class="n">new_date</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">from_string</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">date_value</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="n">date_value</span> <span class="o">&lt;</span> <span class="mi">200</span> <span class="o">*</span> <span class="mf">365.25</span><span class="p">:</span>
+                <span class="n">new_date</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">from_excel</span><span class="p">(</span><span class="n">date_value</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">new_date</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">from_ordinal</span><span class="p">(</span><span class="n">date_value</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">date_value</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">new_date</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">from_string</span><span class="p">(</span><span class="n">date_value</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">date_value</span><span class="p">,</span> <span class="p">(</span><span class="n">date</span><span class="p">,</span> <span class="n">datetime</span><span class="p">)):</span>
+            <span class="n">new_date</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">from_date</span><span class="p">(</span><span class="n">date_value</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">date_value</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">new_date</span> <span class="o">=</span> <span class="p">[</span><span class="n">BusinessDate</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">date_value</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Can&#39;t build BusinessDate form </span><span class="si">%s</span><span class="s2"> type&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">date_value</span><span class="p">)))</span>
+
+        <span class="k">return</span> <span class="n">new_date</span>
+
+    <span class="c1"># --- operator methods ---------------------------------------------------</span>
+    <span class="k">def</span> <span class="nf">__add__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            addition of BusinessDate.</span>
+
+<span class="sd">        :param BusinessDate or BusinessPeriod or str other: can be BusinessPeriod or</span>
+<span class="sd">        any thing that might be casted to it.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">BusinessPeriod</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_period</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">BusinessPeriod</span><span class="o">.</span><span class="n">is_businessperiod</span><span class="p">(</span><span class="n">other</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span> <span class="o">+</span> <span class="n">BusinessPeriod</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;substraction of BusinessDates cannot handle objects of type </span><span class="si">%s</span><span class="s1">.&#39;</span> <span class="o">%</span> <span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">__sub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            subtraction of BusinessDate.</span>
+
+<span class="sd">        :param object other: can be other BusinessDate, BusinessPeriod or any thing that might be casted to those.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">BusinessDate</span><span class="p">):</span>
+            <span class="n">y</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">BusinessPeriod</span><span class="p">(</span><span class="n">years</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">months</span><span class="o">=</span><span class="n">m</span><span class="p">,</span> <span class="n">days</span><span class="o">=</span><span class="n">d</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">BusinessPeriod</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_period</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">other</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">is_businessdate</span><span class="p">(</span><span class="n">other</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span> <span class="o">-</span> <span class="n">BusinessDate</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">BusinessPeriod</span><span class="o">.</span><span class="n">is_businessperiod</span><span class="p">(</span><span class="n">other</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span> <span class="o">-</span> <span class="n">BusinessPeriod</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;substraction of BusinessDates connot handle objects of type </span><span class="si">%s</span><span class="s1">.&#39;</span> <span class="o">%</span> <span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># return self.__class__.__name__ + &#39;(&#39; + self.to_string() + &#39;)&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_string</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_string</span><span class="p">()</span>
+
+    <span class="c1"># --- constructor methods ------------------------------------------------</span>
+    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="BusinessDate.from_ymd"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.from_ymd">[docs]</a>    <span class="k">def</span> <span class="nf">from_ymd</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
+        <span class="c1"># return super(BusinessDate, cls).__new__(BaseDate.from_ymd(y, m, d))</span>
+        <span class="k">return</span> <span class="n">BusinessDate</span><span class="p">(</span><span class="n">BaseDate</span><span class="o">.</span><span class="n">from_ymd</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">d</span><span class="p">))</span></div>
+
+    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="BusinessDate.from_bankdate"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.from_bankdate">[docs]</a>    <span class="k">def</span> <span class="nf">from_bankdate</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+        <span class="c1"># deprecated</span>
+        <span class="k">return</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">from_businessdate</span><span class="p">(</span><span class="n">d</span><span class="p">)</span></div>
+
+    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="BusinessDate.from_businessdate"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.from_businessdate">[docs]</a>    <span class="k">def</span> <span class="nf">from_businessdate</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        copy constructor</span>
+
+<span class="sd">        :param BusinessDate d:</span>
+<span class="sd">        :return bankdate:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">copy</span><span class="p">(</span><span class="n">d</span><span class="p">)</span></div>
+
+    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="BusinessDate.from_excel"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.from_excel">[docs]</a>    <span class="k">def</span> <span class="nf">from_excel</span><span class="p">(</span><span class="n">excel_int</span><span class="p">):</span>
+        <span class="n">y</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">d</span> <span class="o">=</span> <span class="n">from_excel_to_ymd</span><span class="p">(</span><span class="n">excel_int</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">from_ymd</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span></div>
+
+    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="BusinessDate.from_date"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.from_date">[docs]</a>    <span class="k">def</span> <span class="nf">from_date</span><span class="p">(</span><span class="n">datetime_date</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        construct BusinessDate instance from datetime.date instance,</span>
+<span class="sd">        raise ValueError exception if not possible</span>
+
+<span class="sd">        :param datetime.date datetime_date: calendar day</span>
+<span class="sd">        :return bool:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">from_ymd</span><span class="p">(</span><span class="n">datetime_date</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="n">datetime_date</span><span class="o">.</span><span class="n">month</span><span class="p">,</span> <span class="n">datetime_date</span><span class="o">.</span><span class="n">day</span><span class="p">)</span></div>
+
+    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="BusinessDate.from_ordinal"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.from_ordinal">[docs]</a>    <span class="k">def</span> <span class="nf">from_ordinal</span><span class="p">(</span><span class="n">ordinal_int</span><span class="p">):</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="n">fromordinal</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">ordinal_int</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">from_ymd</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">month</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">day</span><span class="p">)</span></div>
+
+    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="BusinessDate.from_string"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.from_string">[docs]</a>    <span class="k">def</span> <span class="nf">from_string</span><span class="p">(</span><span class="n">date_str</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        construction from the following string patterns</span>
+<span class="sd">        &#39;%Y-%m-%d&#39;</span>
+<span class="sd">        &#39;%d.%m.%Y&#39;</span>
+<span class="sd">        &#39;%m/%d/%Y&#39;</span>
+<span class="sd">        &#39;%Y%m%d&#39;</span>
+
+<span class="sd">        :param str date_str:</span>
+<span class="sd">        :return BusinessDate:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">date_str</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">):</span>
+            <span class="n">str_format</span> <span class="o">=</span> <span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1">&#39;</span>
+        <span class="k">elif</span> <span class="n">date_str</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">):</span>
+            <span class="n">str_format</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%d</span><span class="s1">.%m.%Y&#39;</span>
+        <span class="k">elif</span> <span class="n">date_str</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">):</span>
+            <span class="n">str_format</span> <span class="o">=</span> <span class="s1">&#39;%m/</span><span class="si">%d</span><span class="s1">/%Y&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">str_format</span> <span class="o">=</span> <span class="s1">&#39;%Y%m</span><span class="si">%d</span><span class="s1">&#39;</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">date_str</span><span class="p">,</span> <span class="n">str_format</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">from_ymd</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">month</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">day</span><span class="p">)</span></div>
+
+    <span class="c1"># --- cast methods -------------------------------------------------------</span>
+<div class="viewcode-block" id="BusinessDate.to_bankdate"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.to_bankdate">[docs]</a>    <span class="k">def</span> <span class="nf">to_bankdate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">origin_date</span><span class="p">):</span>
+        <span class="c1"># deprecated</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_businessdate</span><span class="p">(</span><span class="n">origin_date</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BusinessDate.to_businessdate"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.to_businessdate">[docs]</a>    <span class="k">def</span> <span class="nf">to_businessdate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">origin_date</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="BusinessDate.to_period"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.to_period">[docs]</a>    <span class="k">def</span> <span class="nf">to_period</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">origin_date</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># deprecated</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_businessperiod</span><span class="p">(</span><span class="n">origin_date</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BusinessDate.to_businessperiod"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.to_businessperiod">[docs]</a>    <span class="k">def</span> <span class="nf">to_businessperiod</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">origin_date</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">origin_date</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">origin_date</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="p">()</span>
+        <span class="n">y</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">d</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">origin_date</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">BusinessPeriod</span><span class="p">(</span><span class="n">years</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">months</span><span class="o">=</span><span class="n">m</span><span class="p">,</span> <span class="n">days</span><span class="o">=</span><span class="n">d</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BusinessDate.to_excel"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.to_excel">[docs]</a>    <span class="k">def</span> <span class="nf">to_excel</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">y</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_ymd</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">from_ymd_to_excel</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BusinessDate.to_ymd"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.to_ymd">[docs]</a>    <span class="k">def</span> <span class="nf">to_ymd</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">BusinessDate</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">to_ymd</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BusinessDate.to_date"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.to_date">[docs]</a>    <span class="k">def</span> <span class="nf">to_date</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        construct datetime.date instance represented calendar date of BusinessDate instance</span>
+
+<span class="sd">        :return datetime.date:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">y</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_ymd</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">date</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BusinessDate.to_ordinal"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.to_ordinal">[docs]</a>    <span class="k">def</span> <span class="nf">to_ordinal</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_date</span><span class="p">()</span><span class="o">.</span><span class="n">toordinal</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="BusinessDate.to_string"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.to_string">[docs]</a>    <span class="k">def</span> <span class="nf">to_string</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        return BusinessDate as &#39;date.strftime(DATE_FORMAT)&#39;</span>
+
+<span class="sd">        :return string:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_date</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="n">DATE_FORMAT</span><span class="p">)</span></div>
+
+    <span class="c1"># --- inherited validation and validation methods ------------------------</span>
+    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="BusinessDate.is_leap_year"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.is_leap_year">[docs]</a>    <span class="k">def</span> <span class="nf">is_leap_year</span><span class="p">(</span><span class="n">year</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        returns True for leap year and False otherwise</span>
+
+<span class="sd">        :param int year: calendar year</span>
+<span class="sd">        :return bool:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">is_leap_year</span><span class="p">(</span><span class="n">year</span><span class="p">)</span></div>
+
+    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="BusinessDate.days_in_year"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.days_in_year">[docs]</a>    <span class="k">def</span> <span class="nf">days_in_year</span><span class="p">(</span><span class="n">year</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        returns number of days in the given calendar year</span>
+
+<span class="sd">        :param int year: calendar year</span>
+<span class="sd">        :return int:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">days_in_year</span><span class="p">(</span><span class="n">year</span><span class="p">)</span></div>
+
+    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="BusinessDate.days_in_month"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.days_in_month">[docs]</a>    <span class="k">def</span> <span class="nf">days_in_month</span><span class="p">(</span><span class="n">year</span><span class="p">,</span> <span class="n">month</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        returns number of days for the given year and month</span>
+
+<span class="sd">        :param int year: calendar year</span>
+<span class="sd">        :param int month: calendar month</span>
+<span class="sd">        :return int:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">days_in_month</span><span class="p">(</span><span class="n">year</span><span class="p">,</span> <span class="n">month</span><span class="p">)</span></div>
+
+    <span class="c1"># --- own validation and information methods -----------------------------</span>
+    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="BusinessDate.is_date"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.is_date">[docs]</a>    <span class="k">def</span> <span class="nf">is_date</span><span class="p">(</span><span class="n">in_date</span><span class="p">):</span>
+        <span class="c1"># deprecated</span>
+        <span class="k">return</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">is_businessdate</span><span class="p">(</span><span class="n">in_date</span><span class="p">)</span></div>
+
+    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="BusinessDate.is_businessdate"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.is_businessdate">[docs]</a>    <span class="k">def</span> <span class="nf">is_businessdate</span><span class="p">(</span><span class="n">in_date</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        checks whether the provided date is a date</span>
+<span class="sd">        :param BusinessDate, int or float in_date:</span>
+<span class="sd">        :return bool:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Note: if the data range has been created from pace_xl, then all the dates are bank dates</span>
+        <span class="c1"># and here it remains to check the validity.</span>
+        <span class="c1"># !!! However, if the data has been read from json string via json.load() function</span>
+        <span class="c1"># it does not recognize that this numbers are bankdates, just considers them as integers</span>
+        <span class="c1"># therefore, additional check is useful here, first to convert the date if it is integer to BusinessDate,</span>
+        <span class="c1"># then check the validity.</span>
+        <span class="c1"># (as the parameter to this method should always be a BusinessDate)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">in_date</span><span class="p">,</span> <span class="n">BaseDate</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>  <span class="c1"># to be removed</span>
+                <span class="n">in_date</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="p">(</span><span class="n">in_date</span><span class="p">)</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+        <span class="n">y</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="o">=</span> <span class="n">in_date</span><span class="o">.</span><span class="n">to_ymd</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">is_valid_ymd</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span></div>
+
+    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="BusinessDate.end_of_month"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.end_of_month">[docs]</a>    <span class="k">def</span> <span class="nf">end_of_month</span><span class="p">(</span><span class="n">year</span><span class="p">,</span> <span class="n">month</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">from_date</span><span class="p">(</span><span class="n">date</span><span class="p">(</span><span class="n">year</span><span class="p">,</span> <span class="n">month</span><span class="p">,</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">days_in_month</span><span class="p">(</span><span class="n">year</span><span class="p">,</span> <span class="n">month</span><span class="p">)))</span></div>
+
+    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="BusinessDate.end_of_quarter"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.end_of_quarter">[docs]</a>    <span class="k">def</span> <span class="nf">end_of_quarter</span><span class="p">(</span><span class="n">year</span><span class="p">,</span> <span class="n">month</span><span class="p">):</span>
+        <span class="k">while</span> <span class="ow">not</span> <span class="n">month</span> <span class="o">%</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">month</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">end_of_month</span><span class="p">(</span><span class="n">year</span><span class="p">,</span> <span class="n">month</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BusinessDate.is_businessday"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.is_businessday">[docs]</a>    <span class="k">def</span> <span class="nf">is_businessday</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">holiday_obj</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :param holiday_obj:</span>
+<span class="sd">        :return:</span>
+
+<span class="sd">        deprecated method</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_business_day</span><span class="p">(</span><span class="n">holiday_obj</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BusinessDate.is_business_day"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.is_business_day">[docs]</a>    <span class="k">def</span> <span class="nf">is_business_day</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">holiday_obj</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :param list holiday_obj : datetime.date list defining businessholidays</span>
+<span class="sd">        :return: bool</span>
+
+<span class="sd">        method to check if a date falls neither on weekend nor is holiday</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">holiday_obj</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">holiday_obj</span> <span class="o">=</span> <span class="n">DEFAULT_HOLIDAYS</span>
+
+        <span class="n">y</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">d</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">to_ymd</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">weekday</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">FRIDAY</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">elif</span> <span class="n">date</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span> <span class="ow">in</span> <span class="n">holiday_obj</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span></div>
+    
+<div class="viewcode-block" id="BusinessDate.is_almost_equal"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.is_almost_equal">[docs]</a>    <span class="k">def</span> <span class="nf">is_almost_equal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">date</span><span class="p">,</span> <span class="n">deferred_days</span> <span class="o">=</span> <span class="n">DEFERRED_DAYS</span><span class="p">):</span>
+        <span class="n">left</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_days</span><span class="p">(</span><span class="o">-</span><span class="n">deferred_days</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">date</span> <span class="o">&lt;</span> <span class="n">left</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="n">right</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_days</span><span class="p">(</span><span class="n">deferred_days</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">date</span> <span class="o">&gt;</span> <span class="n">right</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+    
+    <span class="c1"># --- inherited calculation methods --------------------------------------</span>
+<div class="viewcode-block" id="BusinessDate.add_days"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.add_days">[docs]</a>    <span class="k">def</span> <span class="nf">add_days</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">days</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">BusinessDate</span><span class="p">(</span><span class="n">BaseDate</span><span class="o">.</span><span class="n">add_days</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">days</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="BusinessDate.add_years"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.add_years">[docs]</a>    <span class="k">def</span> <span class="nf">add_years</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">years</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">BusinessDate</span><span class="p">(</span><span class="n">BaseDate</span><span class="o">.</span><span class="n">add_years</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">years</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="BusinessDate.diff_in_days"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.diff_in_days">[docs]</a>    <span class="k">def</span> <span class="nf">diff_in_days</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">end_bd</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">BaseDate</span><span class="o">.</span><span class="n">diff_in_days</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">end_bd</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BusinessDate.diff_in_years"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.diff_in_years">[docs]</a>    <span class="k">def</span> <span class="nf">diff_in_years</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">end_bd</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">BaseDate</span><span class="o">.</span><span class="n">diff_in_years</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">end_bd</span><span class="p">)</span></div>
+
+    <span class="c1"># --- own calculation methods --------------------------------------------</span>
+<div class="viewcode-block" id="BusinessDate.add_period"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.add_period">[docs]</a>    <span class="k">def</span> <span class="nf">add_period</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        addition of a period object</span>
+
+<span class="sd">        :param BusinessDate d:</span>
+<span class="sd">        :param BusinessPeriod, str p:</span>
+<span class="sd">        :return bankdate:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">BusinessDate</span><span class="o">.</span><span class="n">add_period</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pd</span><span class="p">)</span> <span class="k">for</span> <span class="n">pd</span> <span class="ow">in</span> <span class="n">p</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">period</span> <span class="o">=</span> <span class="n">BusinessPeriod</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">period</span> <span class="o">=</span> <span class="n">p</span>
+
+        <span class="n">res</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">add_years</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">period</span><span class="o">.</span><span class="n">years</span><span class="p">)</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">add_months</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">period</span><span class="o">.</span><span class="n">months</span><span class="p">)</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">add_days</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">period</span><span class="o">.</span><span class="n">days</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">period</span><span class="o">.</span><span class="n">businessdays</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">add_businessdays</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">period</span><span class="o">.</span><span class="n">businessdays</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">res</span></div>
+
+<div class="viewcode-block" id="BusinessDate.add_months"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.add_months">[docs]</a>    <span class="k">def</span> <span class="nf">add_months</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">month_int</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        addition of a number of months</span>
+
+<span class="sd">        :param BusinessDate d:</span>
+<span class="sd">        :param int month_int:</span>
+<span class="sd">        :return bankdate:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">month_int</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">month</span>
+        <span class="k">while</span> <span class="n">month_int</span> <span class="o">&gt;</span> <span class="mi">12</span><span class="p">:</span>
+            <span class="bp">self</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">add_years</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">month_int</span> <span class="o">-=</span> <span class="mi">12</span>
+        <span class="k">while</span> <span class="n">month_int</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="bp">self</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">add_years</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">month_int</span> <span class="o">+=</span> <span class="mi">12</span>
+        <span class="n">l</span> <span class="o">=</span> <span class="n">monthrange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="n">month_int</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">from_ymd</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="n">month_int</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">day</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="BusinessDate.add_businessdays"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.add_businessdays">[docs]</a>    <span class="k">def</span> <span class="nf">add_businessdays</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">days_int</span><span class="p">,</span> <span class="n">holiday_obj</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># deprecated</span>
+        <span class="k">return</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">add_business_days</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">days_int</span><span class="p">,</span> <span class="n">holiday_obj</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BusinessDate.add_business_days"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.add_business_days">[docs]</a>    <span class="k">def</span> <span class="nf">add_business_days</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">days_int</span><span class="p">,</span> <span class="n">holiday_obj</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        private method for the addition of business days, used in the addition of a BusinessPeriod only</span>
+
+<span class="sd">        :param BusinessDate d:</span>
+<span class="sd">        :param int days_int:</span>
+<span class="sd">        :param list holiday_obj:</span>
+<span class="sd">        :return bankdate:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span>
+        <span class="k">if</span> <span class="n">days_int</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">while</span> <span class="n">count</span> <span class="o">&lt;</span> <span class="n">days_int</span><span class="p">:</span>
+                <span class="n">res</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">add_days</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">is_businessday</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">holiday_obj</span><span class="p">):</span>
+                    <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">while</span> <span class="n">count</span> <span class="o">&gt;</span> <span class="n">days_int</span><span class="p">:</span>
+                <span class="n">res</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">add_days</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">is_businessday</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">holiday_obj</span><span class="p">):</span>
+                    <span class="n">count</span> <span class="o">-=</span> <span class="mi">1</span>
+
+        <span class="k">return</span> <span class="n">res</span></div>
+
+<div class="viewcode-block" id="BusinessDate.diff"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.diff">[docs]</a>    <span class="k">def</span> <span class="nf">diff</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">end_date</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        difference expressed as a tuple of years, months, days</span>
+<span class="sd">        (see also the python lib dateutils.relativedelta)</span>
+
+<span class="sd">        :param BusinessDate start_date:</span>
+<span class="sd">        :param BusinessDate end_date:</span>
+<span class="sd">        :return (int, int, int):</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">end_date</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="n">y</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">d</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">end_date</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+            <span class="k">return</span> <span class="o">-</span><span class="n">y</span><span class="p">,</span> <span class="o">-</span><span class="n">m</span><span class="p">,</span> <span class="o">-</span><span class="n">d</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">end_date</span><span class="o">.</span><span class="n">year</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">year</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="n">end_date</span><span class="o">.</span><span class="n">month</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">month</span>
+
+        <span class="k">while</span> <span class="n">m</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">y</span> <span class="o">-=</span> <span class="mi">1</span>
+            <span class="n">m</span> <span class="o">+=</span> <span class="mi">12</span>
+        <span class="k">while</span> <span class="n">m</span> <span class="o">&gt;</span> <span class="mi">12</span><span class="p">:</span>
+            <span class="n">y</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">m</span> <span class="o">-=</span> <span class="mi">12</span>
+
+        <span class="n">s</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">add_years</span><span class="p">(</span><span class="n">BusinessDate</span><span class="o">.</span><span class="n">add_months</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">m</span><span class="p">),</span> <span class="n">y</span><span class="p">)</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">diff_in_days</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">end_date</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">d</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">m</span> <span class="o">-=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">m</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">y</span> <span class="o">-=</span> <span class="mi">1</span>
+                <span class="n">m</span> <span class="o">+=</span> <span class="mi">12</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">add_years</span><span class="p">(</span><span class="n">BusinessDate</span><span class="o">.</span><span class="n">add_months</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">m</span><span class="p">),</span> <span class="n">y</span><span class="p">)</span>
+
+        <span class="n">d</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">diff_in_days</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">end_date</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">m</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">d</span><span class="p">)</span></div>
+
+    <span class="c1"># --- day count fraction methods -----------------------------------------</span>
+<div class="viewcode-block" id="BusinessDate.get_30_360"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.get_30_360">[docs]</a>    <span class="k">def</span> <span class="nf">get_30_360</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">end</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            implements 30/360 day count convention</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">start_day</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">day</span><span class="p">,</span> <span class="mi">30</span><span class="p">)</span>
+        <span class="n">end_day</span> <span class="o">=</span> <span class="mi">30</span> <span class="k">if</span> <span class="p">(</span><span class="n">start_day</span> <span class="o">==</span> <span class="mi">30</span> <span class="ow">and</span> <span class="n">end</span><span class="o">.</span><span class="n">day</span> <span class="o">==</span> <span class="mi">31</span><span class="p">)</span> <span class="k">else</span> <span class="n">end</span><span class="o">.</span><span class="n">day</span>
+        <span class="k">return</span> <span class="p">(</span><span class="mi">360</span> <span class="o">*</span> <span class="p">(</span><span class="n">end</span><span class="o">.</span><span class="n">year</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">year</span><span class="p">)</span> <span class="o">+</span> <span class="mi">30</span> <span class="o">*</span> <span class="p">(</span><span class="n">end</span><span class="o">.</span><span class="n">month</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">month</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">end_day</span> <span class="o">-</span> <span class="n">start_day</span><span class="p">))</span> <span class="o">/</span> <span class="mf">360.0</span></div>
+
+<div class="viewcode-block" id="BusinessDate.get_act_36525"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.get_act_36525">[docs]</a>    <span class="k">def</span> <span class="nf">get_act_36525</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">end</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            implements Act/365.25 day count convention</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">diff_in_days</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span> <span class="o">/</span> <span class="mf">365.25</span></div>
+
+<div class="viewcode-block" id="BusinessDate.get_act_365"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.get_act_365">[docs]</a>    <span class="k">def</span> <span class="nf">get_act_365</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">end</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            implements Act/365 day count convention</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">diff_in_days</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span> <span class="o">/</span> <span class="mf">365.0</span></div>
+
+<div class="viewcode-block" id="BusinessDate.get_act_360"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.get_act_360">[docs]</a>    <span class="k">def</span> <span class="nf">get_act_360</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">end</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            implements Act/360 day count convention</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">diff_in_days</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span> <span class="o">/</span> <span class="mf">360.0</span></div>
+
+<div class="viewcode-block" id="BusinessDate.get_act_act"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.get_act_act">[docs]</a>    <span class="k">def</span> <span class="nf">get_act_act</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">end</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            implements Act/Act day count convention</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># split end-self in year portions</span>
+        <span class="k">if</span> <span class="n">end</span><span class="o">.</span><span class="n">year</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">year</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">is_leap_year</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">year</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">diff_in_days</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span> <span class="o">/</span> <span class="mf">366.0</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">diff_in_days</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span> <span class="o">/</span> <span class="mf">366.0</span>
+        <span class="k">elif</span> <span class="n">end</span><span class="o">.</span><span class="n">year</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">year</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">is_leap_year</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">year</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">diff_in_days</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">from_date</span><span class="p">(</span><span class="n">date</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">31</span><span class="p">)))</span> <span class="o">/</span> <span class="mf">366.0</span> <span class="o">+</span> \
+                       <span class="n">BusinessDate</span><span class="o">.</span><span class="n">diff_in_days</span><span class="p">(</span><span class="n">BusinessDate</span><span class="o">.</span><span class="n">from_date</span><span class="p">(</span><span class="n">date</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">31</span><span class="p">)),</span> <span class="n">end</span><span class="p">)</span> <span class="o">/</span> <span class="mf">365.0</span>
+            <span class="k">elif</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">is_leap_year</span><span class="p">(</span><span class="n">end</span><span class="o">.</span><span class="n">year</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">diff_in_days</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">from_date</span><span class="p">(</span><span class="n">date</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">31</span><span class="p">)))</span> <span class="o">/</span> <span class="mf">365.0</span> <span class="o">+</span> \
+                       <span class="n">BusinessDate</span><span class="o">.</span><span class="n">diff_in_days</span><span class="p">(</span><span class="n">BusinessDate</span><span class="o">.</span><span class="n">from_date</span><span class="p">(</span><span class="n">date</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">31</span><span class="p">)),</span> <span class="n">end</span><span class="p">)</span> <span class="o">/</span> <span class="mf">366.0</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">diff_in_days</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span> <span class="o">/</span> <span class="mf">365.0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Act/Act day count not implemented for periods spanning three years or more.&#39;</span><span class="p">)</span></div>
+
+    <span class="c1"># --- business day adjustment methods ------------------------------------</span>
+<div class="viewcode-block" id="BusinessDate.adjust_previous"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.adjust_previous">[docs]</a>    <span class="k">def</span> <span class="nf">adjust_previous</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">holidays_obj</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">while</span> <span class="ow">not</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">is_businessday</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">holidays_obj</span><span class="p">):</span>
+            <span class="bp">self</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">add_days</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="BusinessDate.adjust_follow"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.adjust_follow">[docs]</a>    <span class="k">def</span> <span class="nf">adjust_follow</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">holidays_obj</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">while</span> <span class="ow">not</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">is_businessday</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">holidays_obj</span><span class="p">):</span>
+            <span class="bp">self</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">add_days</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="BusinessDate.adjust_mod_follow"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.adjust_mod_follow">[docs]</a>    <span class="k">def</span> <span class="nf">adjust_mod_follow</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">holidays_obj</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">month</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">month</span>
+        <span class="n">new</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">adjust_follow</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">holidays_obj</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">month</span> <span class="o">!=</span> <span class="n">new</span><span class="o">.</span><span class="n">month</span><span class="p">:</span>
+            <span class="n">new</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">adjust_previous</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">holidays_obj</span><span class="p">)</span>
+        <span class="bp">self</span> <span class="o">=</span> <span class="n">new</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="BusinessDate.adjust_mod_previous"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.adjust_mod_previous">[docs]</a>    <span class="k">def</span> <span class="nf">adjust_mod_previous</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">holidays_obj</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">month</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">month</span>
+        <span class="n">new</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">adjust_previous</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">holidays_obj</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">month</span> <span class="o">!=</span> <span class="n">new</span><span class="o">.</span><span class="n">month</span><span class="p">:</span>
+            <span class="n">new</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">adjust_follow</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">holidays_obj</span><span class="p">)</span>
+        <span class="bp">self</span> <span class="o">=</span> <span class="n">new</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="BusinessDate.adjust_start_of_month"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.adjust_start_of_month">[docs]</a>    <span class="k">def</span> <span class="nf">adjust_start_of_month</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">holidays_obj</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">from_date</span><span class="p">(</span><span class="n">date</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">month</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="bp">self</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">adjust_follow</span><span class="p">(</span><span class="n">holidays_obj</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="BusinessDate.adjust_end_of_month"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.adjust_end_of_month">[docs]</a>    <span class="k">def</span> <span class="nf">adjust_end_of_month</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">holidays_obj</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">end_of_month</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">month</span><span class="p">)</span>
+        <span class="bp">self</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">adjust_previous</span><span class="p">(</span><span class="n">holidays_obj</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="BusinessDate.adjust_imm"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.adjust_imm">[docs]</a>    <span class="k">def</span> <span class="nf">adjust_imm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">holidays_obj</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">end_of_quarter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">month</span><span class="p">)</span>
+        <span class="bp">self</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">from_date</span><span class="p">(</span><span class="n">date</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">month</span><span class="p">,</span> <span class="mi">15</span><span class="p">))</span>
+        <span class="k">while</span> <span class="n">weekday</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">month</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">day</span><span class="p">)</span> <span class="o">==</span> <span class="n">WEDNESDAY</span><span class="p">:</span>
+            <span class="n">BusinessDate</span><span class="o">.</span><span class="n">add_days</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="BusinessDate.adjust_cds_imm"><a class="viewcode-back" href="../api.html#businessdate.BusinessDate.adjust_cds_imm">[docs]</a>    <span class="k">def</span> <span class="nf">adjust_cds_imm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">holidays_obj</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">eoq</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">end_of_quarter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">month</span><span class="p">)</span>
+        <span class="bp">self</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">from_date</span><span class="p">(</span><span class="n">date</span><span class="p">(</span><span class="n">eoq</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="n">eoq</span><span class="o">.</span><span class="n">month</span><span class="p">,</span> <span class="mi">20</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span></div></div>
+
+
+<div class="viewcode-block" id="BusinessPeriod"><a class="viewcode-back" href="../api.html#businessdate.BusinessPeriod">[docs]</a><span class="k">class</span> <span class="nc">BusinessPeriod</span><span class="p">(</span><span class="n">BasePeriod</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">new</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">BusinessPeriod</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">new</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">period_in</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">holiday</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">years</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">months</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">days</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">businessdays</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        class managing date periods like days, weeks, years etc.</span>
+
+<span class="sd">        :param period_in:</span>
+<span class="sd">        :param holiday:</span>
+<span class="sd">        :param years:</span>
+<span class="sd">        :param months:</span>
+<span class="sd">        :param days:</span>
+<span class="sd">        :param businessdays:</span>
+
+<span class="sd">        representation of a time BusinessPeriod, similar to dateutils.relativedelta, but with additional business day logic</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="nb">super</span><span class="p">(</span><span class="n">BusinessPeriod</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">period_in</span><span class="p">,</span> <span class="n">BusinessPeriod</span><span class="p">):</span>
+            <span class="n">years</span> <span class="o">=</span> <span class="n">period_in</span><span class="o">.</span><span class="n">years</span>
+            <span class="n">months</span> <span class="o">=</span> <span class="n">period_in</span><span class="o">.</span><span class="n">months</span>
+            <span class="n">days</span> <span class="o">=</span> <span class="n">period_in</span><span class="o">.</span><span class="n">days</span>
+            <span class="n">businessdays</span> <span class="o">=</span> <span class="n">period_in</span><span class="o">.</span><span class="n">businessdays</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">period_in</span><span class="p">,</span> <span class="n">timedelta</span><span class="p">):</span>
+            <span class="n">days</span> <span class="o">+=</span> <span class="n">timedelta</span><span class="o">.</span><span class="n">days</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">period_in</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">period_in</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">y</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">d</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">period_in</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">period_in</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">years</span> <span class="o">+=</span> <span class="n">y</span>
+                <span class="n">months</span> <span class="o">+=</span> <span class="n">m</span>
+                <span class="n">days</span> <span class="o">+=</span> <span class="n">d</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">period_in</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">period_in</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">):</span>
+                <span class="n">p</span> <span class="o">=</span> <span class="n">BusinessPeriod</span><span class="p">(</span><span class="n">period_in</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+                <span class="n">years</span> <span class="o">-=</span> <span class="n">p</span><span class="o">.</span><span class="n">years</span>
+                <span class="n">months</span> <span class="o">-=</span> <span class="n">p</span><span class="o">.</span><span class="n">months</span>
+                <span class="n">days</span> <span class="o">-=</span> <span class="n">p</span><span class="o">.</span><span class="n">days</span>
+                <span class="n">businessdays</span> <span class="o">-=</span> <span class="n">p</span><span class="o">.</span><span class="n">businessdays</span>
+            <span class="k">elif</span> <span class="n">period_in</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;ON&#39;</span><span class="p">:</span>
+                <span class="n">businessdays</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">elif</span> <span class="n">period_in</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;TN&#39;</span><span class="p">:</span>
+                <span class="n">businessdays</span> <span class="o">+=</span> <span class="mi">2</span>
+            <span class="k">elif</span> <span class="n">period_in</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;DD&#39;</span><span class="p">:</span>
+                <span class="n">businessdays</span> <span class="o">+=</span> <span class="mi">3</span>
+            <span class="k">elif</span> <span class="n">period_in</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;B&#39;</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">businessdays</span> <span class="o">+=</span> <span class="nb">int</span><span class="p">(</span><span class="n">period_in</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;B&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">y</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">d</span> <span class="o">=</span> <span class="n">BusinessPeriod</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">period_in</span><span class="p">)</span>
+                <span class="n">years</span> <span class="o">+=</span> <span class="n">y</span>
+                <span class="n">months</span> <span class="o">+=</span> <span class="n">m</span>
+                <span class="n">days</span> <span class="o">+=</span> <span class="n">d</span>
+        <span class="k">if</span> <span class="n">holiday</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">holiday</span> <span class="o">=</span> <span class="n">DEFAULT_HOLIDAYS</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">holiday</span> <span class="o">=</span> <span class="n">holiday</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">years</span> <span class="o">=</span> <span class="n">years</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">months</span> <span class="o">=</span> <span class="n">months</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">days</span> <span class="o">=</span> <span class="n">days</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">businessdays</span> <span class="o">=</span> <span class="n">businessdays</span>
+
+    <span class="c1"># --- constructor methods ------------------------------------------------</span>
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="BusinessPeriod.from_string"><a class="viewcode-back" href="../api.html#businessdate.BusinessPeriod.from_string">[docs]</a>    <span class="k">def</span> <span class="nf">from_string</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">period_in</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">BusinessPeriod</span><span class="p">(</span><span class="n">period_in</span><span class="p">)</span></div>
+
+    <span class="c1"># --- validation and information methods ---------------------------------</span>
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="BusinessPeriod.parse"><a class="viewcode-back" href="../api.html#businessdate.BusinessPeriod.parse">[docs]</a>    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">period_str</span><span class="p">):</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">period_str</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+        <span class="n">Y</span><span class="p">,</span> <span class="n">Q</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">D</span> <span class="o">=</span> <span class="s1">&#39;00000&#39;</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;Y&#39;</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="p">[</span><span class="n">Y</span><span class="p">,</span> <span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;Y&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;Q&#39;</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="p">[</span><span class="n">Q</span><span class="p">,</span> <span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;Q&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;M&#39;</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="p">[</span><span class="n">M</span><span class="p">,</span> <span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;M&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;W&#39;</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="p">[</span><span class="n">W</span><span class="p">,</span> <span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;W&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;D&#39;</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="p">[</span><span class="n">D</span><span class="p">,</span> <span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;D&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">Y</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()</span> <span class="ow">and</span> <span class="n">Q</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()</span> <span class="ow">and</span> <span class="n">M</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()</span> <span class="ow">and</span> <span class="n">W</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()</span> <span class="ow">and</span> <span class="n">D</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">Y</span><span class="p">)</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">Q</span><span class="p">)</span> <span class="o">*</span> <span class="mi">3</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="n">M</span><span class="p">)</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">W</span><span class="p">)</span> <span class="o">*</span> <span class="mi">7</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="n">D</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span></div>
+
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="BusinessPeriod.is_period"><a class="viewcode-back" href="../api.html#businessdate.BusinessPeriod.is_period">[docs]</a>    <span class="k">def</span> <span class="nf">is_period</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">in_period</span><span class="p">):</span>
+        <span class="c1"># deprecated</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">is_businessperiod</span><span class="p">(</span><span class="n">in_period</span><span class="p">)</span></div>
+
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="BusinessPeriod.is_businessperiod"><a class="viewcode-back" href="../api.html#businessdate.BusinessPeriod.is_businessperiod">[docs]</a>    <span class="k">def</span> <span class="nf">is_businessperiod</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">in_period</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :param in_period: object to be checked</span>
+<span class="sd">        :type in_period: object, str, timedelta</span>
+<span class="sd">        :return: True if cast works</span>
+<span class="sd">        :rtype: Boolean</span>
+
+<span class="sd">        checks is argument con becasted to BusinessPeriod</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>  <span class="c1"># to be removed</span>
+            <span class="k">if</span> <span class="n">in_period</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;0D&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">True</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">p</span> <span class="o">=</span> <span class="n">BusinessPeriod</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">in_period</span><span class="p">))</span>
+                <span class="k">return</span> <span class="ow">not</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">days</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">months</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">years</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">businessdays</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span></div>
+
+    <span class="c1"># --- property methods ---------------------------------------------------</span>
+    <span class="k">pass</span>
+
+    <span class="c1"># --- operator methods ---------------------------------------------------</span>
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_string</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1">#        return self.__class__.__name__ + &#39;(&#39; + self.to_string() + &#39;)&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_string</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__abs__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">years</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">years</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">months</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">months</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">days</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">days</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">businessdays</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">businessdays</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__cmp__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">==</span> <span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">),</span> <span class="s2">&quot;types don&#39;t match </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">((</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span> <span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">)))</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">diff_in_days</span><span class="p">(</span><span class="n">BusinessDate</span><span class="o">.</span><span class="n">add_period</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="bp">self</span><span class="p">),</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">add_period</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">other</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="mf">0.0</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">__cmp__</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">__ne__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__eq__</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__nonzero__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">True</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">years</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">months</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">days</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">businessdays</span> <span class="k">else</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">__add__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="fm">__add__</span><span class="p">(</span><span class="n">o</span><span class="p">)</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">other</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">BusinessPeriod</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">BusinessPeriod</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">add_businessperiod</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">BusinessPeriod</span><span class="o">.</span><span class="n">is_period</span><span class="p">(</span><span class="n">other</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span> <span class="o">+</span> <span class="n">BusinessPeriod</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span>
+
+    <span class="k">def</span> <span class="nf">__sub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="n">per</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__rsub__</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">BusinessPeriod</span><span class="p">(</span><span class="n">years</span><span class="o">=-</span><span class="n">per</span><span class="o">.</span><span class="n">years</span><span class="p">,</span> <span class="n">months</span><span class="o">=-</span><span class="n">per</span><span class="o">.</span><span class="n">months</span><span class="p">,</span> <span class="n">days</span><span class="o">=-</span><span class="n">per</span><span class="o">.</span><span class="n">days</span><span class="p">,</span> <span class="n">businessdays</span><span class="o">=-</span><span class="n">per</span><span class="o">.</span><span class="n">businessdays</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__rsub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="fm">__rsub__</span><span class="p">(</span><span class="n">o</span><span class="p">)</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">other</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">BusinessPeriod</span><span class="o">.</span><span class="n">is_period</span><span class="p">(</span><span class="n">other</span><span class="p">):</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">BusinessPeriod</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">years</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">years</span>
+            <span class="n">m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">months</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">months</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">days</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">days</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">businessdays</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">businessdays</span>
+            <span class="n">other</span> <span class="o">=</span> <span class="n">BusinessPeriod</span><span class="p">(</span><span class="n">years</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">months</span><span class="o">=</span><span class="n">m</span><span class="p">,</span> <span class="n">days</span><span class="o">=</span><span class="n">d</span><span class="p">,</span> <span class="n">businessdays</span><span class="o">=</span><span class="n">b</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span>
+        <span class="k">return</span> <span class="n">other</span>
+
+    <span class="k">def</span> <span class="nf">__mul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="fm">__mul__</span><span class="p">(</span><span class="n">o</span><span class="p">)</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">other</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">long</span><span class="p">)):</span>
+            <span class="k">pass</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">long</span><span class="p">)),</span> <span class="s2">&quot;expected int or long but got </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">))</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">years</span> <span class="o">*</span> <span class="n">other</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">months</span> <span class="o">*</span> <span class="n">other</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">days</span> <span class="o">*</span> <span class="n">other</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">businessdays</span> <span class="o">*</span> <span class="n">other</span>
+        <span class="k">return</span> <span class="n">BusinessPeriod</span><span class="p">(</span><span class="n">years</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">months</span><span class="o">=</span><span class="n">m</span><span class="p">,</span> <span class="n">days</span><span class="o">=</span><span class="n">d</span><span class="p">,</span> <span class="n">businessdays</span><span class="o">=</span><span class="n">b</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__rmul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__mul__</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+
+    <span class="c1"># --- calculation methods ------------------------------------------------</span>
+<div class="viewcode-block" id="BusinessPeriod.add_years"><a class="viewcode-back" href="../api.html#businessdate.BusinessPeriod.add_years">[docs]</a>    <span class="k">def</span> <span class="nf">add_years</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">years_int</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">years</span> <span class="o">+=</span> <span class="n">years_int</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="BusinessPeriod.add_months"><a class="viewcode-back" href="../api.html#businessdate.BusinessPeriod.add_months">[docs]</a>    <span class="k">def</span> <span class="nf">add_months</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">months_int</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">months</span> <span class="o">+=</span> <span class="n">months_int</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="BusinessPeriod.add_days"><a class="viewcode-back" href="../api.html#businessdate.BusinessPeriod.add_days">[docs]</a>    <span class="k">def</span> <span class="nf">add_days</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">days_int</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">days</span> <span class="o">+=</span> <span class="n">days_int</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="BusinessPeriod.add_businessdays"><a class="viewcode-back" href="../api.html#businessdate.BusinessPeriod.add_businessdays">[docs]</a>    <span class="k">def</span> <span class="nf">add_businessdays</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">days_int</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">businessdays</span> <span class="o">+=</span> <span class="n">days_int</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="BusinessPeriod.add_businessperiod"><a class="viewcode-back" href="../api.html#businessdate.BusinessPeriod.add_businessperiod">[docs]</a>    <span class="k">def</span> <span class="nf">add_businessperiod</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">years</span> <span class="o">+=</span> <span class="n">p</span><span class="o">.</span><span class="n">years</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">months</span> <span class="o">+=</span> <span class="n">p</span><span class="o">.</span><span class="n">months</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">days</span> <span class="o">+=</span> <span class="n">p</span><span class="o">.</span><span class="n">days</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">businessdays</span> <span class="o">+=</span> <span class="n">p</span><span class="o">.</span><span class="n">businessdays</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+    <span class="c1"># --- cast methods -------------------------------------------------------</span>
+<div class="viewcode-block" id="BusinessPeriod.to_date"><a class="viewcode-back" href="../api.html#businessdate.BusinessPeriod.to_date">[docs]</a>    <span class="k">def</span> <span class="nf">to_date</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start_date</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_bankdate</span><span class="p">(</span><span class="n">start_date</span><span class="p">)</span><span class="o">.</span><span class="n">to_date</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="BusinessPeriod.to_datetime"><a class="viewcode-back" href="../api.html#businessdate.BusinessPeriod.to_datetime">[docs]</a>    <span class="k">def</span> <span class="nf">to_datetime</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start_date</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_bankdate</span><span class="p">(</span><span class="n">start_date</span><span class="p">)</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="BusinessPeriod.to_bankdate"><a class="viewcode-back" href="../api.html#businessdate.BusinessPeriod.to_bankdate">[docs]</a>    <span class="k">def</span> <span class="nf">to_bankdate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start_date</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># deprecated</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_businessdate</span><span class="p">(</span><span class="n">start_date</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BusinessPeriod.to_businessdate"><a class="viewcode-back" href="../api.html#businessdate.BusinessPeriod.to_businessdate">[docs]</a>    <span class="k">def</span> <span class="nf">to_businessdate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start_date</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">start_date</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">add_period</span><span class="p">(</span><span class="n">start_date</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">add_period</span><span class="p">(</span><span class="n">BusinessDate</span><span class="p">(),</span> <span class="bp">self</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BusinessPeriod.to_period"><a class="viewcode-back" href="../api.html#businessdate.BusinessPeriod.to_period">[docs]</a>    <span class="k">def</span> <span class="nf">to_period</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start_date</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># deprecated</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_businessperiod</span><span class="p">(</span><span class="n">start_date</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BusinessPeriod.to_businessperiod"><a class="viewcode-back" href="../api.html#businessdate.BusinessPeriod.to_businessperiod">[docs]</a>    <span class="k">def</span> <span class="nf">to_businessperiod</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start_date</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="BusinessPeriod.to_string"><a class="viewcode-back" href="../api.html#businessdate.BusinessPeriod.to_string">[docs]</a>    <span class="k">def</span> <span class="nf">to_string</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">period_str</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">years</span><span class="p">:</span>
+            <span class="n">period_str</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">years</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;Y&#39;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">months</span><span class="p">:</span>
+            <span class="n">period_str</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">months</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;M&#39;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">days</span><span class="p">:</span>
+            <span class="n">period_str</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">days</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;D&#39;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">businessdays</span><span class="p">:</span>
+            <span class="n">period_str</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">businessdays</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;B&#39;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">period_str</span><span class="p">:</span>
+            <span class="n">period_str</span> <span class="o">+=</span> <span class="s1">&#39;0D&#39;</span>
+        <span class="k">return</span> <span class="n">period_str</span></div></div>
+
+
+<div class="viewcode-block" id="BusinessRange"><a class="viewcode-back" href="../api.html#businessdate.BusinessRange">[docs]</a><span class="k">class</span> <span class="nc">BusinessRange</span><span class="p">(</span><span class="nb">list</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rolling</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        range like class to build date list</span>
+
+<span class="sd">        :param start: date to begin schedule, if stop not given, start will be used as stop and</span>
+<span class="sd">            default in rolling to BusinessDate()</span>
+<span class="sd">        :type start: BusinessDate or int or str</span>
+<span class="sd">        :param stop: date to stop before, if not given, start will be used for stop instead</span>
+<span class="sd">        :type stop: BusinessDate or int or str</span>
+<span class="sd">        :param step: period to step schedule, if not given 1 year is default</span>
+<span class="sd">        :type step: BusinessPeriod or str</span>
+<span class="sd">        :param rolling: date to roll on (forward and backward) between start and stop,</span>
+<span class="sd">            if not given default will be start</span>
+<span class="sd">        :type rolling: BusinessDate or int or str</span>
+
+<span class="sd">        range like class to build BusinessDate schedule from rolling date and BusinessPeriod</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">stop</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">stop</span> <span class="o">=</span> <span class="n">start</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">step</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">step</span> <span class="o">=</span> <span class="n">BusinessPeriod</span><span class="p">(</span><span class="n">years</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">rolling</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">rolling</span> <span class="o">=</span> <span class="n">start</span>
+        <span class="c1"># make proper businessdate objects</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">BusinessDate</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">BusinessPeriod</span><span class="p">):</span>
+                <span class="n">start</span> <span class="o">=</span> <span class="n">start</span><span class="o">.</span><span class="n">to_businessdate</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">start</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rolling</span><span class="p">,</span> <span class="n">BusinessDate</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rolling</span><span class="p">,</span> <span class="n">BusinessPeriod</span><span class="p">):</span>
+                <span class="n">rolling</span> <span class="o">=</span> <span class="n">rolling</span><span class="o">.</span><span class="n">to_businessdate</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">rolling</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="p">(</span><span class="n">rolling</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">stop</span><span class="p">,</span> <span class="n">BusinessDate</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">stop</span><span class="p">,</span> <span class="n">BusinessPeriod</span><span class="p">):</span>
+                <span class="n">stop</span> <span class="o">=</span> <span class="n">stop</span><span class="o">.</span><span class="n">to_businessdate</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">stop</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="p">(</span><span class="n">stop</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">step</span><span class="p">,</span> <span class="n">BusinessPeriod</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">step</span><span class="p">,</span> <span class="n">BusinessDate</span><span class="p">):</span>
+                <span class="n">step</span> <span class="o">=</span> <span class="n">step</span><span class="o">.</span><span class="n">to_businessperiod</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">step</span> <span class="o">=</span> <span class="n">BusinessPeriod</span><span class="p">(</span><span class="n">step</span><span class="p">)</span>
+        <span class="c1"># roll schedule</span>
+        <span class="n">current</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="p">(</span><span class="n">rolling</span><span class="p">)</span>
+        <span class="n">schedule</span> <span class="o">=</span> <span class="p">[</span><span class="n">BusinessDate</span><span class="p">(</span><span class="n">rolling</span><span class="p">)]</span>
+        <span class="c1"># roll backward</span>
+        <span class="n">current</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">add_period</span><span class="p">(</span><span class="n">current</span><span class="p">,</span> <span class="n">step</span><span class="p">)</span>
+        <span class="k">while</span> <span class="n">current</span> <span class="o">&lt;</span> <span class="n">start</span><span class="p">:</span>
+            <span class="n">current</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">add_period</span><span class="p">(</span><span class="n">current</span><span class="p">,</span> <span class="n">step</span><span class="p">)</span>
+        <span class="k">while</span> <span class="n">current</span> <span class="o">&lt;</span> <span class="n">stop</span><span class="p">:</span>
+            <span class="n">schedule</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">current</span><span class="p">)</span>
+            <span class="n">current</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">add_period</span><span class="p">(</span><span class="n">current</span><span class="p">,</span> <span class="n">step</span><span class="p">)</span>
+        <span class="c1"># roll forward</span>
+        <span class="n">back_step</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">BusinessPeriod</span><span class="p">(</span><span class="n">step</span><span class="p">)</span>
+        <span class="n">current</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="p">(</span><span class="n">rolling</span><span class="p">)</span>
+        <span class="n">current</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">add_period</span><span class="p">(</span><span class="n">current</span><span class="p">,</span> <span class="n">back_step</span><span class="p">)</span>
+        <span class="k">while</span> <span class="n">stop</span> <span class="o">&lt;=</span> <span class="n">current</span><span class="p">:</span>
+            <span class="n">current</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">add_period</span><span class="p">(</span><span class="n">current</span><span class="p">,</span> <span class="n">back_step</span><span class="p">)</span>
+        <span class="k">while</span> <span class="n">start</span> <span class="o">&lt;=</span> <span class="n">current</span><span class="p">:</span>
+            <span class="n">schedule</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">current</span><span class="p">)</span>
+            <span class="n">current</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="o">.</span><span class="n">add_period</span><span class="p">(</span><span class="n">current</span><span class="p">,</span> <span class="n">back_step</span><span class="p">)</span>
+        <span class="c1"># remove rolldate if rolldate is enddate or later</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">start</span> <span class="o">&lt;=</span> <span class="n">rolling</span> <span class="o">&lt;</span> <span class="n">stop</span><span class="p">:</span>
+            <span class="n">schedule</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">rolling</span><span class="p">)</span>
+        <span class="c1"># push to super</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">BusinessRange</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">schedule</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+
+<div class="viewcode-block" id="BusinessRange.adjust"><a class="viewcode-back" href="../api.html#businessdate.BusinessRange.adjust">[docs]</a>    <span class="k">def</span> <span class="nf">adjust</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">convention</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">holidays_obj</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">convention</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">convention</span> <span class="o">=</span> <span class="s1">&#39;mod_follow&#39;</span>
+        <span class="n">adj_func</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">BusinessDate</span><span class="p">,</span> <span class="s1">&#39;adjust_&#39;</span> <span class="o">+</span> <span class="n">convention</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+        <span class="n">adj_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">adj_func</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">holidays_obj</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">]</span>
+        <span class="k">del</span> <span class="bp">self</span><span class="p">[:]</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">BusinessRange</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">adj_list</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="BusinessRange.adjust_previous"><a class="viewcode-back" href="../api.html#businessdate.BusinessRange.adjust_previous">[docs]</a>    <span class="k">def</span> <span class="nf">adjust_previous</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">holidays_obj</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">adjust</span><span class="p">(</span><span class="s1">&#39;previous&#39;</span><span class="p">,</span> <span class="n">holidays_obj</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BusinessRange.adjust_follow"><a class="viewcode-back" href="../api.html#businessdate.BusinessRange.adjust_follow">[docs]</a>    <span class="k">def</span> <span class="nf">adjust_follow</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">holidays_obj</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">adjust</span><span class="p">(</span><span class="s1">&#39;follow&#39;</span><span class="p">,</span> <span class="n">holidays_obj</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BusinessRange.adjust_mod_previous"><a class="viewcode-back" href="../api.html#businessdate.BusinessRange.adjust_mod_previous">[docs]</a>    <span class="k">def</span> <span class="nf">adjust_mod_previous</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">holidays_obj</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">adjust</span><span class="p">(</span><span class="s1">&#39;mod_previous&#39;</span><span class="p">,</span> <span class="n">holidays_obj</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BusinessRange.adjust_mod_follow"><a class="viewcode-back" href="../api.html#businessdate.BusinessRange.adjust_mod_follow">[docs]</a>    <span class="k">def</span> <span class="nf">adjust_mod_follow</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">holidays_obj</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">adjust</span><span class="p">(</span><span class="s1">&#39;mod_follow&#39;</span><span class="p">,</span> <span class="n">holidays_obj</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BusinessRange.adjust_start_of_month"><a class="viewcode-back" href="../api.html#businessdate.BusinessRange.adjust_start_of_month">[docs]</a>    <span class="k">def</span> <span class="nf">adjust_start_of_month</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">holidays_obj</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">adjust</span><span class="p">(</span><span class="s1">&#39;start_of_month&#39;</span><span class="p">,</span> <span class="n">holidays_obj</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BusinessRange.adjust_end_of_month"><a class="viewcode-back" href="../api.html#businessdate.BusinessRange.adjust_end_of_month">[docs]</a>    <span class="k">def</span> <span class="nf">adjust_end_of_month</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">holidays_obj</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">adjust</span><span class="p">(</span><span class="s1">&#39;end_of_month&#39;</span><span class="p">,</span> <span class="n">holidays_obj</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BusinessRange.adjust_imm"><a class="viewcode-back" href="../api.html#businessdate.BusinessRange.adjust_imm">[docs]</a>    <span class="k">def</span> <span class="nf">adjust_imm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">holidays_obj</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">adjust</span><span class="p">(</span><span class="s1">&#39;imm&#39;</span><span class="p">,</span> <span class="n">holidays_obj</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BusinessRange.adjust_cds_imm"><a class="viewcode-back" href="../api.html#businessdate.BusinessRange.adjust_cds_imm">[docs]</a>    <span class="k">def</span> <span class="nf">adjust_cds_imm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">holidays_obj</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">adjust</span><span class="p">(</span><span class="s1">&#39;cds_imm&#39;</span><span class="p">,</span> <span class="n">holidays_obj</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="BusinessSchedule"><a class="viewcode-back" href="../api.html#businessdate.BusinessSchedule">[docs]</a><span class="k">class</span> <span class="nc">BusinessSchedule</span><span class="p">(</span><span class="n">BusinessRange</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span> <span class="n">roll</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        class to build date schedules incl. start and end date</span>
+
+<span class="sd">        :param BusinessDate start: start date of schedule</span>
+<span class="sd">        :param BusinessDate end: end date of schedule</span>
+<span class="sd">        :param BusinessPeriod step: period distance of two dates</span>
+<span class="sd">        :param BusinessDate roll: origin of schedule</span>
+
+<span class="sd">        convenient class to build date schedules</span>
+<span class="sd">        a schedule includes always start and end date</span>
+<span class="sd">        and rolls on roll, i.e. builds a sequence by</span>
+<span class="sd">        adding and/or substracting step to/from roll.</span>
+<span class="sd">        start and end slice the relevant dates.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">roll</span><span class="p">:</span>
+            <span class="n">roll</span> <span class="o">=</span> <span class="n">end</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">BusinessSchedule</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span> <span class="n">roll</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">BusinessDate</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">BusinessPeriod</span><span class="p">):</span>
+                <span class="n">start</span> <span class="o">=</span> <span class="n">start</span><span class="o">.</span><span class="n">to_businessdate</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">start</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">end</span><span class="p">,</span> <span class="n">BusinessDate</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">end</span><span class="p">,</span> <span class="n">BusinessPeriod</span><span class="p">):</span>
+                <span class="n">end</span> <span class="o">=</span> <span class="n">end</span><span class="o">.</span><span class="n">to_businessdate</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">end</span> <span class="o">=</span> <span class="n">BusinessDate</span><span class="p">(</span><span class="n">end</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">start</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">start</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">end</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">end</span><span class="p">)</span>
+
+<div class="viewcode-block" id="BusinessSchedule.first_stub_long"><a class="viewcode-back" href="../api.html#businessdate.BusinessSchedule.first_stub_long">[docs]</a>    <span class="k">def</span> <span class="nf">first_stub_long</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">2</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="BusinessSchedule.last_stub_long"><a class="viewcode-back" href="../api.html#businessdate.BusinessSchedule.last_stub_long">[docs]</a>    <span class="k">def</span> <span class="nf">last_stub_long</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">2</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Deutsche Postbank.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'alpha',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

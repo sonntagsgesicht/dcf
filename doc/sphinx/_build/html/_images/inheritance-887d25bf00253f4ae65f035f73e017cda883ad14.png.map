@@ -1,0 +1,6 @@
+<map id="inheritancefe07126996" name="inheritancefe07126996">
+<area shape="rect" id="node1" href="#curve.Curve" target="_top" title="curve.Curve" alt="" coords="13,53,106,77"/>
+<area shape="rect" id="node2" href="#curve.DateCurve" target="_top" title="curve.DateCurve" alt="" coords="161,53,283,77"/>
+<area shape="rect" id="node4" href="#fx.FxCurve" target="_top" title="fx rate curve for currency pair" alt="" coords="331,53,417,77"/>
+<area shape="rect" id="node3" href="#fx.FxContainer" target="_top" title="FxDict factory object using triangulation over self.currency" alt="" coords="5,5,113,29"/>
+</map>

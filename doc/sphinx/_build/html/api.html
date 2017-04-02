@@ -1,0 +1,945 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>API Documentation &mdash; dcf alpha documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="author" title="About these documents"
+              href="about.html"/>
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="dcf alpha documentation" href="index.html"/>
+        <link rel="next" title="Releases" href="releases.html"/>
+        <link rel="prev" title="Tutorial" href="tutorials.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> dcf
+          
+
+          
+            
+            <img src="_static/logo.png" class="logo" />
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.2
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="about.html">About</a></li>
+<li class="toctree-l1"><a class="reference internal" href="starting.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials.html">Tutorial</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">API Documentation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#interpolation">Interpolation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#curve">Curve</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#fx-objects">Fx Objects</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-compounding">Compounding</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#cashflow">Cashflow</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="releases.html">Releases</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="index.html">dcf</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+ 
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="index.html">Docs</a> &raquo;</li>
+      
+    <li>API Documentation</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/api.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="api-documentation">
+<h1>API Documentation<a class="headerlink" href="#api-documentation" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+</div>
+<div class="section" id="interpolation">
+<h2>Interpolation<a class="headerlink" href="#interpolation" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#interpolation.interpolation" title="interpolation.interpolation"><code class="xref py py-obj docutils literal"><span class="pre">interpolation.interpolation</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#interpolation.no" title="interpolation.no"><code class="xref py py-obj docutils literal"><span class="pre">interpolation.no</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#interpolation.left" title="interpolation.left"><code class="xref py py-obj docutils literal"><span class="pre">interpolation.left</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#interpolation.constant" title="interpolation.constant"><code class="xref py py-obj docutils literal"><span class="pre">interpolation.constant</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#interpolation.flat" title="interpolation.flat"><code class="xref py py-obj docutils literal"><span class="pre">interpolation.flat</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#interpolation.right" title="interpolation.right"><code class="xref py py-obj docutils literal"><span class="pre">interpolation.right</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#interpolation.flat" title="interpolation.flat"><code class="xref py py-obj docutils literal"><span class="pre">interpolation.flat</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#interpolation.nearest" title="interpolation.nearest"><code class="xref py py-obj docutils literal"><span class="pre">interpolation.nearest</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#interpolation.zero" title="interpolation.zero"><code class="xref py py-obj docutils literal"><span class="pre">interpolation.zero</span></code></a></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<img src="_images/inheritance-df42778978037caf726235af3391e7585fec7b72.png" alt="Inheritance diagram of interpolation" usemap="#inheritance8fd8a6e186" class="inheritance"/>
+<map id="inheritance8fd8a6e186" name="inheritance8fd8a6e186">
+<area shape="rect" id="node1" href="#interpolation.constant" target="_top" title="interpolation.constant" alt="" coords="414,5,562,29"/>
+<area shape="rect" id="node2" href="#interpolation.left" target="_top" title="interpolation.left" alt="" coords="237,5,352,29"/>
+<area shape="rect" id="node3" href="#interpolation.flat" target="_top" title="interpolation.flat" alt="" coords="237,53,352,77"/>
+<area shape="rect" id="node4" href="#interpolation.interpolation" target="_top" title="interpolation.interpolation" alt="" coords="5,149,176,173"/>
+<area shape="rect" id="node5" href="#interpolation.linear" target="_top" title="interpolation.linear" alt="" coords="230,101,360,125"/>
+<area shape="rect" id="node6" href="#interpolation.nearest" target="_top" title="interpolation.nearest" alt="" coords="224,149,366,173"/>
+<area shape="rect" id="node7" href="#interpolation.no" target="_top" title="interpolation.no" alt="" coords="238,197,351,221"/>
+<area shape="rect" id="node8" href="#interpolation.right" target="_top" title="interpolation.right" alt="" coords="233,245,357,269"/>
+<area shape="rect" id="node9" href="#interpolation.zero" target="_top" title="interpolation.zero" alt="" coords="233,293,357,317"/>
+</map>
+<span class="target" id="module-interpolation"></span><dl class="class">
+<dt id="interpolation.constant">
+<em class="property">class </em><code class="descclassname">interpolation.</code><code class="descname">constant</code><span class="sig-paren">(</span><em>x_list=[]</em>, <em>y_list=[]</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interpolation.html#constant"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interpolation.constant" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#interpolation.left" title="interpolation.left"><code class="xref py py-class docutils literal"><span class="pre">interpolation.left</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="interpolation.flat">
+<em class="property">class </em><code class="descclassname">interpolation.</code><code class="descname">flat</code><span class="sig-paren">(</span><em>y=0.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interpolation.html#flat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interpolation.flat" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#interpolation.interpolation" title="interpolation.interpolation"><code class="xref py py-class docutils literal"><span class="pre">interpolation.interpolation</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="interpolation.interpolation">
+<em class="property">class </em><code class="descclassname">interpolation.</code><code class="descname">interpolation</code><span class="sig-paren">(</span><em>x_list=[]</em>, <em>y_list=[]</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interpolation.html#interpolation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interpolation.interpolation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<dl class="classmethod">
+<dt id="interpolation.interpolation.from_dict">
+<em class="property">classmethod </em><code class="descname">from_dict</code><span class="sig-paren">(</span><em>xy_dict</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interpolation.html#interpolation.from_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interpolation.interpolation.from_dict" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="interpolation.interpolation.update">
+<code class="descname">update</code><span class="sig-paren">(</span><em>x_list=[]</em>, <em>y_list=[]</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interpolation.html#interpolation.update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interpolation.interpolation.update" title="Permalink to this definition">¶</a></dt>
+<dd><p>update interpolation data
+:param list(float) x_list: x values
+:param list(float) y_list: y values</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="interpolation.left">
+<em class="property">class </em><code class="descclassname">interpolation.</code><code class="descname">left</code><span class="sig-paren">(</span><em>x_list=[]</em>, <em>y_list=[]</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interpolation.html#left"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interpolation.left" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#interpolation.interpolation" title="interpolation.interpolation"><code class="xref py py-class docutils literal"><span class="pre">interpolation.interpolation</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="interpolation.linear">
+<em class="property">class </em><code class="descclassname">interpolation.</code><code class="descname">linear</code><span class="sig-paren">(</span><em>x_list=[]</em>, <em>y_list=[]</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interpolation.html#linear"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interpolation.linear" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#interpolation.interpolation" title="interpolation.interpolation"><code class="xref py py-class docutils literal"><span class="pre">interpolation.interpolation</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="interpolation.nearest">
+<em class="property">class </em><code class="descclassname">interpolation.</code><code class="descname">nearest</code><span class="sig-paren">(</span><em>x_list=[]</em>, <em>y_list=[]</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interpolation.html#nearest"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interpolation.nearest" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#interpolation.interpolation" title="interpolation.interpolation"><code class="xref py py-class docutils literal"><span class="pre">interpolation.interpolation</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="interpolation.no">
+<em class="property">class </em><code class="descclassname">interpolation.</code><code class="descname">no</code><span class="sig-paren">(</span><em>x_list=[]</em>, <em>y_list=[]</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interpolation.html#no"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interpolation.no" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#interpolation.interpolation" title="interpolation.interpolation"><code class="xref py py-class docutils literal"><span class="pre">interpolation.interpolation</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="interpolation.right">
+<em class="property">class </em><code class="descclassname">interpolation.</code><code class="descname">right</code><span class="sig-paren">(</span><em>x_list=[]</em>, <em>y_list=[]</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interpolation.html#right"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interpolation.right" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#interpolation.interpolation" title="interpolation.interpolation"><code class="xref py py-class docutils literal"><span class="pre">interpolation.interpolation</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="interpolation.zero">
+<em class="property">class </em><code class="descclassname">interpolation.</code><code class="descname">zero</code><span class="sig-paren">(</span><em>x_list=[]</em>, <em>y_list=[]</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interpolation.html#zero"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interpolation.zero" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#interpolation.interpolation" title="interpolation.interpolation"><code class="xref py py-class docutils literal"><span class="pre">interpolation.interpolation</span></code></a></p>
+</dd></dl>
+
+</div>
+<div class="section" id="curve">
+<h2>Curve<a class="headerlink" href="#curve" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#curve.Curve" title="curve.Curve"><code class="xref py py-obj docutils literal"><span class="pre">curve.Curve</span></code></a></td>
+<td>Curve object to build function</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#curve.DateCurve" title="curve.DateCurve"><code class="xref py py-obj docutils literal"><span class="pre">curve.DateCurve</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#curve.RateCurve" title="curve.RateCurve"><code class="xref py py-obj docutils literal"><span class="pre">curve.RateCurve</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#curve.DiscountFactorCurve" title="curve.DiscountFactorCurve"><code class="xref py py-obj docutils literal"><span class="pre">curve.DiscountFactorCurve</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#curve.ZeroRateCurve" title="curve.ZeroRateCurve"><code class="xref py py-obj docutils literal"><span class="pre">curve.ZeroRateCurve</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#curve.CashRateCurve" title="curve.CashRateCurve"><code class="xref py py-obj docutils literal"><span class="pre">curve.CashRateCurve</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#curve.ShortRateCurve" title="curve.ShortRateCurve"><code class="xref py py-obj docutils literal"><span class="pre">curve.ShortRateCurve</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#curve.CreditCurve" title="curve.CreditCurve"><code class="xref py py-obj docutils literal"><span class="pre">curve.CreditCurve</span></code></a></td>
+<td>generic curve for default probabilities (under construction)</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#curve.SurvivalProbabilityCurve" title="curve.SurvivalProbabilityCurve"><code class="xref py py-obj docutils literal"><span class="pre">curve.SurvivalProbabilityCurve</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#curve.FlatIntensityCurve" title="curve.FlatIntensityCurve"><code class="xref py py-obj docutils literal"><span class="pre">curve.FlatIntensityCurve</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#curve.ForwardSurvivalRate" title="curve.ForwardSurvivalRate"><code class="xref py py-obj docutils literal"><span class="pre">curve.ForwardSurvivalRate</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#curve.HazardRateCurve" title="curve.HazardRateCurve"><code class="xref py py-obj docutils literal"><span class="pre">curve.HazardRateCurve</span></code></a></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<img src="_images/inheritance-d3b500a2d9ea44c2fa5628cc63fe1ce290b72ec0.png" alt="Inheritance diagram of curve" usemap="#inheritance54cc92fb0a" class="inheritance"/>
+<map id="inheritance54cc92fb0a" name="inheritance54cc92fb0a">
+<area shape="rect" id="node1" href="#curve.CashRateCurve" target="_top" title="curve.CashRateCurve" alt="" coords="416,44,543,64"/>
+<area shape="rect" id="node2" href="#curve.RateCurve" target="_top" title="curve.RateCurve" alt="" coords="262,124,363,144"/>
+<area shape="rect" id="node3" href="#curve.CreditCurve" target="_top" title="generic curve for default probabilities (under construction)" alt="" coords="426,84,533,104"/>
+<area shape="rect" id="node6" href="#curve.DiscountFactorCurve" target="_top" title="curve.DiscountFactorCurve" alt="" coords="403,124,555,144"/>
+<area shape="rect" id="node10" href="#curve.ShortRateCurve" target="_top" title="curve.ShortRateCurve" alt="" coords="416,164,543,184"/>
+<area shape="rect" id="node12" href="#curve.ZeroRateCurve" target="_top" title="curve.ZeroRateCurve" alt="" coords="417,204,541,224"/>
+<area shape="rect" id="node7" href="#curve.FlatIntensityCurve" target="_top" title="curve.FlatIntensityCurve" alt="" coords="611,4,748,24"/>
+<area shape="rect" id="node8" href="#curve.ForwardSurvivalRate" target="_top" title="curve.ForwardSurvivalRate" alt="" coords="604,44,755,64"/>
+<area shape="rect" id="node9" href="#curve.HazardRateCurve" target="_top" title="curve.HazardRateCurve" alt="" coords="611,84,748,104"/>
+<area shape="rect" id="node11" href="#curve.SurvivalProbabilityCurve" target="_top" title="curve.SurvivalProbabilityCurve" alt="" coords="595,124,764,144"/>
+<area shape="rect" id="node4" href="#curve.Curve" target="_top" title="curve.Curve" alt="" coords="4,124,82,144"/>
+<area shape="rect" id="node5" href="#curve.DateCurve" target="_top" title="curve.DateCurve" alt="" coords="122,124,223,144"/>
+</map>
+<span class="target" id="module-curve"></span><dl class="class">
+<dt id="curve.CashRateCurve">
+<em class="property">class </em><code class="descclassname">curve.</code><code class="descname">CashRateCurve</code><span class="sig-paren">(</span><em>x_list</em>, <em>y_list</em>, <em>y_inter=None</em>, <em>origin=None</em>, <em>day_count=None</em>, <em>forward_tenor=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/curve.html#CashRateCurve"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#curve.CashRateCurve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#curve.RateCurve" title="curve.RateCurve"><code class="xref py py-class docutils literal"><span class="pre">curve.RateCurve</span></code></a></p>
+<dl class="method">
+<dt id="curve.CashRateCurve.get_cash_rate">
+<code class="descname">get_cash_rate</code><span class="sig-paren">(</span><em>start</em>, <em>stop=None</em>, <em>step=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/curve.html#CashRateCurve.get_cash_rate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#curve.CashRateCurve.get_cash_rate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="curve.CashRateCurve.get_discount_factor">
+<code class="descname">get_discount_factor</code><span class="sig-paren">(</span><em>start</em>, <em>stop</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/curve.html#CashRateCurve.get_discount_factor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#curve.CashRateCurve.get_discount_factor" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="curve.CashRateCurve.get_storage_type">
+<code class="descname">get_storage_type</code><span class="sig-paren">(</span><em>x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/curve.html#CashRateCurve.get_storage_type"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#curve.CashRateCurve.get_storage_type" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="curve.CreditCurve">
+<em class="property">class </em><code class="descclassname">curve.</code><code class="descname">CreditCurve</code><span class="sig-paren">(</span><em>x_list</em>, <em>y_list</em>, <em>y_inter=None</em>, <em>origin=None</em>, <em>day_count=None</em>, <em>forward_tenor=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/curve.html#CreditCurve"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#curve.CreditCurve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#curve.RateCurve" title="curve.RateCurve"><code class="xref py py-class docutils literal"><span class="pre">curve.RateCurve</span></code></a></p>
+<p>generic curve for default probabilities (under construction)</p>
+<dl class="method">
+<dt id="curve.CreditCurve.get_flat_intensity">
+<code class="descname">get_flat_intensity</code><span class="sig-paren">(</span><em>start</em>, <em>stop</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/curve.html#CreditCurve.get_flat_intensity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#curve.CreditCurve.get_flat_intensity" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="curve.CreditCurve.get_forward_survival_rate">
+<code class="descname">get_forward_survival_rate</code><span class="sig-paren">(</span><em>start</em>, <em>stop=None</em>, <em>step=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/curve.html#CreditCurve.get_forward_survival_rate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#curve.CreditCurve.get_forward_survival_rate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="curve.CreditCurve.get_hazard_rate">
+<code class="descname">get_hazard_rate</code><span class="sig-paren">(</span><em>start</em>, <em>shift=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/curve.html#CreditCurve.get_hazard_rate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#curve.CreditCurve.get_hazard_rate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="curve.CreditCurve.get_survival_prob">
+<code class="descname">get_survival_prob</code><span class="sig-paren">(</span><em>start</em>, <em>stop</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/curve.html#CreditCurve.get_survival_prob"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#curve.CreditCurve.get_survival_prob" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="curve.Curve">
+<em class="property">class </em><code class="descclassname">curve.</code><code class="descname">Curve</code><span class="sig-paren">(</span><em>x_list=None</em>, <em>y_list=None</em>, <em>y_inter=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/curve.html#Curve"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#curve.Curve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p>Curve object to build function</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>x_list</strong> (<em>list</em><em>(</em><em>float</em><em>)</em><em></em>) &#8211; source values</li>
+<li><strong>y_list</strong> (<em>list</em><em>(</em><em>float</em><em>)</em><em></em>) &#8211; target values</li>
+<li><strong>y_inter</strong> (<em>list</em><em>(</em><a class="reference internal" href="#interpolation.interpolation" title="interpolation.interpolation"><em>interpolation.interpolation</em></a><em>)</em><em></em>) &#8211; interpolation function on x_list (optional)
+or triple of (left, mid, right) interpolation functions with
+left for x &lt; x_list[0] (as default triple.right is used)
+right for x &gt; x_list][-1] (as default interpolation.constant is used)
+mid else (as default interpolation.linear is used)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>Curve object to build function <span class="math">\(f:R \rightarrow R, x \mapsto y\)</span>
+from finite point vectors <span class="math">\(x\)</span> and <span class="math">\(y\)</span>
+using piecewise various interpolation functions.</p>
+<dl class="attribute">
+<dt id="curve.Curve.domain">
+<code class="descname">domain</code><a class="headerlink" href="#curve.Curve.domain" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="curve.Curve.shifted">
+<code class="descname">shifted</code><span class="sig-paren">(</span><em>delta=0.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/curve.html#Curve.shifted"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#curve.Curve.shifted" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="curve.Curve.update">
+<code class="descname">update</code><span class="sig-paren">(</span><em>x_list=[]</em>, <em>y_list=[]</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/curve.html#Curve.update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#curve.Curve.update" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="curve.DAY_COUNT">
+<code class="descclassname">curve.</code><code class="descname">DAY_COUNT</code><span class="sig-paren">(</span><em>start</em>, <em>end</em><span class="sig-paren">)</span><a class="headerlink" href="#curve.DAY_COUNT" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="curve.DateCurve">
+<em class="property">class </em><code class="descclassname">curve.</code><code class="descname">DateCurve</code><span class="sig-paren">(</span><em>x_list</em>, <em>y_list</em>, <em>y_inter=None</em>, <em>origin=None</em>, <em>day_count=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/curve.html#DateCurve"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#curve.DateCurve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#curve.Curve" title="curve.Curve"><code class="xref py py-class docutils literal"><span class="pre">curve.Curve</span></code></a></p>
+<dl class="attribute">
+<dt id="curve.DateCurve.domain">
+<code class="descname">domain</code><a class="headerlink" href="#curve.DateCurve.domain" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="curve.DateCurve.to_curve">
+<code class="descname">to_curve</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/curve.html#DateCurve.to_curve"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#curve.DateCurve.to_curve" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="curve.DateCurve.update">
+<code class="descname">update</code><span class="sig-paren">(</span><em>x_list=[]</em>, <em>y_list=[]</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/curve.html#DateCurve.update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#curve.DateCurve.update" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="curve.DiscountFactorCurve">
+<em class="property">class </em><code class="descclassname">curve.</code><code class="descname">DiscountFactorCurve</code><span class="sig-paren">(</span><em>x_list</em>, <em>y_list</em>, <em>y_inter=None</em>, <em>origin=None</em>, <em>day_count=None</em>, <em>forward_tenor=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/curve.html#DiscountFactorCurve"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#curve.DiscountFactorCurve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#curve.RateCurve" title="curve.RateCurve"><code class="xref py py-class docutils literal"><span class="pre">curve.RateCurve</span></code></a></p>
+<dl class="method">
+<dt id="curve.DiscountFactorCurve.get_discount_factor">
+<code class="descname">get_discount_factor</code><span class="sig-paren">(</span><em>start</em>, <em>stop</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/curve.html#DiscountFactorCurve.get_discount_factor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#curve.DiscountFactorCurve.get_discount_factor" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="curve.DiscountFactorCurve.get_storage_type">
+<code class="descname">get_storage_type</code><span class="sig-paren">(</span><em>x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/curve.html#DiscountFactorCurve.get_storage_type"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#curve.DiscountFactorCurve.get_storage_type" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="curve.FlatIntensityCurve">
+<em class="property">class </em><code class="descclassname">curve.</code><code class="descname">FlatIntensityCurve</code><span class="sig-paren">(</span><em>x_list</em>, <em>y_list</em>, <em>y_inter=None</em>, <em>origin=None</em>, <em>day_count=None</em>, <em>forward_tenor=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/curve.html#FlatIntensityCurve"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#curve.FlatIntensityCurve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#curve.CreditCurve" title="curve.CreditCurve"><code class="xref py py-class docutils literal"><span class="pre">curve.CreditCurve</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="curve.ForwardSurvivalRate">
+<em class="property">class </em><code class="descclassname">curve.</code><code class="descname">ForwardSurvivalRate</code><span class="sig-paren">(</span><em>x_list</em>, <em>y_list</em>, <em>y_inter=None</em>, <em>origin=None</em>, <em>day_count=None</em>, <em>forward_tenor=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/curve.html#ForwardSurvivalRate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#curve.ForwardSurvivalRate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#curve.CreditCurve" title="curve.CreditCurve"><code class="xref py py-class docutils literal"><span class="pre">curve.CreditCurve</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="curve.HazardRateCurve">
+<em class="property">class </em><code class="descclassname">curve.</code><code class="descname">HazardRateCurve</code><span class="sig-paren">(</span><em>x_list</em>, <em>y_list</em>, <em>y_inter=None</em>, <em>origin=None</em>, <em>day_count=None</em>, <em>forward_tenor=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/curve.html#HazardRateCurve"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#curve.HazardRateCurve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#curve.CreditCurve" title="curve.CreditCurve"><code class="xref py py-class docutils literal"><span class="pre">curve.CreditCurve</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="curve.RateCurve">
+<em class="property">class </em><code class="descclassname">curve.</code><code class="descname">RateCurve</code><span class="sig-paren">(</span><em>x_list</em>, <em>y_list</em>, <em>y_inter=None</em>, <em>origin=None</em>, <em>day_count=None</em>, <em>forward_tenor=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/curve.html#RateCurve"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#curve.RateCurve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#curve.DateCurve" title="curve.DateCurve"><code class="xref py py-class docutils literal"><span class="pre">curve.DateCurve</span></code></a></p>
+<dl class="classmethod">
+<dt id="curve.RateCurve.cast">
+<em class="property">classmethod </em><code class="descname">cast</code><span class="sig-paren">(</span><em>other</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/curve.html#RateCurve.cast"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#curve.RateCurve.cast" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="curve.RateCurve.get_cash_rate">
+<code class="descname">get_cash_rate</code><span class="sig-paren">(</span><em>start</em>, <em>stop=None</em>, <em>step=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/curve.html#RateCurve.get_cash_rate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#curve.RateCurve.get_cash_rate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="curve.RateCurve.get_discount_factor">
+<code class="descname">get_discount_factor</code><span class="sig-paren">(</span><em>start</em>, <em>stop</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/curve.html#RateCurve.get_discount_factor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#curve.RateCurve.get_discount_factor" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="curve.RateCurve.get_short_rate">
+<code class="descname">get_short_rate</code><span class="sig-paren">(</span><em>start</em>, <em>shift='1D'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/curve.html#RateCurve.get_short_rate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#curve.RateCurve.get_short_rate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="curve.RateCurve.get_storage_type">
+<code class="descname">get_storage_type</code><span class="sig-paren">(</span><em>x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/curve.html#RateCurve.get_storage_type"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#curve.RateCurve.get_storage_type" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="curve.RateCurve.get_swap_annuity">
+<code class="descname">get_swap_annuity</code><span class="sig-paren">(</span><em>date_list</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/curve.html#RateCurve.get_swap_annuity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#curve.RateCurve.get_swap_annuity" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="curve.RateCurve.get_swap_leg_valuation">
+<code class="descname">get_swap_leg_valuation</code><span class="sig-paren">(</span><em>date_list</em>, <em>flow_list</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/curve.html#RateCurve.get_swap_leg_valuation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#curve.RateCurve.get_swap_leg_valuation" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="curve.RateCurve.get_zero_rate">
+<code class="descname">get_zero_rate</code><span class="sig-paren">(</span><em>start</em>, <em>stop</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/curve.html#RateCurve.get_zero_rate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#curve.RateCurve.get_zero_rate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="curve.ShortRateCurve">
+<em class="property">class </em><code class="descclassname">curve.</code><code class="descname">ShortRateCurve</code><span class="sig-paren">(</span><em>x_list</em>, <em>y_list</em>, <em>y_inter=None</em>, <em>origin=None</em>, <em>day_count=None</em>, <em>forward_tenor=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/curve.html#ShortRateCurve"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#curve.ShortRateCurve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#curve.RateCurve" title="curve.RateCurve"><code class="xref py py-class docutils literal"><span class="pre">curve.RateCurve</span></code></a></p>
+<dl class="method">
+<dt id="curve.ShortRateCurve.get_short_rate">
+<code class="descname">get_short_rate</code><span class="sig-paren">(</span><em>start</em>, <em>shift=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/curve.html#ShortRateCurve.get_short_rate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#curve.ShortRateCurve.get_short_rate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="curve.ShortRateCurve.get_storage_type">
+<code class="descname">get_storage_type</code><span class="sig-paren">(</span><em>x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/curve.html#ShortRateCurve.get_storage_type"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#curve.ShortRateCurve.get_storage_type" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="curve.ShortRateCurve.get_zero_rate">
+<code class="descname">get_zero_rate</code><span class="sig-paren">(</span><em>start</em>, <em>stop</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/curve.html#ShortRateCurve.get_zero_rate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#curve.ShortRateCurve.get_zero_rate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="curve.SurvivalProbabilityCurve">
+<em class="property">class </em><code class="descclassname">curve.</code><code class="descname">SurvivalProbabilityCurve</code><span class="sig-paren">(</span><em>x_list</em>, <em>y_list</em>, <em>y_inter=None</em>, <em>origin=None</em>, <em>day_count=None</em>, <em>forward_tenor=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/curve.html#SurvivalProbabilityCurve"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#curve.SurvivalProbabilityCurve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#curve.DiscountFactorCurve" title="curve.DiscountFactorCurve"><code class="xref py py-class docutils literal"><span class="pre">curve.DiscountFactorCurve</span></code></a>, <a class="reference internal" href="#curve.CreditCurve" title="curve.CreditCurve"><code class="xref py py-class docutils literal"><span class="pre">curve.CreditCurve</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="curve.ZeroRateCurve">
+<em class="property">class </em><code class="descclassname">curve.</code><code class="descname">ZeroRateCurve</code><span class="sig-paren">(</span><em>x_list</em>, <em>y_list</em>, <em>y_inter=None</em>, <em>origin=None</em>, <em>day_count=None</em>, <em>forward_tenor=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/curve.html#ZeroRateCurve"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#curve.ZeroRateCurve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#curve.RateCurve" title="curve.RateCurve"><code class="xref py py-class docutils literal"><span class="pre">curve.RateCurve</span></code></a></p>
+<dl class="method">
+<dt id="curve.ZeroRateCurve.get_storage_type">
+<code class="descname">get_storage_type</code><span class="sig-paren">(</span><em>x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/curve.html#ZeroRateCurve.get_storage_type"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#curve.ZeroRateCurve.get_storage_type" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="curve.ZeroRateCurve.get_zero_rate">
+<code class="descname">get_zero_rate</code><span class="sig-paren">(</span><em>start</em>, <em>stop</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/curve.html#ZeroRateCurve.get_zero_rate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#curve.ZeroRateCurve.get_zero_rate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="fx-objects">
+<h2>Fx Objects<a class="headerlink" href="#fx-objects" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#fx.FxCurve" title="fx.FxCurve"><code class="xref py py-obj docutils literal"><span class="pre">fx.FxCurve</span></code></a></td>
+<td>fx rate curve for currency pair</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#fx.FxContainer" title="fx.FxContainer"><code class="xref py py-obj docutils literal"><span class="pre">fx.FxContainer</span></code></a></td>
+<td>FxDict factory object</td>
+</tr>
+</tbody>
+</table>
+<img src="_images/inheritance-d284c58a3bdaf3abd9404e304ac657c959d8dda3.png" alt="Inheritance diagram of fx" usemap="#inheritancefe07126996" class="inheritance"/>
+<map id="inheritancefe07126996" name="inheritancefe07126996">
+<area shape="rect" id="node1" href="#curve.Curve" target="_top" title="curve.Curve" alt="" coords="13,53,106,77"/>
+<area shape="rect" id="node2" href="#curve.DateCurve" target="_top" title="curve.DateCurve" alt="" coords="161,53,283,77"/>
+<area shape="rect" id="node4" href="#fx.FxCurve" target="_top" title="fx rate curve for currency pair" alt="" coords="331,53,417,77"/>
+<area shape="rect" id="node3" href="#fx.FxContainer" target="_top" title="FxDict factory object" alt="" coords="5,5,113,29"/>
+</map>
+<span class="target" id="module-fx"></span><dl class="class">
+<dt id="fx.FxContainer">
+<em class="property">class </em><code class="descclassname">fx.</code><code class="descname">FxContainer</code><span class="sig-paren">(</span><em>currency</em>, <em>domestic_curve</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fx.html#FxContainer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#fx.FxContainer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">dict</span></code></p>
+<p>FxDict factory object</p>
+<p>using triangulation over self.currency defined as a global container of fx information (mainly vs base currency)</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">today</span> <span class="o">=</span> <span class="n">businessdate</span><span class="p">()</span>
+<span class="n">curve</span> <span class="o">=</span> <span class="n">ZeroRateCurve</span><span class="p">([</span><span class="n">today</span><span class="p">],</span> <span class="p">[</span><span class="o">.</span><span class="mo">02</span><span class="p">])</span>
+<span class="n">container</span> <span class="o">=</span> <span class="n">FxContainer</span><span class="p">(</span><span class="s1">&#39;USD&#39;</span><span class="p">,</span> <span class="n">curve</span><span class="p">)</span>
+<span class="n">foreign</span> <span class="o">=</span> <span class="n">ZeroRateCurve</span><span class="p">([</span><span class="n">today</span><span class="p">],</span> <span class="p">[</span><span class="o">.</span><span class="mo">01</span><span class="p">])</span>
+<span class="n">container</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;EUR&#39;</span><span class="p">,</span> <span class="n">foreign</span><span class="p">,</span> <span class="mf">1.2</span><span class="p">)</span>
+<span class="n">fx_curve</span> <span class="o">=</span> <span class="n">container</span><span class="p">[</span><span class="s1">&#39;USD&#39;</span><span class="p">,</span> <span class="s1">&#39;EUR&#39;</span><span class="p">]</span>  <span class="c1"># fx_curve is FxCurve</span>
+<span class="n">fx_dict</span> <span class="o">=</span> <span class="n">container</span><span class="p">[</span><span class="s1">&#39;USD&#39;</span><span class="p">]</span>  <span class="c1"># fx_dict is dict of FxCurves containing fx_curve</span>
+<span class="n">container</span><span class="p">[</span><span class="s1">&#39;USD&#39;</span><span class="p">][</span><span class="s1">&#39;EUR&#39;</span><span class="p">](</span><span class="n">today</span><span class="p">)</span> <span class="o">==</span> <span class="n">container</span><span class="p">[</span><span class="s1">&#39;USD&#39;</span><span class="p">,</span> <span class="s1">&#39;EUR&#39;</span><span class="p">](</span><span class="n">today</span><span class="p">)</span>  <span class="c1"># True</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>currency</strong> &#8211; base currency of FxContainer</li>
+<li><strong>domestic_curve</strong> (<a class="reference internal" href="#curve.RateCurve" title="curve.RateCurve"><em>RateCurve</em></a>) &#8211; base curve of FxContainer for discounting</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="fx.FxContainer.add">
+<code class="descname">add</code><span class="sig-paren">(</span><em>foreign_currency</em>, <em>foreign_curve=None</em>, <em>fx_spot=1.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fx.html#FxContainer.add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#fx.FxContainer.add" title="Permalink to this definition">¶</a></dt>
+<dd><p>adds contents to FxShelf.
+If curve is FxCurve or FxDict, spot should turn curve.currency into self.currency,
+else spot should turn currency into self.currency by
+N in EUR * spot = N in USD for currency = EUR and self.currency = USD</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="fx.FxContainer.get_forward">
+<code class="descname">get_forward</code><span class="sig-paren">(</span><em>domestic_currency</em>, <em>foreign_currency</em>, <em>value_date</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fx.html#FxContainer.get_forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#fx.FxContainer.get_forward" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="fx.FxContainer.get_fx_rate">
+<code class="descname">get_fx_rate</code><span class="sig-paren">(</span><em>domestic_currency</em>, <em>foreign_currency</em>, <em>value_date</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fx.html#FxContainer.get_fx_rate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#fx.FxContainer.get_fx_rate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="fx.FxCurve">
+<em class="property">class </em><code class="descclassname">fx.</code><code class="descname">FxCurve</code><span class="sig-paren">(</span><em>x_list</em>, <em>y_list=None</em>, <em>y_inter=None</em>, <em>origin=None</em>, <em>day_count=None</em>, <em>domestic_curve=None</em>, <em>foreign_curve=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fx.html#FxCurve"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#fx.FxCurve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#curve.DateCurve" title="curve.DateCurve"><code class="xref py py-class docutils literal"><span class="pre">curve.DateCurve</span></code></a></p>
+<p>fx rate curve for currency pair</p>
+<dl class="classmethod">
+<dt id="fx.FxCurve.cast">
+<em class="property">classmethod </em><code class="descname">cast</code><span class="sig-paren">(</span><em>fx_spot</em>, <em>domestic_curve=None</em>, <em>foreign_curve=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fx.html#FxCurve.cast"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#fx.FxCurve.cast" title="Permalink to this definition">¶</a></dt>
+<dd><p>creator method to build FxCurve</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>fx_spot</strong> (<em>float</em>) &#8211; fx spot rate</li>
+<li><strong>domestic_curve</strong> (<a class="reference internal" href="#curve.RateCurve" title="curve.RateCurve"><em>RateCurve</em></a>) &#8211; domestic discount curve</li>
+<li><strong>foreign_curve</strong> (<a class="reference internal" href="#curve.RateCurve" title="curve.RateCurve"><em>RateCurve</em></a>) &#8211; foreign discount curve</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="fx.FxCurve.get_fx_rate">
+<code class="descname">get_fx_rate</code><span class="sig-paren">(</span><em>value_date</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fx.html#FxCurve.get_fx_rate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#fx.FxCurve.get_fx_rate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-compounding">
+<span id="compounding"></span><h2>Compounding<a class="headerlink" href="#module-compounding" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="compounding.annually_compounding">
+<code class="descclassname">compounding.</code><code class="descname">annually_compounding</code><span class="sig-paren">(</span><em>rate_value</em>, <em>maturity_value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/compounding.html#annually_compounding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#compounding.annually_compounding" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="compounding.continuous_compounding">
+<code class="descclassname">compounding.</code><code class="descname">continuous_compounding</code><span class="sig-paren">(</span><em>rate_value</em>, <em>maturity_value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/compounding.html#continuous_compounding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#compounding.continuous_compounding" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="compounding.continuous_rate">
+<code class="descclassname">compounding.</code><code class="descname">continuous_rate</code><span class="sig-paren">(</span><em>df</em>, <em>period_fraction</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/compounding.html#continuous_rate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#compounding.continuous_rate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="compounding.daily_compounding">
+<code class="descclassname">compounding.</code><code class="descname">daily_compounding</code><span class="sig-paren">(</span><em>rate_value</em>, <em>maturity_value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/compounding.html#daily_compounding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#compounding.daily_compounding" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="compounding.monthly_compounding">
+<code class="descclassname">compounding.</code><code class="descname">monthly_compounding</code><span class="sig-paren">(</span><em>rate_value</em>, <em>maturity_value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/compounding.html#monthly_compounding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#compounding.monthly_compounding" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="compounding.periodic_compounding">
+<code class="descclassname">compounding.</code><code class="descname">periodic_compounding</code><span class="sig-paren">(</span><em>rate_value</em>, <em>maturity_value</em>, <em>period_value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/compounding.html#periodic_compounding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#compounding.periodic_compounding" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="compounding.periodic_rate">
+<code class="descclassname">compounding.</code><code class="descname">periodic_rate</code><span class="sig-paren">(</span><em>df</em>, <em>period_fraction</em>, <em>frequency</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/compounding.html#periodic_rate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#compounding.periodic_rate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="compounding.quarterly_compounding">
+<code class="descclassname">compounding.</code><code class="descname">quarterly_compounding</code><span class="sig-paren">(</span><em>rate_value</em>, <em>maturity_value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/compounding.html#quarterly_compounding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#compounding.quarterly_compounding" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="compounding.semi_compounding">
+<code class="descclassname">compounding.</code><code class="descname">semi_compounding</code><span class="sig-paren">(</span><em>rate_value</em>, <em>maturity_value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/compounding.html#semi_compounding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#compounding.semi_compounding" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="compounding.simple_compounding">
+<code class="descclassname">compounding.</code><code class="descname">simple_compounding</code><span class="sig-paren">(</span><em>rate_value</em>, <em>maturity_value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/compounding.html#simple_compounding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#compounding.simple_compounding" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="compounding.simple_rate">
+<code class="descclassname">compounding.</code><code class="descname">simple_rate</code><span class="sig-paren">(</span><em>df</em>, <em>period_fraction</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/compounding.html#simple_rate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#compounding.simple_rate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="cashflow">
+<h2>Cashflow<a class="headerlink" href="#cashflow" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#cashflow.CashFlowList" title="cashflow.CashFlowList"><code class="xref py py-obj docutils literal"><span class="pre">cashflow.CashFlowList</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#cashflow.AmortizingCashFlowList" title="cashflow.AmortizingCashFlowList"><code class="xref py py-obj docutils literal"><span class="pre">cashflow.AmortizingCashFlowList</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#cashflow.AnnuityCashFlowList" title="cashflow.AnnuityCashFlowList"><code class="xref py py-obj docutils literal"><span class="pre">cashflow.AnnuityCashFlowList</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#cashflow.RateCashFlowList" title="cashflow.RateCashFlowList"><code class="xref py py-obj docutils literal"><span class="pre">cashflow.RateCashFlowList</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#cashflow.MultiCashFlowList" title="cashflow.MultiCashFlowList"><code class="xref py py-obj docutils literal"><span class="pre">cashflow.MultiCashFlowList</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#cashflow.FixedLoan" title="cashflow.FixedLoan"><code class="xref py py-obj docutils literal"><span class="pre">cashflow.FixedLoan</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#cashflow.FloatLoan" title="cashflow.FloatLoan"><code class="xref py py-obj docutils literal"><span class="pre">cashflow.FloatLoan</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#cashflow.FixedFloatSwap" title="cashflow.FixedFloatSwap"><code class="xref py py-obj docutils literal"><span class="pre">cashflow.FixedFloatSwap</span></code></a></td>
+<td>ir swap that pays fixed and receives float.</td>
+</tr>
+</tbody>
+</table>
+<img src="_images/inheritance-4bdc4a83206770c7536c7c70758510c3f35280f5.png" alt="Inheritance diagram of cashflow" usemap="#inheritance953ccf1c1f" class="inheritance"/>
+<map id="inheritance953ccf1c1f" name="inheritance953ccf1c1f">
+<area shape="rect" id="node1" href="#cashflow.AmortizingCashFlowList" target="_top" title="AmortizingCashFlowList" alt="" coords="372,5,567,26"/>
+<area shape="rect" id="node2" href="#cashflow.CashFlowList" target="_top" title="CashFlowList" alt="" coords="190,69,329,90"/>
+<area shape="rect" id="node3" href="#cashflow.AnnuityCashFlowList" target="_top" title="AnnuityCashFlowList" alt="" coords="380,48,559,69"/>
+<area shape="rect" id="node6" href="#cashflow.MultiCashFlowList" target="_top" title="MultiCashFlowList" alt="" coords="387,90,552,112"/>
+<area shape="rect" id="node9" href="#cashflow.RateCashFlowList" target="_top" title="RateCashFlowList" alt="" coords="387,133,552,155"/>
+<area shape="rect" id="node4" title="Dictionary that remembers insertion order" alt="" coords="5,69,147,90"/>
+<area shape="rect" id="node5" href="#cashflow.FixedFloatSwap" target="_top" title="ir swap that pays fixed and receives float." alt="" coords="610,48,763,69"/>
+<area shape="rect" id="node7" href="#cashflow.FixedLoan" target="_top" title="FixedLoan" alt="" coords="625,90,748,112"/>
+<area shape="rect" id="node8" href="#cashflow.FloatLoan" target="_top" title="FloatLoan" alt="" coords="626,133,747,155"/>
+</map>
+<span class="target" id="module-cashflow"></span><dl class="class">
+<dt id="cashflow.AmortizingCashFlowList">
+<em class="property">class </em><code class="descclassname">cashflow.</code><code class="descname">AmortizingCashFlowList</code><span class="sig-paren">(</span><em>pay_date_list</em>, <em>amount_list=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cashflow.html#AmortizingCashFlowList"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cashflow.AmortizingCashFlowList" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#cashflow.CashFlowList" title="cashflow.CashFlowList"><code class="xref py py-class docutils literal"><span class="pre">cashflow.CashFlowList</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="cashflow.AnnuityCashFlowList">
+<em class="property">class </em><code class="descclassname">cashflow.</code><code class="descname">AnnuityCashFlowList</code><span class="sig-paren">(</span><em>pay_date_list</em>, <em>amount_list=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cashflow.html#AnnuityCashFlowList"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cashflow.AnnuityCashFlowList" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#cashflow.CashFlowList" title="cashflow.CashFlowList"><code class="xref py py-class docutils literal"><span class="pre">cashflow.CashFlowList</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="cashflow.CashFlowList">
+<em class="property">class </em><code class="descclassname">cashflow.</code><code class="descname">CashFlowList</code><span class="sig-paren">(</span><em>pay_date_list</em>, <em>amount_list=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cashflow.html#CashFlowList"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cashflow.CashFlowList" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">collections.OrderedDict</span></code></p>
+<dl class="method">
+<dt id="cashflow.CashFlowList.get_value">
+<code class="descname">get_value</code><span class="sig-paren">(</span><em>discount_curve</em>, <em>valuation_date=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cashflow.html#CashFlowList.get_value"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cashflow.CashFlowList.get_value" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="cashflow.CashFlowList.yield_to_maturity">
+<code class="descname">yield_to_maturity</code><span class="sig-paren">(</span><em>valuation_date</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cashflow.html#CashFlowList.yield_to_maturity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cashflow.CashFlowList.yield_to_maturity" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="cashflow.FixedFloatSwap">
+<em class="property">class </em><code class="descclassname">cashflow.</code><code class="descname">FixedFloatSwap</code><span class="sig-paren">(</span><em>date_list</em>, <em>fixed_rate</em>, <em>forward_curve</em>, <em>notional_list=None</em>, <em>day_count=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cashflow.html#FixedFloatSwap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cashflow.FixedFloatSwap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#cashflow.MultiCashFlowList" title="cashflow.MultiCashFlowList"><code class="xref py py-class docutils literal"><span class="pre">cashflow.MultiCashFlowList</span></code></a></p>
+<p>ir swap that pays fixed and receives float.</p>
+<dl class="staticmethod">
+<dt id="cashflow.FixedFloatSwap.gather_float_dates">
+<em class="property">static </em><code class="descname">gather_float_dates</code><span class="sig-paren">(</span><em>date_list</em>, <em>notional_list</em>, <em>forward_tenor</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cashflow.html#FixedFloatSwap.gather_float_dates"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cashflow.FixedFloatSwap.gather_float_dates" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="cashflow.FixedFloatSwap.get_par_rate">
+<code class="descname">get_par_rate</code><span class="sig-paren">(</span><em>discount_curve</em>, <em>leg_int=0</em>, <em>err=1e-08</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cashflow.html#FixedFloatSwap.get_par_rate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cashflow.FixedFloatSwap.get_par_rate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="cashflow.FixedLoan">
+<em class="property">class </em><code class="descclassname">cashflow.</code><code class="descname">FixedLoan</code><span class="sig-paren">(</span><em>legs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cashflow.html#FixedLoan"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cashflow.FixedLoan" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#cashflow.MultiCashFlowList" title="cashflow.MultiCashFlowList"><code class="xref py py-class docutils literal"><span class="pre">cashflow.MultiCashFlowList</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="cashflow.FloatLoan">
+<em class="property">class </em><code class="descclassname">cashflow.</code><code class="descname">FloatLoan</code><span class="sig-paren">(</span><em>legs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cashflow.html#FloatLoan"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cashflow.FloatLoan" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#cashflow.MultiCashFlowList" title="cashflow.MultiCashFlowList"><code class="xref py py-class docutils literal"><span class="pre">cashflow.MultiCashFlowList</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="cashflow.MultiCashFlowList">
+<em class="property">class </em><code class="descclassname">cashflow.</code><code class="descname">MultiCashFlowList</code><span class="sig-paren">(</span><em>legs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cashflow.html#MultiCashFlowList"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cashflow.MultiCashFlowList" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#cashflow.CashFlowList" title="cashflow.CashFlowList"><code class="xref py py-class docutils literal"><span class="pre">cashflow.CashFlowList</span></code></a></p>
+<dl class="method">
+<dt id="cashflow.MultiCashFlowList.interest_accrued">
+<code class="descname">interest_accrued</code><span class="sig-paren">(</span><em>valuation_date</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cashflow.html#MultiCashFlowList.interest_accrued"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cashflow.MultiCashFlowList.interest_accrued" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>valuation_date</strong> &#8211; </td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"></td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="cashflow.RateCashFlowList">
+<em class="property">class </em><code class="descclassname">cashflow.</code><code class="descname">RateCashFlowList</code><span class="sig-paren">(</span><em>date_list</em>, <em>day_count</em>, <em>fixed_rate=0.0</em>, <em>forward_curve=None</em>, <em>notional_list=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cashflow.html#RateCashFlowList"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cashflow.RateCashFlowList" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#cashflow.CashFlowList" title="cashflow.CashFlowList"><code class="xref py py-class docutils literal"><span class="pre">cashflow.CashFlowList</span></code></a></p>
+<dl class="method">
+<dt id="cashflow.RateCashFlowList.interest_accrued">
+<code class="descname">interest_accrued</code><span class="sig-paren">(</span><em>valuation_date</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cashflow.html#RateCashFlowList.interest_accrued"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cashflow.RateCashFlowList.interest_accrued" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="releases.html" class="btn btn-neutral float-right" title="Releases" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="tutorials.html" class="btn btn-neutral" title="Tutorial" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Deutsche Postbank.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'alpha',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

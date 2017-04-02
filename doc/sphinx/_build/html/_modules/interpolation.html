@@ -1,0 +1,487 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>interpolation &mdash; dcf alpha documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="author" title="About these documents"
+              href="../about.html"/>
+        <link rel="index" title="Index"
+              href="../genindex.html"/>
+        <link rel="search" title="Search" href="../search.html"/>
+    <link rel="top" title="dcf alpha documentation" href="../index.html"/>
+        <link rel="up" title="Module code" href="index.html"/> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> dcf
+          
+
+          
+            
+            <img src="../_static/logo.png" class="logo" />
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.2
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul>
+<li class="toctree-l1"><a class="reference internal" href="../about.html">About</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../starting.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../releases.html">Releases</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../index.html">dcf</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="index.html">Module code</a> &raquo;</li>
+      
+    <li>interpolation</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for interpolation</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="c1">#  dcf (discounted cashflow)</span>
+<span class="c1">#  -------------------------</span>
+<span class="c1">#  A Python library for generating discounted cashflows.</span>
+<span class="c1">#  Typical banking business methods are provided like interpolation, compounding,</span>
+<span class="c1">#  discounting and fx.</span>
+<span class="c1">#</span>
+<span class="c1">#  Author:  pbrisk &lt;pbrisk@icloud.com&gt;</span>
+<span class="c1">#  Copyright: 2016, 2017 Deutsche Postbank AG</span>
+<span class="c1">#  Website: https://github.com/pbrisk/dcf</span>
+<span class="c1">#  License: APACHE Version 2 License (see LICENSE file)</span>
+
+
+<span class="kn">import</span> <span class="nn">bisect</span>
+
+
+<div class="viewcode-block" id="interpolation"><a class="viewcode-back" href="../api.html#interpolation.interpolation">[docs]</a><span class="k">class</span> <span class="nc">interpolation</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_list</span><span class="o">=</span><span class="nb">list</span><span class="p">(),</span> <span class="n">y_list</span><span class="o">=</span><span class="nb">list</span><span class="p">()):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">y_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">x_list</span><span class="p">,</span> <span class="n">y_list</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="k">def</span> <span class="nf">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_list</span>
+
+<div class="viewcode-block" id="interpolation.update"><a class="viewcode-back" href="../api.html#interpolation.interpolation.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_list</span><span class="o">=</span><span class="nb">list</span><span class="p">(),</span> <span class="n">y_list</span><span class="o">=</span><span class="nb">list</span><span class="p">()):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        update interpolation data</span>
+<span class="sd">        :param list(float) x_list: x values</span>
+<span class="sd">        :param list(float) y_list: y values</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">y_list</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">x_list</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_list</span><span class="p">:</span>
+                    <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_list</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">x_list</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">y_list</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">x_list</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">x_list</span><span class="p">)</span>
+            <span class="n">y_list</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">y_list</span><span class="p">)</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="p">[(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_list</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_list</span><span class="p">)</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">x_list</span><span class="p">]</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">x_list</span><span class="p">,</span> <span class="n">y_list</span><span class="p">))</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">x_list</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="ow">in</span> <span class="n">data</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">y_list</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="ow">in</span> <span class="n">data</span><span class="p">]</span></div>
+
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="interpolation.from_dict"><a class="viewcode-back" href="../api.html#interpolation.interpolation.from_dict">[docs]</a>    <span class="k">def</span> <span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">xy_dict</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">xy_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">xy_dict</span><span class="o">.</span><span class="n">values</span><span class="p">())</span></div></div>
+
+
+<div class="viewcode-block" id="flat"><a class="viewcode-back" href="../api.html#interpolation.flat">[docs]</a><span class="k">class</span> <span class="nc">flat</span><span class="p">(</span><span class="n">interpolation</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">flat</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">([</span><span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="n">y</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="no"><a class="viewcode-back" href="../api.html#interpolation.no">[docs]</a><span class="k">class</span> <span class="nc">no</span><span class="p">(</span><span class="n">interpolation</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_list</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">x_list</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">x</span><span class="p">)]</span></div>
+
+
+<div class="viewcode-block" id="zero"><a class="viewcode-back" href="../api.html#interpolation.zero">[docs]</a><span class="k">class</span> <span class="nc">zero</span><span class="p">(</span><span class="n">interpolation</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_list</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_list</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">x_list</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">x</span><span class="p">)]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="o">.</span><span class="mi">0</span></div>
+
+
+<div class="viewcode-block" id="left"><a class="viewcode-back" href="../api.html#interpolation.left">[docs]</a><span class="k">class</span> <span class="nc">left</span><span class="p">(</span><span class="n">interpolation</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y_list</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="p">(</span><span class="ne">OverflowError</span><span class="p">,</span> <span class="s2">&quot;No data points for interpolation provided.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_list</span><span class="p">:</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_list</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="n">bisect</span><span class="o">.</span><span class="n">bisect_left</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_list</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_list</span><span class="p">))</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="constant"><a class="viewcode-back" href="../api.html#interpolation.constant">[docs]</a><span class="k">class</span> <span class="nc">constant</span><span class="p">(</span><span class="n">left</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="right"><a class="viewcode-back" href="../api.html#interpolation.right">[docs]</a><span class="k">class</span> <span class="nc">right</span><span class="p">(</span><span class="n">interpolation</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y_list</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="p">(</span><span class="ne">OverflowError</span><span class="p">,</span> <span class="s2">&quot;No data points for interpolation provided.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_list</span><span class="p">:</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_list</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="n">bisect</span><span class="o">.</span><span class="n">bisect_right</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_list</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_list</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="nearest"><a class="viewcode-back" href="../api.html#interpolation.nearest">[docs]</a><span class="k">class</span> <span class="nc">nearest</span><span class="p">(</span><span class="n">interpolation</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y_list</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="p">(</span><span class="ne">OverflowError</span><span class="p">,</span> <span class="s2">&quot;No data points for interpolation provided.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y_list</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_list</span><span class="p">:</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_list</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="n">bisect</span><span class="o">.</span><span class="n">bisect_left</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_list</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_list</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_list</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">x</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_list</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_list</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">&lt;</span> <span class="mf">0.5</span><span class="p">:</span>
+                <span class="n">i</span> <span class="o">-=</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="linear"><a class="viewcode-back" href="../api.html#interpolation.linear">[docs]</a><span class="k">class</span> <span class="nc">linear</span><span class="p">(</span><span class="n">interpolation</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y_list</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="p">(</span><span class="ne">OverflowError</span><span class="p">,</span> <span class="s2">&quot;No data points for interpolation provided.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y_list</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="n">bisect</span><span class="o">.</span><span class="n">bisect_left</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_list</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_list</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_list</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_list</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span> <span class="o">*</span> \
+                                    <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_list</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">x</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_list</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_list</span><span class="p">[</span><span class="n">i</span><span class="p">])</span></div>
+
+
+<span class="sd">&#39;&#39;&#39;</span>
+
+<span class="sd"># cubic spline interpolation</span>
+
+<span class="sd">import numpy as np</span>
+
+
+<span class="sd">class Interpolator:</span>
+<span class="sd">    def __init__(self, name, func, points, deriv=None):</span>
+<span class="sd">        self.name = name  # used for naming the C function</span>
+<span class="sd">        self.intervals = intervals = [ ]</span>
+<span class="sd">        # Generate a cubic spline for each interpolation interval.</span>
+<span class="sd">        for u, v in map(None, points[:-1], points[1:]):</span>
+<span class="sd">            FU, FV = func(u), func(v)</span>
+<span class="sd">            # adjust h as needed, or pass in a derivative function</span>
+<span class="sd">            if deriv == None:</span>
+<span class="sd">                h = 0.01</span>
+<span class="sd">                DU = (func(u + h) - FU) / h</span>
+<span class="sd">                DV = (func(v + h) - FV) / h</span>
+<span class="sd">            else:</span>
+<span class="sd">                DU = deriv(u)</span>
+<span class="sd">                DV = deriv(v)</span>
+<span class="sd">            denom = (u - v)**3</span>
+<span class="sd">            A = ((-DV - DU) * v + (DV + DU) * u +</span>
+<span class="sd">                 2 * FV - 2 * FU) / denom</span>
+<span class="sd">            B = -((-DV - 2 * DU) * v**2  +</span>
+<span class="sd">                  u * ((DU - DV) * v + 3 * FV - 3 * FU) +</span>
+<span class="sd">                  3 * FV * v - 3 * FU * v +</span>
+<span class="sd">                  (2 * DV + DU) * u**2) / denom</span>
+<span class="sd">            C = (- DU * v**3  +</span>
+<span class="sd">                 u * ((- 2 * DV - DU) * v**2  + 6 * FV * v</span>
+<span class="sd">                                    - 6 * FU * v) +</span>
+<span class="sd">                 (DV + 2 * DU) * u**2 * v + DV * u**3) / denom</span>
+<span class="sd">            D = -(u *(-DU * v**3  - 3 * FU * v**2) +</span>
+<span class="sd">                  FU * v**3 + u**2 * ((DU - DV) * v**2 + 3 * FV * v) +</span>
+<span class="sd">                  u**3 * (DV * v - FV)) / denom</span>
+<span class="sd">            intervals.append((u, A, B, C, D))</span>
+
+<span class="sd">    def __call__(self, x):</span>
+<span class="sd">        def getInterval(x, intervalList):</span>
+<span class="sd">            # run-time proportional to the log of the length</span>
+<span class="sd">            # of the interval list</span>
+<span class="sd">            n = len(intervalList)</span>
+<span class="sd">            if n &lt; 2:</span>
+<span class="sd">                return intervalList[0]</span>
+<span class="sd">            n2 = n / 2</span>
+<span class="sd">            if x &lt; intervalList[n2][0]:</span>
+<span class="sd">                return getInterval(x, intervalList[:n2])</span>
+<span class="sd">            else:</span>
+<span class="sd">                return getInterval(x, intervalList[n2:])</span>
+<span class="sd">        # Tree-search the intervals to get coefficients.</span>
+<span class="sd">        u, A, B, C, D = getInterval(x, self.intervals)</span>
+<span class="sd">        # Plug coefficients into polynomial.</span>
+<span class="sd">        return ((A * x + B) * x + C) * x + D</span>
+
+<span class="sd">    def c_code(self):</span>
+<span class="sd">        &quot;&quot;&quot;Generate C code to efficiently implement this</span>
+<span class="sd">        interpolator. Run the C code through &#39;indent&#39; if you</span>
+<span class="sd">        need it to be legible.&quot;&quot;&quot;</span>
+<span class="sd">        def codeChoice(intervalList):</span>
+<span class="sd">            n = len(intervalList)</span>
+<span class="sd">            if n &lt; 2:</span>
+<span class="sd">                return (&quot;A=%.10e;B=%.10e;C=%.10e;D=%.10e;&quot;</span>
+<span class="sd">                        % intervalList[0][1:])</span>
+<span class="sd">            n2 = n / 2</span>
+<span class="sd">            return (&quot;if (x &lt; %.10e) {%s} else {%s}&quot;</span>
+<span class="sd">                    % (intervalList[n2][0],</span>
+<span class="sd">                       codeChoice(intervalList[:n2]),</span>
+<span class="sd">                       codeChoice(intervalList[n2:])))</span>
+<span class="sd">        return (&quot;double interpolator_%s(double x) {&quot; % self.name +</span>
+<span class="sd">                &quot;double A,B,C,D;%s&quot; % codeChoice(self.intervals) +</span>
+<span class="sd">                &quot;return ((A * x + B) * x + C) * x + D;}&quot;)</span>
+
+
+
+<span class="sd">def Splines(data):</span>
+<span class="sd">    np1 = len(data)</span>
+<span class="sd">    n = np1 - 1</span>
+<span class="sd">    X, Y = zip(*data)</span>
+<span class="sd">    X = [float(x) for x in X]</span>
+<span class="sd">    Y = [float(y) for y in Y]</span>
+<span class="sd">    a = Y[:]</span>
+<span class="sd">    b = [0.0] * (n)</span>
+<span class="sd">    d = [0.0] * (n)</span>
+<span class="sd">    h = [X[i + 1] - X[i] for i in xrange(n)]</span>
+<span class="sd">    alpha = [0.0] * n</span>
+<span class="sd">    for i in xrange(1, n):</span>
+<span class="sd">        alpha[i] = 3 / h[i] * (a[i + 1] - a[i]) - 3 / h[i - 1] * (a[i] - a[i - 1])</span>
+<span class="sd">    c = [0.0] * np1</span>
+<span class="sd">    L = [0.0] * np1</span>
+<span class="sd">    u = [0.0] * np1</span>
+<span class="sd">    z = [0.0] * np1</span>
+<span class="sd">    L[0] = 1.0;</span>
+<span class="sd">    u[0] = z[0] = 0.0</span>
+<span class="sd">    for i in xrange(1, n):</span>
+<span class="sd">        L[i] = 2 * (X[i + 1] - X[i - 1]) - h[i - 1] * u[i - 1]</span>
+<span class="sd">        u[i] = h[i] / L[i]</span>
+<span class="sd">        z[i] = (alpha[i] - h[i - 1] * z[i - 1]) / L[i]</span>
+<span class="sd">    L[n] = 1.0;</span>
+<span class="sd">    z[n] = c[n] = 0.0</span>
+<span class="sd">    for j in xrange(n - 1, -1, -1):</span>
+<span class="sd">        c[j] = z[j] - u[j] * c[j + 1]</span>
+<span class="sd">        b[j] = (a[j + 1] - a[j]) / h[j] - (h[j] * (c[j + 1] + 2 * c[j])) / 3</span>
+<span class="sd">        d[j] = (c[j + 1] - c[j]) / (3 * h[j])</span>
+<span class="sd">    splines = []</span>
+<span class="sd">    for i in xrange(n):</span>
+<span class="sd">        splines.append((a[i], b[i], c[i], d[i], X[i]))</span>
+<span class="sd">    return splines, X[n]</span>
+
+
+<span class="sd">def splinesToPlot(splines, xn, res):</span>
+<span class="sd">    n = len(splines)</span>
+<span class="sd">    perSpline = int(res / n)</span>
+<span class="sd">    if perSpline &lt; 3: perSpline = 3</span>
+<span class="sd">    X = []</span>
+<span class="sd">    Y = []</span>
+<span class="sd">    for i in xrange(n - 1):</span>
+<span class="sd">        S = splines[i]</span>
+<span class="sd">        x0 = S[4]</span>
+<span class="sd">        x1 = splines[i + 1][4]</span>
+<span class="sd">        x = np.linspace(x0, x1, perSpline)</span>
+<span class="sd">        for xi in x:</span>
+<span class="sd">            X.append(xi)</span>
+<span class="sd">            h = (xi - S[4])</span>
+<span class="sd">            Y.append(S[0] + S[1] * h + S[2] * h ** 2 + S[3] * h ** 3)</span>
+<span class="sd">    S = splines[n - 1]</span>
+<span class="sd">    x = np.linspace(S[4], xn, perSpline)</span>
+<span class="sd">    for xi in x:</span>
+<span class="sd">        X.append(xi)</span>
+<span class="sd">        h = (xi - S[4])</span>
+<span class="sd">        Y.append(S[0] + S[1] * h + S[2] * h ** 2 + S[3] * h ** 3)</span>
+
+<span class="sd">    return X, Y</span>
+
+
+<span class="sd">if &#39;__main__&#39; in __name__:</span>
+<span class="sd">    x = lambda n: np.linspace(-1, 1, n)</span>
+<span class="sd">    f = lambda x: np.cos(np.sin(np.pi * x))</span>
+<span class="sd">    n = 5</span>
+<span class="sd">    E = 200</span>
+<span class="sd">    data = zip(x(n), f(x(n)))</span>
+<span class="sd">    splines, xn = Splines(data)</span>
+<span class="sd">    X, Y = splinesToPlot(splines, xn, E)</span>
+<span class="sd">    import matplotlib as mpl</span>
+
+<span class="sd">    mpl.use(&quot;TkAgg&quot;)</span>
+<span class="sd">    import matplotlib.pylab as plt</span>
+
+<span class="sd">    plt.ion()</span>
+<span class="sd">    plt.plot(X, Y, &#39;r--&#39;)</span>
+<span class="sd">    plt.plot(x(300), f(x(300)), &#39;k&#39;)</span>
+
+<span class="sd">    import time</span>
+<span class="sd">    time.sleep(10)</span>
+
+<span class="sd">&#39;&#39;&#39;</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Deutsche Postbank.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'alpha',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

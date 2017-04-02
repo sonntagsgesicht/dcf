@@ -1,0 +1,11 @@
+<map id="inheritance8fd8a6e186" name="inheritance8fd8a6e186">
+<area shape="rect" id="node1" href="#interpolation.constant" target="_top" title="interpolation.constant" alt="" coords="414,5,562,29"/>
+<area shape="rect" id="node2" href="#interpolation.left" target="_top" title="interpolation.left" alt="" coords="237,5,352,29"/>
+<area shape="rect" id="node3" href="#interpolation.flat" target="_top" title="interpolation.flat" alt="" coords="237,53,352,77"/>
+<area shape="rect" id="node4" href="#interpolation.interpolation" target="_top" title="interpolation.interpolation" alt="" coords="5,149,176,173"/>
+<area shape="rect" id="node5" href="#interpolation.linear" target="_top" title="interpolation.linear" alt="" coords="230,101,360,125"/>
+<area shape="rect" id="node6" href="#interpolation.nearest" target="_top" title="interpolation.nearest" alt="" coords="224,149,366,173"/>
+<area shape="rect" id="node7" href="#interpolation.no" target="_top" title="interpolation.no" alt="" coords="238,197,351,221"/>
+<area shape="rect" id="node8" href="#interpolation.right" target="_top" title="interpolation.right" alt="" coords="233,245,357,269"/>
+<area shape="rect" id="node9" href="#interpolation.zero" target="_top" title="interpolation.zero" alt="" coords="233,293,357,317"/>
+</map>
