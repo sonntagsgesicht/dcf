@@ -1,0 +1,9 @@
+/.project/
+/.pydevproject/
+/.idea/
+/.settings/
+/sphinx
+.DS_Store
+*.log
+*.pyc
+dcf.egg-info/
