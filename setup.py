@@ -29,7 +29,6 @@ setup(
     bugtrack_url='https://github.com/pbrisk/dcf/issues',
     license='Apache License 2.0',
     packages=['dcf'],
-    dependency_links=['git+https://github.com/pbrisk/businessdate.git'],
     install_requires=['businessdate'],
     long_description=codecs.open('README.rst', encoding='utf-8').read(),
     platforms='any',
