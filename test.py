@@ -6,28 +6,28 @@
 #  Typical banking business methods are provided like interpolation, compounding,
 #  discounting and fx.
 #
-#  Author:  pbrisk <pbrisk@icloud.com>
+#  Author:  pbrisk <pbrisk_at_github@icloud.com>
 #  Copyright: 2016, 2017 Deutsche Postbank AG
 #  Website: https://github.com/pbrisk/dcf
 #  License: APACHE Version 2 License (see LICENSE file)
 
-
+import sys
 from os import getcwd
 from datetime import datetime
-from unittest import TestCase, main
+import unittest
 
 from businessdate import BusinessDate, BusinessRange
-from dcf.interpolation import flat, linear, no, zero, left, right, nearest
-from dcf.compounding import continuous_compounding, continuous_rate
-from dcf.compounding import periodic_compounding, periodic_rate
-from dcf.curve import Curve, DateCurve, DiscountFactorCurve, ZeroRateCurve, CashRateCurve, ShortRateCurve
-from dcf.curve import FlatIntensityCurve, SurvivalProbabilityCurve, FlatIntensityCurve, HazardRateCurve
-from dcf.fx import FxCurve, FxContainer
+
+from dcf import flat, linear, no, zero, left, right, nearest, spline, nak_spline
+from dcf import Curve, DateCurve, DiscountFactorCurve, ZeroRateCurve, CashRateCurve, ShortRateCurve
+from dcf import continuous_compounding, continuous_rate, periodic_compounding, periodic_rate
+from dcf import FlatIntensityCurve, SurvivalProbabilityCurve, FlatIntensityCurve, HazardRateCurve
+from dcf import FxCurve, FxContainer
 from dcf.cashflow import CashFlowList, AmortizingCashFlowList, AnnuityCashFlowList, RateCashFlowList
 from dcf.cashflow import MultiCashFlowList, FixedLoan, FloatLoan, FixedFloatSwap
 
 
-class InterpolationUnitTests(TestCase):
+class InterpolationUnitTests(unittest.TestCase):
     def setUp(self):
         self.a = 0.0
         self.b = 0.01
@@ -134,7 +134,74 @@ class InterpolationUnitTests(TestCase):
             self.assertFalse(s in ff)
 
 
-class CompoundingUnitTests(TestCase):
+class CubicSplineUnitTest(unittest.TestCase):
+    def setUp(self):
+        pass
+
+    def test_spline_linear(self):
+        x = [0, 2, 4, 6]
+        y0 = [5, 5.4, 5.8, 6.2]
+        f = spline(x, y0)
+        self.assertAlmostEqual(f(1), 5.2)
+        self.assertAlmostEqual(f(3), 5.6)
+        # self.assertRaises(ValueError, f(-1))
+
+    def test_spline_quadratic(self):
+        x = [0, 2, 4, 6]
+        y1 = [1, 5, 17, 37]
+        f = spline(x, y1, (2, 2))
+        self.assertAlmostEqual(f(3), 9 + 1)
+        self.assertAlmostEqual(f(5), 25 + 1)
+
+    def test_importance_of_bordercondition(self):
+        x = [0, 2, 4, 6]
+        y1 = [1, 5, 17, 37]
+        f = spline(x, y1, (0, 0))
+        self.assertNotAlmostEqual(f(3), 9 + 1)
+        self.assertNotAlmostEqual(f(5), 25 + 1)
+
+    def test_spline_cubic(self):
+        x = [0, 2, 4, 6]
+        y2 = [0, 8, 64, 216]
+        f = spline(x, y2, (0, 36))
+        self.assertAlmostEqual(f(5), 125)
+
+    def test_compare_with_data(self):
+        file = open('test_data/cubic_spline.txt')
+        self.read_data = False
+        self.read_interpolation = False
+
+        xdata = list()
+        ydata = list()
+        grid = list()
+        interpolation_values = list()
+
+        for line in file:
+            if line.rstrip('\n') == 'DATAPOINTS':
+                self.read_data = True
+                self.read_interpolation = False
+            elif line.rstrip('\n') == 'INTERPOLATIONPOINTS':
+                self.read_data = False
+                self.read_interpolation = True
+            elif self.read_data:
+                parts = line.rstrip().split(';')
+                xdata.append(float(parts[0]))
+                ydata.append(float(parts[1]))
+            elif self.read_interpolation:
+                parts = line.rstrip().split(';')
+                grid.append(float(parts[0]))
+                interpolation_values.append(float(parts[1]))
+
+        file.close()
+
+        f = spline(xdata, ydata)
+        g = nak_spline(xdata, ydata)
+        for point, value in zip(grid, interpolation_values):
+            self.assertEqual(f(point), g(point))
+            self.assertAlmostEqual(f(point), value, 12)
+
+
+class CompoundingUnitTests(unittest.TestCase):
     def setUp(self):
         pass
 
@@ -142,23 +209,23 @@ class CompoundingUnitTests(TestCase):
         self.assertTrue(True)
 
 
-class CurveUnitTests(TestCase):
+class CurveUnitTests(unittest.TestCase):
     def setUp(self):
-        self.x_list = [float(x)*0.01 for x in range(10)]
+        self.x_list = [float(x) * 0.01 for x in range(10)]
         self.y_list = list(self.x_list)
         self.curve = Curve(self.x_list, self.y_list)
 
-    def test_(self):
+    def test_addition(self):
         other = Curve(self.x_list, self.y_list)
         new = self.curve + other
         for x in new.domain:
-            self.assertAlmostEqual(new(x), self.curve(x)*2)
+            self.assertAlmostEqual(new(x), self.curve(x) * 2)
 
 
-class DateCurveUnitTests(TestCase):
+class DateCurveUnitTests(unittest.TestCase):
     def setUp(self):
-        self.dates = BusinessRange(BusinessDate(), BusinessDate()+'10Y')
-        self.values = [0.01] * len(self.dates)
+        self.dates = BusinessRange(BusinessDate(), BusinessDate() + '10Y')
+        self.values = [0.01 * n ** 4 - 2 * n ** 2 for n in range(0, len(self.dates))]
         self.curve = DateCurve(self.dates, self.values)
 
     def test_(self):
@@ -169,8 +236,16 @@ class DateCurveUnitTests(TestCase):
         self.assertTrue(d in self.curve.domain)
         self.assertEqual(d, self.curve.domain[1])
 
+    def test_shift_origin(self):
+        origin1 = BusinessDate()
+        origin2 = BusinessDate() + "3m2d"
+        Curve1 = DateCurve(self.dates, self.values, origin=origin1)
+        Curve2 = DateCurve(self.dates, self.values, origin=origin2)
+        for d in self.dates:
+            self.assertAlmostEqual(Curve1(d), Curve2(d))
 
-class FxUnitTests(TestCase):
+
+class FxUnitTests(unittest.TestCase):
     def setUp(self):
         pass
 
@@ -178,7 +253,7 @@ class FxUnitTests(TestCase):
         self.assertTrue(True)
 
 
-class CashflowUnitTests(TestCase):
+class CashflowUnitTests(unittest.TestCase):
     def setUp(self):
         pass
 
@@ -199,7 +274,9 @@ if __name__ == "__main__":
     print('----------------------------------------------------------------------')
     print('')
 
-    main(verbosity=2)
+    suite = unittest.TestLoader().loadTestsFromModule(__import__("__main__"))
+    testrunner = unittest.TextTestRunner(stream=sys.stdout, descriptions=2, verbosity=2)
+    testrunner.run(suite)
 
     print('')
     print('======================================================================')

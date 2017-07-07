@@ -12,7 +12,7 @@ Interpolation
 .. autosummary::
     :nosignatures:
 
-    interpolation.interpolation
+    interpolation.base_interpolation
     interpolation.no
     interpolation.left
     interpolation.constant

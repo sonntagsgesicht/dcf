@@ -6,7 +6,7 @@
 #  Typical banking business methods are provided like interpolation, compounding,
 #  discounting and fx.
 #
-#  Author:  pbrisk <pbrisk@icloud.com>
+#  Author:  pbrisk <pbrisk_at_github@icloud.com>
 #  Copyright: 2016, 2017 Deutsche Postbank AG
 #  Website: https://github.com/pbrisk/dcf
 #  License: APACHE Version 2 License (see LICENSE file)

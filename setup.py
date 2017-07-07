@@ -6,7 +6,7 @@
 #  Typical banking business methods are provided like interpolation, compounding,
 #  discounting and fx.
 #
-#  Author:  pbrisk <pbrisk@icloud.com>
+#  Author:  pbrisk <pbrisk_at_github@icloud.com>
 #  Copyright: 2016, 2017 Deutsche Postbank AG
 #  Website: https://github.com/pbrisk/dcf
 #  License: APACHE Version 2 License (see LICENSE file)
@@ -22,9 +22,9 @@ except ImportError:
 setup(
     name='dcf',
     description='Python library for discounting cashflows.',
-    version='0.1',
+    version='0.2',
     author='Deutsche Postbank AG [pbrisk]',
-    author_email='pbrisk@icloud.com',
+    author_email='pbrisk_at_github@icloud.com',
     url='https://github.com/pbrisk/dcf',
     bugtrack_url='https://github.com/pbrisk/dcf/issues',
     license='Apache License 2.0',
@@ -42,10 +42,7 @@ setup(
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: Implementation :: CPython',
-        'Programming Language :: Python :: Implementation :: PyPy',
         'Topic :: Education',
         'Topic :: Office/Business',
         'Topic :: Office/Business :: Financial',

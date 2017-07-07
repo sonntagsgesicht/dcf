@@ -6,16 +6,21 @@
 #  Typical banking business methods are provided like interpolation, compounding,
 #  discounting and fx.
 #
-#  Author:  pbrisk <pbrisk@icloud.com>
+#  Author:  pbrisk <pbrisk_at_github@icloud.com>
 #  Copyright: 2016, 2017 Deutsche Postbank AG
 #  Website: https://github.com/pbrisk/dcf
 #  License: APACHE Version 2 License (see LICENSE file)
 
 
 import bisect
+import numpy
 
 
-class interpolation(object):
+class base_interpolation(object):
+    """
+    Basic class to interpolate given data.
+    """
+
     def __init__(self, x_list=list(), y_list=list()):
         self.x_list = list()
         self.y_list = list()
@@ -53,7 +58,7 @@ class interpolation(object):
         return cls(xy_dict.keys(), xy_dict.values())
 
 
-class flat(interpolation):
+class flat(base_interpolation):
     def __init__(self, y=0.0):
         super(flat, self).__init__([0.0], [y])
 
@@ -61,12 +66,16 @@ class flat(interpolation):
         return self.y_list[0]
 
 
-class no(interpolation):
+class no(base_interpolation):
     def __call__(self, x):
         return self.y_list[self.x_list.index(x)]
 
 
-class zero(interpolation):
+class zero(base_interpolation):
+    """
+    interpolates by filling with zeros
+    """
+
     def __call__(self, x):
         if x in self.x_list:
             return self.y_list[self.x_list.index(x)]
@@ -74,7 +83,7 @@ class zero(interpolation):
             return .0
 
 
-class left(interpolation):
+class left(base_interpolation):
     def __call__(self, x):
         if len(self.y_list) == 0:
             raise (OverflowError, "No data points for interpolation provided.")
@@ -85,11 +94,11 @@ class left(interpolation):
         return self.y_list[i]
 
 
-class constant(left):
+class constant(left):  # why is is this derived from class left and not from interpolation itself
     pass
 
 
-class right(interpolation):
+class right(base_interpolation):
     def __call__(self, x):
         if len(self.y_list) == 0:
             raise (OverflowError, "No data points for interpolation provided.")
@@ -100,7 +109,7 @@ class right(interpolation):
         return self.y_list[i]
 
 
-class nearest(interpolation):
+class nearest(base_interpolation):
     def __call__(self, x):
         if len(self.y_list) == 0:
             raise (OverflowError, "No data points for interpolation provided.")
@@ -115,7 +124,11 @@ class nearest(interpolation):
         return self.y_list[i]
 
 
-class linear(interpolation):
+class linear(base_interpolation):
+    """
+    interpolates the given data linear
+    """
+
     def __call__(self, x):
         if len(self.y_list) == 0:
             raise (OverflowError, "No data points for interpolation provided.")
@@ -126,159 +139,143 @@ class linear(interpolation):
                                     (self.x_list[i - 1] - x) / (self.x_list[i - 1] - self.x_list[i])
 
 
-'''
+class spline(base_interpolation):
+    """
+    interpolates the data with cubic splines.
+    """
 
-# cubic spline interpolation
+    def __init__(self, x_list=list(), y_list=list(), boundary_condition=None):
+        """
+        :param x_list: data
+        :param y_list: data
+        :param boundary_condition: Either a tuple (l, r) of values for the slope or None.
+            If the argument is not specified then None will be taken as boundary conditions, which
+            leads to the so called not-a-knot method for splines. Not-a-knot will determine the boundary conditions by also
+            requiring that the third derivatives of the two most left and the two most right interpolation polynomials agree.
+            The boundary condition (0,0) will lead to the so called natural spline
+            """
 
-import numpy as np
+        super(spline, self).__init__(x_list, y_list)  # second derivative on the borders is zero
+        self.intervals = list()
 
+        self.interpolation_coefficients = list()
+        self.boundary_condition = boundary_condition
+        for i in range(0, len(self.x_list) - 1):
+            self.intervals.append([self.x_list[i], self.x_list[i + 1]])
 
-class Interpolator:
-    def __init__(self, name, func, points, deriv=None):
-        self.name = name  # used for naming the C function
-        self.intervals = intervals = [ ]
-        # Generate a cubic spline for each interpolation interval.
-        for u, v in map(None, points[:-1], points[1:]):
-            FU, FV = func(u), func(v)
-            # adjust h as needed, or pass in a derivative function
-            if deriv == None:
-                h = 0.01
-                DU = (func(u + h) - FU) / h
-                DV = (func(v + h) - FV) / h
-            else:
-                DU = deriv(u)
-                DV = deriv(v)
-            denom = (u - v)**3
-            A = ((-DV - DU) * v + (DV + DU) * u +
-                 2 * FV - 2 * FU) / denom
-            B = -((-DV - 2 * DU) * v**2  +
-                  u * ((DU - DV) * v + 3 * FV - 3 * FU) +
-                  3 * FV * v - 3 * FU * v +
-                  (2 * DV + DU) * u**2) / denom
-            C = (- DU * v**3  +
-                 u * ((- 2 * DV - DU) * v**2  + 6 * FV * v
-                                    - 6 * FU * v) +
-                 (DV + 2 * DU) * u**2 * v + DV * u**3) / denom
-            D = -(u *(-DU * v**3  - 3 * FU * v**2) +
-                  FU * v**3 + u**2 * ((DU - DV) * v**2 + 3 * FV * v) +
-                  u**3 * (DV * v - FV)) / denom
-            intervals.append((u, A, B, C, D))
+        if self.y_list:
+            self.set_interpolation_coefficients()
 
     def __call__(self, x):
-        def getInterval(x, intervalList):
-            # run-time proportional to the log of the length
-            # of the interval list
-            n = len(intervalList)
-            if n < 2:
-                return intervalList[0]
-            n2 = n / 2
-            if x < intervalList[n2][0]:
-                return getInterval(x, intervalList[:n2])
-            else:
-                return getInterval(x, intervalList[n2:])
-        # Tree-search the intervals to get coefficients.
-        u, A, B, C, D = getInterval(x, self.intervals)
-        # Plug coefficients into polynomial.
-        return ((A * x + B) * x + C) * x + D
+        """
+        returns the interpolated value for the point x.
+        :param x:
+        :return:
+        """
+        if not self.y_list:
+            raise (OverflowError, "No data points for interpolation provided.")
+        ival = spline.get_interval(x, self.intervals)
+        i = self.intervals.index(ival)
+        t = (x - ival[0]) / (ival[1] - ival[0])
+        y = self.y_list
+        a = self.interpolation_coefficients[i][0]
+        b = self.interpolation_coefficients[i][1]
+        return (1 - t) * y[i] + t * y[i + 1] + t * (1 - t) * (a * (1 - t) + b * t)
 
-    def c_code(self):
-        """Generate C code to efficiently implement this
-        interpolator. Run the C code through 'indent' if you
-        need it to be legible."""
-        def codeChoice(intervalList):
-            n = len(intervalList)
-            if n < 2:
-                return ("A=%.10e;B=%.10e;C=%.10e;D=%.10e;"
-                        % intervalList[0][1:])
-            n2 = n / 2
-            return ("if (x < %.10e) {%s} else {%s}"
-                    % (intervalList[n2][0],
-                       codeChoice(intervalList[:n2]),
-                       codeChoice(intervalList[n2:])))
-        return ("double interpolator_%s(double x) {" % self.name +
-                "double A,B,C,D;%s" % codeChoice(self.intervals) +
-                "return ((A * x + B) * x + C) * x + D;}")
+    @staticmethod
+    def get_interval(x, intervals):
+        """
+        finds interval of the interpolation in which x lies.
+        :param x:
+        :param intervals: the interpolation intervals
+        :return:
+        """
+        n = len(intervals)
+        if n < 2:
+            return intervals[0]
+        n2 = n / 2
+        if x < intervals[n2][0]:
+            return spline.get_interval(x, intervals[:n2])
+        else:
+            return spline.get_interval(x, intervals[n2:])
+
+    def set_interpolation_coefficients(self):
+        """
+        computes the coefficients for the single polynomials of the spline.
+        """
+
+        left_boundary_slope = 0
+        right_boundary_slope = 0
+
+        if isinstance(self.boundary_condition, tuple):
+            left_boundary_slope = self.boundary_condition[0]
+            right_boundary_slope = self.boundary_condition[1]
+        elif self.boundary_condition is None:
+            pass
+        else:
+            msg = 'The given object {} of type {} is not a valid condition ' \
+                  'for the border'.format(self.boundary_condition, type(self.boundary_condition))
+            raise ValueError(msg)
+
+        # getting the values such that we get a continuous second derivative
+        # by solving a system of linear equations
+
+        # setup the matrix
+        n = len(self.x_list)
+        mat = numpy.zeros((n, n))
+        b = numpy.zeros((n, 1))
+        x = self.x_list
+        y = self.y_list
+
+        if n > 2:
+            for i in range(1, n - 1):
+                mat[i, i - 1] = 1.0 / (x[i] - x[i - 1])
+                mat[i, i + 1] = 1.0 / (x[i + 1] - x[i])
+                mat[i, i] = 2 * (mat[i, i - 1] + mat[i, i + 1])
+
+                b[i, 0] = 3 * ((y[i] - y[i - 1]) / (x[i] - x[i - 1]) ** 2
+                               + (y[i + 1] - y[i]) / (x[i + 1] - x[i]) ** 2)
+        elif n < 2:
+            raise ValueError('too less points for interpolation')
+
+        if self.boundary_condition is None:  # not a knot
+            mat[0, 0] = 1.0 / (x[1] - x[0]) ** 2
+            mat[0, 2] = -1.0 / (x[2] - x[1]) ** 2
+            mat[0, 1] = mat[0, 0] + mat[0, 2]
+
+            b[0, 0] = 2.0 * ((y[1] - y[0]) / (x[1] - x[0]) ** 3
+                             - (y[2] - y[1]) / (x[2] - x[1]) ** 3)
+
+            mat[n - 1, n - 3] = 1.0 / (x[n - 2] - x[n - 3]) ** 2
+            mat[n - 1, n - 1] = -1.0 / (x[n - 1] - x[n - 2]) ** 2
+            mat[n - 1, n - 2] = mat[n - 1, n - 3] + mat[n - 1, n - 1]
+
+            b[n - 1, 0] = 2.0 * ((y[n - 2] - y[n - 3]) / (x[n - 2] - x[n - 3]) ** 3
+                                 - (y[n - 1] - y[n - 2]) / (x[n - 1] - x[n - 2]) ** 3)
+        else:
+            mat[0, 0] = 2.0 / (x[1] - x[0])
+            mat[0, 1] = 1.0 / (x[1] - x[0])
+
+            b[0, 0] = 3 * (y[1] - y[0]) / (x[1] - x[0]) ** 2 - 0.5 * left_boundary_slope
+
+            mat[n - 1, n - 2] = 1.0 / (x[n - 1] - x[n - 2])
+            mat[n - 1, n - 1] = 2.0 / (x[n - 1] - x[n - 2])
+
+            b[n - 1, 0] = 3 * (y[n - 1] - y[n - 2]) / (x[n - 1] - x[n - 2]) ** 2 + 0.5 * right_boundary_slope
+
+        k = numpy.linalg.solve(mat, b)
+
+        for i in range(1, n):
+            c1 = k[i - 1, 0] * (x[i] - x[i - 1]) - (y[i] - y[i - 1])
+            c2 = -k[i, 0] * (x[i] - x[i - 1]) + (y[i] - y[i - 1])
+            self.interpolation_coefficients.append([c1, c2])
 
 
-
-def Splines(data):
-    np1 = len(data)
-    n = np1 - 1
-    X, Y = zip(*data)
-    X = [float(x) for x in X]
-    Y = [float(y) for y in Y]
-    a = Y[:]
-    b = [0.0] * (n)
-    d = [0.0] * (n)
-    h = [X[i + 1] - X[i] for i in xrange(n)]
-    alpha = [0.0] * n
-    for i in xrange(1, n):
-        alpha[i] = 3 / h[i] * (a[i + 1] - a[i]) - 3 / h[i - 1] * (a[i] - a[i - 1])
-    c = [0.0] * np1
-    L = [0.0] * np1
-    u = [0.0] * np1
-    z = [0.0] * np1
-    L[0] = 1.0;
-    u[0] = z[0] = 0.0
-    for i in xrange(1, n):
-        L[i] = 2 * (X[i + 1] - X[i - 1]) - h[i - 1] * u[i - 1]
-        u[i] = h[i] / L[i]
-        z[i] = (alpha[i] - h[i - 1] * z[i - 1]) / L[i]
-    L[n] = 1.0;
-    z[n] = c[n] = 0.0
-    for j in xrange(n - 1, -1, -1):
-        c[j] = z[j] - u[j] * c[j + 1]
-        b[j] = (a[j + 1] - a[j]) / h[j] - (h[j] * (c[j + 1] + 2 * c[j])) / 3
-        d[j] = (c[j + 1] - c[j]) / (3 * h[j])
-    splines = []
-    for i in xrange(n):
-        splines.append((a[i], b[i], c[i], d[i], X[i]))
-    return splines, X[n]
+class natural_spline(spline):
+    def __init__(self, x_list=list(), y_list=list()):
+        super(natural_spline, self).__init__(x_list, y_list, (0, 0))
 
 
-def splinesToPlot(splines, xn, res):
-    n = len(splines)
-    perSpline = int(res / n)
-    if perSpline < 3: perSpline = 3
-    X = []
-    Y = []
-    for i in xrange(n - 1):
-        S = splines[i]
-        x0 = S[4]
-        x1 = splines[i + 1][4]
-        x = np.linspace(x0, x1, perSpline)
-        for xi in x:
-            X.append(xi)
-            h = (xi - S[4])
-            Y.append(S[0] + S[1] * h + S[2] * h ** 2 + S[3] * h ** 3)
-    S = splines[n - 1]
-    x = np.linspace(S[4], xn, perSpline)
-    for xi in x:
-        X.append(xi)
-        h = (xi - S[4])
-        Y.append(S[0] + S[1] * h + S[2] * h ** 2 + S[3] * h ** 3)
-
-    return X, Y
-
-
-if '__main__' in __name__:
-    x = lambda n: np.linspace(-1, 1, n)
-    f = lambda x: np.cos(np.sin(np.pi * x))
-    n = 5
-    E = 200
-    data = zip(x(n), f(x(n)))
-    splines, xn = Splines(data)
-    X, Y = splinesToPlot(splines, xn, E)
-    import matplotlib as mpl
-
-    mpl.use("TkAgg")
-    import matplotlib.pylab as plt
-
-    plt.ion()
-    plt.plot(X, Y, 'r--')
-    plt.plot(x(300), f(x(300)), 'k')
-
-    import time
-    time.sleep(10)
-
-'''
+class nak_spline(spline):
+    def __init__(self, x_list=list(), y_list=list()):
+        super(nak_spline, self).__init__(x_list, y_list)

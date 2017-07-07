@@ -6,7 +6,7 @@
 #  Typical banking business methods are provided like interpolation, compounding,
 #  discounting and fx.
 #
-#  Author:  pbrisk <pbrisk@icloud.com>
+#  Author:  pbrisk <pbrisk_at_github@icloud.com>
 #  Copyright: 2016, 2017 Deutsche Postbank AG
 #  Website: https://github.com/pbrisk/dcf
 #  License: APACHE Version 2 License (see LICENSE file)
@@ -66,7 +66,7 @@ class Curve(object):
                 y_mid = y_inter[0]
             else:
                 raise ValueError
-        elif isinstance(y_inter, interpolation.interpolation):
+        elif isinstance(y_inter, interpolation.base_interpolation):
             y_mid = y_inter
         else:
             raise (AttributeError, str(y_inter) + " is not a proper interpolation.")
@@ -149,12 +149,7 @@ class DateCurve(Curve):
         else:
             self.day_count = DAY_COUNT
 
-        self._relative_mode = not isinstance(self.origin, (int, float))
-
-        if self._relative_mode:
-            super(DateCurve, self).__init__([x - self.origin for x in x_list], y_list, y_inter)
-        else:
-            super(DateCurve, self).__init__(x_list, y_list, y_inter)
+        super(DateCurve, self).__init__([self.day_count(self.origin, x) for x in x_list], y_list, y_inter)
 
         self._domain = x_list
 
@@ -165,10 +160,8 @@ class DateCurve(Curve):
     def __call__(self, x):
         if isinstance(x, (list, tuple)):
             return [self(xx) for xx in x]
-        if self._relative_mode:
-            return super(DateCurve, self).__call__(x - self.origin)
-        else:
-            return super(DateCurve, self).__call__(x)
+
+        return super(DateCurve, self).__call__(self.day_count(self.origin, x))
 
     def __add__(self, other):
         new = super(DateCurve, self).__add__(other.shifted(self.origin - other.origin))
@@ -192,10 +185,9 @@ class DateCurve(Curve):
 
     def to_curve(self):
         x_list = self.domain
-        if self._relative_mode:
-            y_list = self([x - self.origin for x in x_list])
-        else:
-            y_list = self(x_list)
+
+        y_list = self([self.day_count(self.origin, x) for x in x_list])
+
         return Curve(x_list, y_list, (self._y_left, self._y_mid, self._y_right))
 
     def update(self, x_list=list(), y_list=list()):
@@ -204,10 +196,8 @@ class DateCurve(Curve):
                 if x not in self._domain:
                     self._domain.append(x)
             self._domain = sorted(self._domain)
-        if self._relative_mode:
-            super(DateCurve, self).update([x - self.origin for x in x_list], y_list)
-        else:
-            super(DateCurve, self).update(x_list, y_list)
+
+            super(DateCurve, self).update([self.day_count(self.origin, x) for x in x_list], y_list)
 
 
 class RateCurve(DateCurve):
@@ -261,7 +251,7 @@ class RateCurve(DateCurve):
         return compounding.continuous_compounding(ir, t)
 
     def get_zero_rate(self, start, stop):
-        if start==stop:
+        if start == stop:
             stop += TIME_SHIFT
         df = self.get_discount_factor(start, stop)
         t = self.day_count(start, stop)

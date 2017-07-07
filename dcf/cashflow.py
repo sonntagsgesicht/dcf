@@ -6,13 +6,15 @@
 #  Typical banking business methods are provided like interpolation, compounding,
 #  discounting and fx.
 #
-#  Author:  pbrisk <pbrisk@icloud.com>
+#  Author:  pbrisk <pbrisk_at_github@icloud.com>
 #  Copyright: 2016, 2017 Deutsche Postbank AG
 #  Website: https://github.com/pbrisk/dcf
 #  License: APACHE Version 2 License (see LICENSE file)
 
-
-from collections import OrderedDict
+try:
+    from collections import OrderedDict
+except ImportError:
+    OrderedDict = dict
 
 from curve import ZeroRateCurve
 
@@ -94,6 +96,7 @@ class RateCashFlowList(CashFlowList):
     """
     RateCashFlowList
     """
+
     def __init__(self, date_list, day_count, fixed_rate=0.0, forward_curve=None, notional_list=None):
         if notional_list is None:
             notional_list = [1e6] * len(date_list[1:])
@@ -131,6 +134,7 @@ class MultiCashFlowList(CashFlowList):
     """
     MultiCashFlowList
     """
+
     def __init__(self, legs):
         for l in legs:
             assert isinstance(l, CashFlowList)

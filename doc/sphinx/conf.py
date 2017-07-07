@@ -68,7 +68,7 @@ master_doc = 'index'
 # General information about the project.
 project = 'dcf'
 copyright = '2017, Deutsche Postbank'
-author = 'pbrisk@icloud.com'
+author = 'pbrisk_at_github@icloud.com'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
