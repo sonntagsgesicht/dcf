@@ -2,8 +2,11 @@
 dcf (discounted cashflow)
 =========================
 
-.. image:: https://img.shields.io/codeship/9d5f1200-9cf4-0134-bcff-6ae80fc9d0de/master.svg
-    :target: https://codeship.com//projects/188495
+.. image:: https://img.shields.io/codeship/cdd5eef0-4616-0135-9944-0ac58edb84f9/master.svg
+    :target: https://codeship.com//projects/231326
+
+.. image:: https://readthedocs.org/projects/dcf-docs/badge
+    :target: http://dcf-docs.readthedocs.io
 
 A Python library for generating discounted cashflows.
 Typical banking business methods are provided like interpolation, compounding,
