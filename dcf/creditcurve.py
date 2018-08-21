@@ -11,9 +11,7 @@
 #  Website: https://github.com/pbrisk/dcf
 #  License: APACHE Version 2 License (see LICENSE file)
 
-import compounding
 import curve
-import interestratecurve
 
 TIME_SHIFT = '1D'
 FORWARD_CREDIT_TENOR = '1Y'
@@ -21,55 +19,59 @@ FORWARD_CREDIT_TENOR = '1Y'
 
 class CreditCurve(curve.RateCurve):
     """ generic curve for default probabilities (under construction) """
-    _inner_curve = curve.RateCurve
 
     def __init__(self, x_list, y_list, y_inter=None, origin=None, day_count=None, forward_tenor=None):
         super(self.__class__, self).__init__(x_list, y_list, y_inter, origin, day_count)
-        self.forward_tenor = forward_tenor if forward_tenor is not None else FORWARD_CREDIT_TENOR
+        self.forward_tenor = FORWARD_CREDIT_TENOR if forward_tenor is None else forward_tenor
 
     def get_survival_prob(self, start, stop):  # aka get_discount_factor
-        ir = self.get_flat_intensity(start, stop)
-        t = self.day_count(start, stop)
-        return compounding.continuous_compounding(ir, t)
+        return self._get_compounding_factor(start, stop)
 
     def get_flat_intensity(self, start, stop):  # aka get_zero_rate
-        if start == stop:
-            stop += TIME_SHIFT
-        df = self.get_survival_prob(start, stop)
-        t = self.day_count(start, stop)
-        return compounding.continuous_rate(df, t)
+        return self._get_compounding_rate(start, stop)
 
-    def get_hazard_rate(self, start, shift=TIME_SHIFT):  # aka get_short_rate
-        up = self.get_flat_intensity(self.origin, start + shift)
-        dn = self.get_flat_intensity(self.origin, start - shift)
-        t = self.day_count(start - shift, start + shift)
-        return (up - dn) / t
-
-    def get_forward_survival_rate(self, start, stop=None, step=None):  # aka get_cash_rate
-        if step is not None and stop is not None:
-            raise TypeError("one argument (stop or step) must be None.")
-        if stop is None:
-            stop = start + self.forward_tenor if step is None else start + step
-        df = self.get_survival_prob(start, stop)
-        t = self.day_count(start, stop)
-        return compounding.simple_rate(df, t)
+    def get_hazard_rate(self, start):  # aka get_short_rate
+        return self._get_compounding_rate(start, start + TIME_SHIFT)
 
 
 class SurvivalProbabilityCurve(CreditCurve):
-    def get_storage_type(self, x):
-        return self.get_survival_prob(self.origin, x)
 
-    def get_survival_prob(self, start, stop):
+    def get_storage_type(self, x):
+        return self._get_compounding_factor(self.origin, x)
+
+    def _get_compounding_factor(self, start, stop):
         return self(start) if stop is None or stop is self.origin else self(start) / self(stop)
 
 
 class FlatIntensityCurve(CreditCurve):
-    pass
 
+    def get_storage_type(self, x):
+        return self._get_compounding_rate(self.origin, x)
 
-class ForwardSurvivalRate(CreditCurve):
-    pass
+    def _get_compounding_rate(self, start, stop):
+        if stop is None:
+            return self(start)
+        if start is self.origin:
+            return self(stop)
+        s = self(start) * self.day_count(self.origin, start)
+        e = self(stop) * self.day_count(self.origin, stop)
+        t = self.day_count(start, stop)
+        return (s - e) / t
 
 
 class HazardRateCurve(CreditCurve):
-    pass
+
+    def get_storage_type(self, x):
+        return self.get_hazard_rate(self.origin)
+
+    def _get_compounding_rate(self, start, stop):
+        domain = [start] + [d for d in self.domain if start < d < stop] + [stop]
+        rate = 0.0
+        for s, e in zip(domain[:-1], domain[1:]):
+            hz = self.get_hazard_rate(s)
+            yf = self.day_count(s, e)
+            rate += hz * yf
+        return rate / self.day_count(start, stop)
+
+    def get_hazard_rate(self, start):  # aka get_short_rate
+        return self(start)

@@ -13,7 +13,7 @@
 
 
 import interpolation
-
+import compounding
 
 def _day_count(start, end):
     if hasattr(start, 'diff_in_years'):
@@ -28,6 +28,8 @@ def _day_count(start, end):
 
 
 DAY_COUNT = _day_count
+TIME_SHIFT = '1D'
+FORWARD_TENOR = '3M'
 
 
 class Curve(object):
@@ -74,6 +76,10 @@ class Curve(object):
         self._y_left = type(y_left)(x_list, y_list)
 
     @property
+    def interpolation(self):
+        return self._y_left ,self._y_mid, self._y_right
+
+    @property
     def domain(self):
         return self._y_mid.x_list
 
@@ -109,6 +115,8 @@ class Curve(object):
 
     def __div__(self, other):
         x_list = sorted(set(self.domain + other.domain))
+        if any(not other(x) for x in x_list):
+            raise ZeroDivisionError("Division with %s requires on zero values." %other.__class__.__name__)
         y_list = [self(x) / other(x) for x in x_list]
         return self.__class__(x_list, y_list, (self._y_left, self._y_mid, self._y_right))
 
@@ -196,11 +204,15 @@ class DateCurve(Curve):
 
 
 class RateCurve(DateCurve):
+    def __init__(self, x_list, y_list, y_inter=None, origin=None, day_count=None, forward_tenor=None):
+        super(RateCurve, self).__init__(x_list, y_list, y_inter, origin, day_count)
+        self.forward_tenor = FORWARD_TENOR if forward_tenor is None else forward_tenor
+
     @classmethod
     def cast(cls, other):
         new = cls(other.domain,
                   [other.get_storage_type(x) for x in other.domain],
-                  (other._y_left, other._y_mid, other._y_right),
+                  other.interpolation,
                   other.origin,
                   other.day_count,
                   other.forward_tenor)
@@ -232,3 +244,15 @@ class RateCurve(DateCurve):
 
     def get_storage_type(self, x):
         raise NotImplementedError
+
+    def _get_compounding_factor(self, start, stop):
+        ir = self._get_compounding_rate(start, stop)
+        t = self.day_count(start, stop)
+        return compounding.continuous_compounding(ir, t)
+
+    def _get_compounding_rate(self, start, stop):
+        if start == stop:
+            stop += TIME_SHIFT
+        df = self._get_compounding_factor(start, stop)
+        t = self.day_count(start, stop)
+        return compounding.continuous_rate(df, t)

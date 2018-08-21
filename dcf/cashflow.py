@@ -60,10 +60,14 @@ class CashFlowList(OrderedDict):
             return super(CashFlowList, self).__getitem__(item)
 
     def get_value(self, discount_curve, valuation_date=None):
-        if valuation_date is None:
-            valuation_date = discount_curve.domain[0]
+
+        valuation_date = discount_curve.origin if valuation_date is None else valuation_date
         pd = [d for d in self if valuation_date < d]
-        return discount_curve.get_swap_leg_valuation(pd, self[pd])
+
+        if isinstance(self[pd], float):  # todo: check valuation ...
+            return self[pd] * discount_curve.get_swap_annuity(pd)
+        else:
+            return sum([discount_curve.get_discount_factor(discount_curve.origin, t) * r for t, r in zip(pd, self[pd])])
 
     def yield_to_maturity(self, valuation_date):
         # todo bracketing on yield

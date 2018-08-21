@@ -15,6 +15,11 @@
 import math
 import sys
 
+'''
+functions to convert hazard rate into intensity, survival probability, conditional forward survival probability
+ and vica versa
+'''
+
 
 def forward_pd_from_hazard_rate(x_value, x_list, y_list):
     r""" calculates forward pd from hazard rate

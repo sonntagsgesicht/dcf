@@ -19,9 +19,10 @@ import unittest
 from businessdate import BusinessDate, BusinessRange
 
 from dcf import flat, linear, no, zero, left, right, nearest, spline, nak_spline
-from dcf import Curve, DateCurve, ZeroRateCurve, CashRateCurve, ShortRateCurve
-from dcf.interestratecurve import DiscountFactorCurve, ZeroRateCurve, CashRateCurve, ShortRateCurve
-from dcf import continuous_compounding, continuous_rate, periodic_compounding, periodic_rate
+from dcf import continuous_compounding, continuous_rate, periodic_compounding, periodic_rate, \
+    simple_compounding, simple_rate
+from dcf import Curve, DateCurve
+from dcf import DiscountFactorCurve, ZeroRateCurve, CashRateCurve, ShortRateCurve
 from dcf import SurvivalProbabilityCurve, FlatIntensityCurve, HazardRateCurve
 from dcf import FxCurve, FxContainer
 from dcf import CashFlowList, AmortizingCashFlowList, AnnuityCashFlowList, RateCashFlowList
@@ -204,24 +205,59 @@ class CubicSplineUnitTest(unittest.TestCase):
 
 
 class CompoundingUnitTests(unittest.TestCase):
-    def setUp(self):
-        pass
-
     def test_(self):
-        self.assertTrue(True)
+        for t in (0.012, 0.2, 0.5, 0.8, 1.0, 1.5, 2.0, 5.0):
+            rate = 0.01
+            factor = continuous_compounding(rate, t)
+            self.assertAlmostEqual(continuous_rate(factor, t), rate)
+
+            factor = 0.5
+            rate = continuous_rate(factor, t)
+            self.assertAlmostEqual(continuous_compounding(rate, t), factor)
+
+            rate = 0.01
+            factor = simple_compounding(rate, t)
+            self.assertAlmostEqual(simple_rate(factor, t), rate)
+
+            factor = 0.5
+            rate = simple_rate(factor, t)
+            self.assertAlmostEqual(simple_compounding(rate, t), factor)
+
+            for p in (1, 2, 4, 12, 365):
+                rate = 0.01
+                factor = periodic_compounding(rate, t, p)
+                self.assertAlmostEqual(periodic_rate(factor, t, p), rate)
+
+                factor = 0.5
+                rate = periodic_rate(factor, t, p)
+                self.assertAlmostEqual(periodic_compounding(rate, t, p), factor)
 
 
 class CurveUnitTests(unittest.TestCase):
     def setUp(self):
-        self.x_list = [float(x) * 0.01 for x in range(10)]
+        self.x_list = [float(x) * 0.01for x in range(10)]
         self.y_list = list(self.x_list)
         self.curve = Curve(self.x_list, self.y_list)
 
-    def test_addition(self):
+    def test_algebra(self):
         other = Curve(self.x_list, self.y_list)
         new = self.curve + other
         for x in new.domain:
-            self.assertAlmostEqual(new(x), self.curve(x) * 2)
+            self.assertAlmostEqual(new(x), self.curve(x) * 2.)
+
+        new = self.curve - other
+        for x in new.domain:
+            self.assertAlmostEqual(new(x), 0.)
+
+        new = self.curve * other
+        for x in new.domain:
+            self.assertAlmostEqual(new(x), self.curve(x) ** 2)
+
+        self.assertRaises(ZeroDivisionError, self.curve.__div__, other)
+
+        new = self.curve / Curve(self.x_list, [0.1] * len(self.x_list))
+        for x in new.domain:
+            self.assertAlmostEqual(new(x), self.curve(x)/0.1)
 
 
 class DateCurveUnitTests(unittest.TestCase):
@@ -230,7 +266,7 @@ class DateCurveUnitTests(unittest.TestCase):
         self.values = [0.01 * n ** 4 - 2 * n ** 2 for n in range(0, len(self.dates))]
         self.curve = DateCurve(self.dates, self.values)
 
-    def test_(self):
+    def test_dates(self):
         for d in self.dates:
             self.assertTrue(d in self.curve.domain)
         d = BusinessDate() + '3M'
@@ -247,24 +283,77 @@ class DateCurveUnitTests(unittest.TestCase):
             self.assertAlmostEqual(Curve1(d), Curve2(d))
 
 
-class FxUnitTests(unittest.TestCase):
+class InterestRateCurveUnitTests(unittest.TestCase):
     def setUp(self):
+        self.today = BusinessDate()
+        self.domain = BusinessRange(self.today, self.today + '5Y', '3M')
+        self.periods = ('1D', '2B', '1W', '8D', '2W', '14B', '1M', '2M', '3M', '6M', '7M', '9M', '2Y')
+
+    def test_zero_curve(self):
+        rate = 0.02
+        curve = ZeroRateCurve(self.domain, [rate] * len(self.domain))
+        for d in self.domain:
+            for p in self.periods:
+                self.assertAlmostEqual(curve.get_zero_rate(self.today, d + p), rate)
+                self.assertAlmostEqual(curve.get_short_rate(d + p), rate)
+                self.assertAlmostEqual(curve.get_cash_rate(d + p), rate, 3)
+
+        a, b = 0.01, 0.02
+        curve = ZeroRateCurve([self.today, self.today + '1y'], [a, b])
+        for p in self.periods:
+            self.assertTrue(a <= curve.get_zero_rate(self.today, self.today + p) <= b)
+            l = curve.get_zero_rate(self.today, self.today + p - '1B')
+            m = curve.get_zero_rate(self.today, self.today + p)
+            u = curve.get_zero_rate(self.today, self.today + p + '1B')
+            self.assertTrue(l <= m <= u)
+            l = curve.get_short_rate(self.today + p - '1B')
+            m = curve.get_short_rate(self.today + p)
+            u = curve.get_short_rate(self.today + p + '1B')
+            self.assertTrue(l <= m <= u)
+        for p, q, r in zip(self.periods[:-2], self.periods[1:-1], self.periods[2:]):
+            l = curve.get_zero_rate(self.today, self.today + p)
+            m = curve.get_zero_rate(self.today, self.today + q)
+            u = curve.get_zero_rate(self.today, self.today + r)
+            self.assertTrue(l < m < u)
+
+    def test_discount_factor_curve(self):
+        # curve = DiscountFactorCurve(self.domain, df_list)
         pass
 
+    def test_short_rate_curve(self):
+        pass
+
+    def test_cash_rate_curve(self):
+        pass
+
+    def test_cast_curve(self):
+        pass
+
+
+class CreditCurveUnitTests(unittest.TestCase):
+    def test_survival_curve(self):
+        pass
+
+    def test_intensity_curve(self):
+        pass
+
+    def test_hazard_rate_curve(self):
+        pass
+
+
+class FxUnitTests(unittest.TestCase):
+
     def test_(self):
-        self.assertTrue(True)
+        pass
 
 
 class CashflowUnitTests(unittest.TestCase):
-    def setUp(self):
-        pass
 
     def test_(self):
-        self.assertTrue(True)
+        pass
 
 
 class RatingClassUnitTets(unittest.TestCase):
-
     def test_rating_class_without_master_scale(self):
         self.assertRaises(TypeError, RatingClass, '*')
 

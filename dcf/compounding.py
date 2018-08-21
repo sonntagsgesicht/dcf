@@ -36,7 +36,7 @@ def periodic_compounding(rate_value, maturity_value, period_value):
 
 
 def periodic_rate(df, period_fraction, frequency):
-    return (math.pow(df, -1.0 / (period_fraction * frequency)) - 1.0) / frequency
+    return (math.pow(df, -1.0 / (period_fraction * frequency)) - 1.0) * frequency
 
 
 def annually_compounding(rate_value, maturity_value):
