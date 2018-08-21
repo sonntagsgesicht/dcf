@@ -19,12 +19,14 @@ import unittest
 from businessdate import BusinessDate, BusinessRange
 
 from dcf import flat, linear, no, zero, left, right, nearest, spline, nak_spline
-from dcf import Curve, DateCurve, DiscountFactorCurve, ZeroRateCurve, CashRateCurve, ShortRateCurve
+from dcf import Curve, DateCurve, ZeroRateCurve, CashRateCurve, ShortRateCurve
+from dcf.interestratecurve import DiscountFactorCurve, ZeroRateCurve, CashRateCurve, ShortRateCurve
 from dcf import continuous_compounding, continuous_rate, periodic_compounding, periodic_rate
-from dcf import FlatIntensityCurve, SurvivalProbabilityCurve, FlatIntensityCurve, HazardRateCurve
+from dcf import SurvivalProbabilityCurve, FlatIntensityCurve, HazardRateCurve
 from dcf import FxCurve, FxContainer
-from dcf.cashflow import CashFlowList, AmortizingCashFlowList, AnnuityCashFlowList, RateCashFlowList
-from dcf.cashflow import MultiCashFlowList, FixedLoan, FloatLoan, FixedFloatSwap
+from dcf import CashFlowList, AmortizingCashFlowList, AnnuityCashFlowList, RateCashFlowList
+from dcf import MultiCashFlowList, FixedLoan, FloatLoan, FixedFloatSwap
+from dcf import RatingClass
 
 
 class InterpolationUnitTests(unittest.TestCase):
@@ -259,6 +261,60 @@ class CashflowUnitTests(unittest.TestCase):
 
     def test_(self):
         self.assertTrue(True)
+
+
+class RatingClassUnitTets(unittest.TestCase):
+
+    def test_rating_class_without_master_scale(self):
+        self.assertRaises(TypeError, RatingClass, '*')
+
+        r = RatingClass(masterscale=('A', 'B', 'C', 'D'))
+        self.assertRaises(ValueError, list, r)
+
+        r = RatingClass(0.2)
+        self.assertEqual(repr(r), 'RatingClass(0.2000000)')
+        self.assertEqual(str(r), repr(r))
+        self.assertEqual(r.masterscale, None)
+        self.assertEqual(list(r), [])
+
+    def test_rating_class_with_master_scale(self):
+        r = RatingClass(value=0.000001, masterscale=('A', 'B', 'C', 'D'))
+        self.assertAlmostEqual(float(r), 0.000001)
+        self.assertRaises(ValueError, list, r)
+
+        r = RatingClass(value=0.3, masterscale=('A', 'B', 'C', 'D'))
+        self.assertAlmostEqual(float(r), 0.3)
+        self.assertAlmostEquals(list(r), [0., 0., 0.7777778, 0.2222222])
+        self.assertEqual(str(r), '0.7777778 C + 0.2222222 D')
+        self.assertEqual(repr(r), str(r) + '-RatingClass(0.3000000)')
+
+        self.assertEqual(len(list(r)), len(r.masterscale))
+        self.assertAlmostEqual(sum(list(r)), 1.)
+        self.assertAlmostEqual(min(list(r)), 0.)
+
+    def test_master_scale_rating_classes(self):
+        r = RatingClass(value=0.3, masterscale=('A', 'B', 'C', 'D'))
+        self.assertEqual(r.masterscale.keys(), ['A', 'B', 'C', 'D'])
+        self.assertEqual(str(r.masterscale),
+                         '[A-RatingClass(0.0010000), B-RatingClass(0.0100000), C-RatingClass(0.1000000), D-RatingClass(1.0000000)]')
+        self.assertEqual(repr(r.masterscale),
+                         'master_scale(A-RatingClass(0.0010000), B-RatingClass(0.0100000), C-RatingClass(0.1000000), D-RatingClass(1.0000000))')
+
+        for y, z in r.masterscale.items():
+            x = RatingClass(z, r.masterscale)
+            self.assertEqual(str(x), y)
+            self.assertEqual(repr(x), '%s-RatingClass(%.7f)' % (y, z))
+
+        for i, (x, y) in enumerate(r.masterscale.items()):
+            self.assertAlmostEqual(10 ** (len(r.masterscale) - i) * y, 10)
+            vec = list(RatingClass(y, r.masterscale))
+            self.assertEqual(vec.pop(i), 1.)
+            self.assertAlmostEqual(max(vec), 0.)
+            self.assertAlmostEqual(min(vec), 0.)
+
+        for k in r.masterscale:
+            r.masterscale[k] = -1.
+        self.assertEqual(r.masterscale.values(), [-1.] * len(r.masterscale))
 
 
 if __name__ == "__main__":

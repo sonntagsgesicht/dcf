@@ -12,9 +12,7 @@
 #  License: APACHE Version 2 License (see LICENSE file)
 
 
-from math import exp, log
 import interpolation
-import compounding
 
 
 def _day_count(start, end):
@@ -30,9 +28,6 @@ def _day_count(start, end):
 
 
 DAY_COUNT = _day_count
-FORWARD_RATE_TENOR = '3M'
-FORWARD_CREDIT_TENOR = '1Y'
-TIME_SHIFT = '1D'
 
 
 class Curve(object):
@@ -211,13 +206,6 @@ class RateCurve(DateCurve):
                   other.forward_tenor)
         return new
 
-    def __init__(self, x_list, y_list, y_inter=None, origin=None, day_count=None, forward_tenor=None):
-        super(RateCurve, self).__init__(x_list, y_list, y_inter, origin, day_count)
-        if forward_tenor is not None:
-            self.forward_tenor = forward_tenor
-        else:
-            self.forward_tenor = FORWARD_RATE_TENOR
-
     def __add__(self, other):
         casted = self.__class__.cast(other)
         new = super(RateCurve, self).__add__(casted)
@@ -244,158 +232,3 @@ class RateCurve(DateCurve):
 
     def get_storage_type(self, x):
         raise NotImplementedError
-
-    def get_discount_factor(self, start, stop):
-        ir = self.get_zero_rate(start, stop)
-        t = self.day_count(start, stop)
-        return compounding.continuous_compounding(ir, t)
-
-    def get_zero_rate(self, start, stop):
-        if start == stop:
-            stop += TIME_SHIFT
-        df = self.get_discount_factor(start, stop)
-        t = self.day_count(start, stop)
-        return compounding.continuous_rate(df, t)
-
-    def get_short_rate(self, start, shift=TIME_SHIFT):
-        up = self.get_zero_rate(self.origin, start + shift)
-        dn = self.get_zero_rate(self.origin, start - shift)
-        t = self.day_count(start - shift, start + shift)
-        return (up - dn) / t
-
-    def get_cash_rate(self, start, stop=None, step=None):
-        if stop is None:
-            if step is None:
-                stop = start + self.forward_tenor
-            else:
-                stop = start + step
-        df = self.get_discount_factor(start, stop)
-        t = self.day_count(start, stop)
-        return compounding.simple_rate(df, t)
-
-    def get_swap_annuity(self, date_list):
-        return sum([self.get_discount_factor(self.origin, t) for t in date_list])
-
-    def get_swap_leg_valuation(self, date_list, flow_list):
-        if isinstance(flow_list, float):
-            return flow_list * self.get_swap_annuity(date_list)
-        else:
-            return sum([self.get_discount_factor(self.origin, t) * r for t, r in zip(date_list, flow_list)])
-
-
-class DiscountFactorCurve(RateCurve):
-    def get_storage_type(self, x):
-        return self.get_discount_factor(self.origin, x)
-
-    def get_discount_factor(self, start, stop):
-        if stop is None or stop is self.origin:
-            return self(start)
-        else:
-            return self(start) / self(stop)
-
-
-class ZeroRateCurve(RateCurve):
-    def get_storage_type(self, x):
-        return self.get_zero_rate(self.origin, x)
-
-    def get_zero_rate(self, start, stop):
-        if stop is None or stop is self.origin or start == stop:
-            return self(start)
-        else:
-            df = exp(self(start) * self.day_count(self.origin, start)
-                     - self(stop) * self.day_count(self.origin, stop))
-            t = self.day_count(start, stop)
-            return compounding.continuous_rate(df, t)
-
-
-class CashRateCurve(RateCurve):
-    def get_storage_type(self, x):
-        return self.get_cash_rate(x)
-
-    def get_discount_factor(self, start, stop):
-        df = 1.0
-        current = start
-        while current < stop:
-            t = self.day_count(current, current + self.forward_tenor)
-            df *= compounding.simple_compounding(self(current), t)
-            current += self.forward_tenor
-        t = self.day_count(current, stop)
-        df *= compounding.simple_compounding(self(current), t)
-        return df
-
-    def get_cash_rate(self, start, stop=None, step=None):
-        if step is not None and stop is not None:
-            raise TypeError, "one argument (stop or step) must be None."
-
-        if stop is None:
-            if step is None or step is self.forward_tenor:
-                return self(start)
-            else:
-                return super(CashRateCurve, self).get_cash_rate(start, step=step)
-        else:
-            return super(CashRateCurve, self).get_cash_rate(start, stop)
-
-
-class ShortRateCurve(RateCurve):
-    def get_storage_type(self, x):
-        return self.get_short_rate(x)
-
-    def get_zero_rate(self, start, stop):
-        # integrate from start to stop
-        ir = 0.0
-        current = start
-        while current < stop:
-            t = self.day_count(current, current + TIME_SHIFT)
-            ir = self(current) * t
-            current += TIME_SHIFT
-        t = self.day_count(current, stop)
-        ir = self(current) * t
-        return ir
-
-    def get_short_rate(self, start, shift=None):
-        return self(start)
-
-
-class CreditCurve(RateCurve):
-    """
-        generic curve for default probabilities (under construction)
-    """
-    _inner_curve = RateCurve
-
-    def __init__(self, x_list, y_list, y_inter=None, origin=None, day_count=None, forward_tenor=None):
-        if forward_tenor is None:
-            forward_tenor = FORWARD_CREDIT_TENOR
-        super(self.__class__, self).__init__(x_list, y_list, y_inter, origin, day_count, forward_tenor)
-
-    def get_survival_prob(self, start, stop):
-        return self.get_discount_factor(start, stop)
-
-    def get_flat_intensity(self, start, stop):
-        return self.get_zero_rate(start, stop)
-
-    def get_forward_survival_rate(self, start, stop=None, step=None):
-        if step is not None and stop is not None:
-            raise TypeError, "one argument (stop or step) must be None."
-        if stop is None:
-            return self.get_cash_rate(start, step=step)
-        else:
-            return self.get_cash_rate(start, stop)
-
-    def get_hazard_rate(self, start, shift=None):
-        return self.get_short_rate(start, shift)
-
-
-class SurvivalProbabilityCurve(DiscountFactorCurve, CreditCurve):
-    pass
-
-
-class FlatIntensityCurve(CreditCurve):
-    pass
-
-
-class ForwardSurvivalRate(CreditCurve):
-    pass
-
-
-class HazardRateCurve(CreditCurve):
-    pass

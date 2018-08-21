@@ -16,7 +16,7 @@ try:
 except ImportError:
     OrderedDict = dict
 
-from curve import ZeroRateCurve
+from dcf import ZeroRateCurve
 
 
 def _frange(start, stop=None, step=None):
