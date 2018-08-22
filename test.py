@@ -30,6 +30,61 @@ from dcf import MultiCashFlowList, FixedLoan, FloatLoan, FixedFloatSwap
 from dcf import RatingClass
 
 
+def plot_curve(curve, x=None):
+    import matplotlib.pyplot as plt
+
+    today = curve.origin
+
+    if x is None:
+        if curve.domain[-1] < today + '1y':
+            x = BusinessRange(today - '3m', curve.domain[-1] + '3m', step='1d')
+        elif curve.domain[-1] < today + '2y':
+            x = BusinessRange(today - '6m', curve.domain[-1] + '6m', step='1w')
+        else:
+            x = BusinessRange(today - '1y', curve.domain[-1] + '1y', step='1m')
+
+    fig, ax = plt.subplots(1, 1)
+
+    ax2 = ax.twinx()
+    y = [curve.get_discount_factor(today, _) for _ in x]
+    z = [today.diff_in_days(_) for _ in x]
+    ax2.plot(z, y, label='discount factor', color='k')
+
+    y = [curve.get_short_rate(_) for _ in x]
+    ax.plot(z, y, label='short rate')
+
+    y = [curve.get_zero_rate(today, _) for _ in x]
+    ax.plot(z, y, label='zero rate')
+
+    y = [curve.get_cash_rate(_, step='1M') for _ in x]
+    ax.plot(z, y, label='cash rate 1m ')
+
+    y = [curve.get_cash_rate(_, step='3M') for _ in x]
+    ax.plot(z, y, label='cash rate 3m ')
+
+    y = [curve.get_cash_rate(_, step='6M') for _ in x]
+    ax.plot(z, y, label='cash rate 6m ')
+
+    ax.set_xlabel('time (d)')
+    ax.set_ylabel('rate')
+    ax2.set_ylabel('factor')
+
+    ax.legend(loc='lower left', frameon=False)
+    ax2.legend(loc='lower right', frameon=False)
+
+    fig.tight_layout()
+    plt.title(curve.__class__.__name__)
+    plt.show()
+
+x = [BusinessDate(), BusinessDate() + '6m', BusinessDate() + '2y']
+y = [0.02, 0.01, 0.015]
+#curve = ZeroRateCurve(x, y)
+#curve = ShortRateCurve(x, y)
+curve = CashRateCurve(x, y, forward_tenor='1M')
+#curve = DiscountFactorCurve(x, [1., .9, .7])
+#plot_curve(curve)
+
+
 class InterpolationUnitTests(unittest.TestCase):
     def setUp(self):
         self.a = 0.0
@@ -286,48 +341,126 @@ class DateCurveUnitTests(unittest.TestCase):
 class InterestRateCurveUnitTests(unittest.TestCase):
     def setUp(self):
         self.today = BusinessDate()
-        self.domain = BusinessRange(self.today, self.today + '5Y', '3M')
-        self.periods = ('1D', '2B', '1W', '8D', '2W', '14B', '1M', '2M', '3M', '6M', '7M', '9M', '2Y')
+        self.domain = BusinessRange(self.today, self.today + '1Y', '3M')
+        self.len = len(self.domain)
+        self.periods = ('1D', '2B', '8D', '2W', '14B', '1M', '1M1D', '3M', '6M', '6M2W1D', '9M', '12M')
 
     def test_zero_curve(self):
         rate = 0.02
-        curve = ZeroRateCurve(self.domain, [rate] * len(self.domain))
+        curve = ZeroRateCurve(self.domain, [rate] * self.len)
         for d in self.domain:
             for p in self.periods:
+                self.assertAlmostEqual(curve.get_discount_factor(d + p, d + p), 1.)
+
                 self.assertAlmostEqual(curve.get_zero_rate(self.today, d + p), rate)
                 self.assertAlmostEqual(curve.get_short_rate(d + p), rate)
                 self.assertAlmostEqual(curve.get_cash_rate(d + p), rate, 3)
 
-        a, b = 0.01, 0.02
-        curve = ZeroRateCurve([self.today, self.today + '1y'], [a, b])
+        curve = ZeroRateCurve([self.today, self.today + '1y'], [0.01, 0.02])
         for p in self.periods:
-            self.assertTrue(a <= curve.get_zero_rate(self.today, self.today + p) <= b)
+            self.assertAlmostEqual(curve.get_discount_factor(self.today + p, self.today + p), 1.)
+
+            self.assertTrue(min(curve(curve.domain)) <= curve.get_zero_rate(self.today, self.today + p))
+            self.assertTrue(curve.get_zero_rate(self.today, self.today + p) <= max(curve(curve.domain)))
+
             l = curve.get_zero_rate(self.today, self.today + p - '1B')
             m = curve.get_zero_rate(self.today, self.today + p)
             u = curve.get_zero_rate(self.today, self.today + p + '1B')
+            #print l <= m <= u, p, l, m, u
             self.assertTrue(l <= m <= u)
-            l = curve.get_short_rate(self.today + p - '1B')
-            m = curve.get_short_rate(self.today + p)
-            u = curve.get_short_rate(self.today + p + '1B')
-            self.assertTrue(l <= m <= u)
+
         for p, q, r in zip(self.periods[:-2], self.periods[1:-1], self.periods[2:]):
+            self.assertAlmostEqual(curve.get_discount_factor(self.today + p, self.today + p), 1.)
+
             l = curve.get_zero_rate(self.today, self.today + p)
             m = curve.get_zero_rate(self.today, self.today + q)
             u = curve.get_zero_rate(self.today, self.today + r)
+            #print l < m < u, p, l, m, u
             self.assertTrue(l < m < u)
 
+        curve = ZeroRateCurve([self.today, self.today + '1y'], [0.01, 0.02])
+        for p in self.periods:
+            self.assertAlmostEqual(curve.get_discount_factor(self.today + p, self.today + p), 1.)
+
+            z = curve.get_zero_rate(self.today, self.today + p)
+            s = curve.get_short_rate(self.today + p)
+            c = curve.get_cash_rate(self.today + p, step='1M')
+            #print z <= s <= c, p, z, s, c
+            self.assertTrue(z <= s <= c)
+
+        curve = ZeroRateCurve([self.today, self.today + '1y'], [0.02, 0.01])
+        for p in self.periods:
+            self.assertAlmostEqual(curve.get_discount_factor(self.today + p, self.today + p), 1.)
+
+            z = curve.get_zero_rate(self.today, self.today + p)
+            s = curve.get_short_rate(self.today + p) - 1E-16 # mismatch due to numerical issues
+            c = curve.get_cash_rate(self.today + p, step='1M') - 1E-5 # mismatch due to simple compounding
+            #print z >= s >= c, p, z, s, c
+            self.assertTrue(z >= s >= c)
+
     def test_discount_factor_curve(self):
-        # curve = DiscountFactorCurve(self.domain, df_list)
-        pass
+        curve = DiscountFactorCurve([self.today, self.today + '2y'], [1.0, 0.9])
+        for p in self.periods:
+            self.assertAlmostEqual(curve.get_discount_factor(self.today + p, self.today + p), 1.)
+
+            z = curve.get_zero_rate(self.today, self.today + p)
+            s = curve.get_short_rate(self.today + p)
+            c = curve.get_cash_rate(self.today + p, step='1M')
+            #print z <= s <= c, p, z, s, c
+            self.assertTrue(z <= s <= c)
 
     def test_short_rate_curve(self):
-        pass
+        curve = ShortRateCurve([self.today, self.today+'3M'], [0.01, 0.02])
+        for p in self.periods:
+            self.assertAlmostEqual(curve.get_discount_factor(self.today + p, self.today + p), 1.)
+
+            z = curve.get_zero_rate(self.today, self.today + p)
+            s = curve.get_short_rate(self.today + p)
+            c = curve.get_cash_rate(self.today + p, step='1M')
+            #print z <= s <= c, p, z, s, c
+            self.assertTrue(z <= s <= c)
+
+        curve = ShortRateCurve([self.today, self.today+'3M'], [0.02, 0.01])
+        for p in self.periods:
+            self.assertAlmostEqual(curve.get_discount_factor(self.today + p, self.today + p), 1.)
+
+            z = curve.get_zero_rate(self.today, self.today + p)
+            s = curve.get_short_rate(self.today + p)
+            c = curve.get_cash_rate(self.today + p, step='1M') - 1E-5 # mismatch due to simple compounding
+            #print z >= s >= c, p, z, s, c
+            self.assertTrue(z >= s >= c)
 
     def test_cash_rate_curve(self):
-        pass
+        curve = CashRateCurve([self.today, self.today+'3M'], [0.01, 0.02], forward_tenor='1M')
+        for p in self.periods:
+            self.assertAlmostEqual(curve.get_discount_factor(self.today + p, self.today + p), 1.)
+
+            z = curve.get_zero_rate(self.today, self.today + p)
+            s = curve.get_short_rate(self.today + p)
+            c = curve.get_cash_rate(self.today + p, step='1M')
+            #print z <= s <= c, p, z, s, c
+            self.assertTrue(z <= s <= c)
+
+        curve = CashRateCurve([self.today, self.today+'3M'], [0.02, 0.01], forward_tenor='1M')
+        for p in self.periods:
+            self.assertAlmostEqual(curve.get_discount_factor(self.today + p, self.today + p), 1.)
+
+            z = curve.get_zero_rate(self.today, self.today + p)
+            s = curve.get_short_rate(self.today + p)
+            c = curve.get_cash_rate(self.today + p, step='1M') - 1E-5 # mismatch due to simple compounding
+            #print z >= s >= c, p, z, s, c
+            self.assertTrue(z >= s >= c)
 
     def test_cast_curve(self):
-        pass
+        rate = 0.02
+        zero = ZeroRateCurve(self.domain, [rate] * self.len)
+        print zero
+        short = ShortRateCurve.cast(zero)
+        print short
+        cash = CashRateCurve.cast(zero)
+        print cash
+        cash = CashRateCurve.cast(zero, '1M')
+        print cash
 
 
 class CreditCurveUnitTests(unittest.TestCase):

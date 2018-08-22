@@ -204,19 +204,24 @@ class DateCurve(Curve):
 
 
 class RateCurve(DateCurve):
-    def __init__(self, x_list, y_list, y_inter=None, origin=None, day_count=None, forward_tenor=None):
-        super(RateCurve, self).__init__(x_list, y_list, y_inter, origin, day_count)
-        self.forward_tenor = FORWARD_TENOR if forward_tenor is None else forward_tenor
+
+    @staticmethod
+    def get_storage_type(curve, x):
+        raise NotImplementedError
 
     @classmethod
     def cast(cls, other):
         new = cls(other.domain,
-                  [other.get_storage_type(x) for x in other.domain],
+                  [cls.get_storage_type(other, x) for x in other.domain],
                   other.interpolation,
                   other.origin,
                   other.day_count,
                   other.forward_tenor)
         return new
+
+    def __init__(self, x_list, y_list, y_inter=None, origin=None, day_count=None, forward_tenor=None):
+        super(RateCurve, self).__init__(x_list, y_list, y_inter, origin, day_count)
+        self.forward_tenor = FORWARD_TENOR if forward_tenor is None else forward_tenor
 
     def __add__(self, other):
         casted = self.__class__.cast(other)
@@ -241,9 +246,6 @@ class RateCurve(DateCurve):
         new = super(RateCurve, self).__div__(casted)
         new.forward_tenor = self.forward_tenor
         return new
-
-    def get_storage_type(self, x):
-        raise NotImplementedError
 
     def _get_compounding_factor(self, start, stop):
         ir = self._get_compounding_rate(start, stop)

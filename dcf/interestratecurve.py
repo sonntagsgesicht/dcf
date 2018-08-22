@@ -34,7 +34,7 @@ class InterestRateCurve(curve.RateCurve):
 
     def get_cash_rate(self, start, stop=None, step=None):
         if stop and step:
-            assert start+step == stop, "if stop and step given, start+step must meet stop."
+            assert start + step == stop, "if stop and step given, start+step must meet stop."
         if stop is None:
             stop = start + self.forward_tenor if step is None else start + step
         df = self.get_discount_factor(start, stop)
@@ -46,18 +46,28 @@ class InterestRateCurve(curve.RateCurve):
 
 
 class DiscountFactorCurve(InterestRateCurve):
-    def get_storage_type(self, x):
-        return self._get_compounding_factor(self.origin, x)
+    @staticmethod
+    def get_storage_type(curve, x):
+        return curve.get_discount_factor(curve.origin, x)
 
     def _get_compounding_factor(self, start, stop):
-        return self(start) if stop is None or stop is self.origin else self(start) / self(stop)
+        if start == stop:
+            return 1.
+        if stop is None:
+            return self(start)
+        if start is self.origin:
+            return self(stop)
+        return self(stop) / self(start)
 
 
 class ZeroRateCurve(InterestRateCurve):
-    def get_storage_type(self, x):
-        return self._get_compounding_rate(self.origin, x)
+    @staticmethod
+    def get_storage_type(curve, x):
+        return curve.get_zero_rate(curve.origin, x)
 
     def _get_compounding_rate(self, start, stop):
+        if start == stop:
+            return self._get_compounding_rate(start, start + TIME_SHIFT)
         if stop is None:
             return self(start)
         if start is self.origin:
@@ -68,43 +78,81 @@ class ZeroRateCurve(InterestRateCurve):
         return (e - s) / t
 
 
-class CashRateCurve(InterestRateCurve):
-    def get_storage_type(self, x):
-        return self.get_cash_rate(x)
+class ShortRateCurve(InterestRateCurve):
+    @staticmethod
+    def get_storage_type(curve, x):
+        return curve.get_short_rate(x)
 
-    def get_discount_factor(self, start, stop):
-        df = 1.0
+    def _get_compounding_rate(self, start, stop):
+
+        if start == stop:
+            return self(start)
+
         current = start
-        while current < stop:
-            t = self.day_count(current, current + self.forward_tenor)
+        rate = 0.0
+        step = '1B'
+
+        if current < min(self.domain):
+            current = min(self.domain)
+            rate += self(start) * self.day_count(start, current)
+
+        while current + step < stop:
+            if not current < max(self.domain):
+                # leave, if loop does not provide anymore term structure information
+                break
+            rate += self(current) * self.day_count(current, current + step)
+            current += step
+
+        rate += self(current) * self.day_count(current, stop)
+        return rate / self.day_count(start, stop)
+
+    def get_short_rate(self, start):
+        return self(start)
+
+
+class CashRateCurve(InterestRateCurve):
+    @staticmethod
+    def get_storage_type(curve, x):
+        return curve.get_cash_rate(x)
+
+    @classmethod
+    def cast(cls, other, forward_tenor=None):
+        forward_tenor = other.forward_tenor if forward_tenor is None else forward_tenor
+        new = cls(other.domain,
+                  [other.get_cash_rate(x, step=forward_tenor) for x in other.domain],
+                  other.interpolation,
+                  other.origin,
+                  other.day_count,
+                  forward_tenor)
+        return new
+
+
+    def _get_compounding_factor(self, start, stop):
+
+        if start == stop:
+            return 1.
+
+        df = 1.0
+        step = self.forward_tenor
+        current = start
+        while current + step < stop:
+            t = self.day_count(current, current + step)
             df *= compounding.simple_compounding(self(current), t)
-            current += self.forward_tenor
+            current += step
         t = self.day_count(current, stop)
         df *= compounding.simple_compounding(self(current), t)
         return df
 
+    def __get_compounding_rate(self, start, stop):
+        if start == stop or start + TIME_SHIFT == stop:
+            return self(start)
+        return super(CashRateCurve, self)._get_compounding_rate(start, stop)
+
     def get_cash_rate(self, start, stop=None, step=None):
         if stop and step:
-            assert start+step == stop, "if stop and step given, start+step must meet stop."
+            assert start + step == stop, "if stop and step given, start+step must meet stop."
         if stop is None:
             stop = start + self.forward_tenor if step is None else start + step
         if stop == start + self.forward_tenor:
             return self(start)
         return super(CashRateCurve, self).get_cash_rate(start, stop)
-
-
-class ShortRateCurve(InterestRateCurve):
-    def get_storage_type(self, x):
-        return self.get_short_rate(x)
-
-    def _get_compounding_rate(self, start, stop):
-        domain = [start] + [d for d in self.domain if start < d < stop] + [stop]
-        rate = 0.0
-        for s, e in zip(domain[:-1], domain[1:]):
-            sh = self.get_short_rate(s)
-            yf = self.day_count(s, e)
-            rate += sh * yf
-        return rate / self.day_count(start, stop)
-
-    def get_short_rate(self, start):
-        return self(start)
