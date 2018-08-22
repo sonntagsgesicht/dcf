@@ -452,15 +452,27 @@ class InterestRateCurveUnitTests(unittest.TestCase):
             self.assertTrue(z >= s >= c)
 
     def test_cast_curve(self):
-        rate = 0.02
-        zero = ZeroRateCurve(self.domain, [rate] * self.len)
-        print zero
+        zero = ZeroRateCurve([self.today, self.today + '3M', self.today + '12M'], [0.02, 0.01, 0.015])
+        factor = DiscountFactorCurve.cast(zero)
+        for d in zero.domain:
+            if zero.origin < d:
+                f = factor.get_zero_rate(zero.origin, d)
+                z = zero.get_zero_rate(zero.origin, d)
+                self.assertAlmostEqual(f, z)
+
         short = ShortRateCurve.cast(zero)
-        print short
-        cash = CashRateCurve.cast(zero)
-        print cash
+        for d in zero.domain:
+            s = short.get_zero_rate(zero.origin, d)
+            z = zero.get_zero_rate(zero.origin, d)
+            #print s==z, d, s, z
+            #self.assertAlmostEqual(s, z)
+
         cash = CashRateCurve.cast(zero, '1M')
-        print cash
+        for d in zero.domain:
+            c = cash.get_zero_rate(zero.origin, d)
+            z = zero.get_zero_rate(zero.origin, d)
+            #print s==z, d, s, z
+            #self.assertAlmostEqual(s, z)
 
 
 class CreditCurveUnitTests(unittest.TestCase):
