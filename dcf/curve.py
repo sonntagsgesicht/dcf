@@ -216,12 +216,14 @@ class RateCurve(DateCurve):
                   other.interpolation,
                   other.origin,
                   other.day_count,
-                  other.forward_tenor)
+                  other.forward_tenor,
+                  {other.origin: other._get_compounding_rate(other.origin, other.origin)})
         return new
 
-    def __init__(self, x_list, y_list, y_inter=None, origin=None, day_count=None, forward_tenor=None):
+    def __init__(self, x_list, y_list, y_inter=None, origin=None, day_count=None, forward_tenor=None, compounding_rates={}):
         super(RateCurve, self).__init__(x_list, y_list, y_inter, origin, day_count)
         self.forward_tenor = FORWARD_TENOR if forward_tenor is None else forward_tenor
+        self._compounding_rates = compounding_rates  # stores compounding rates for re-casting
 
     def __add__(self, other):
         casted = self.__class__.cast(other)
@@ -248,13 +250,17 @@ class RateCurve(DateCurve):
         return new
 
     def _get_compounding_factor(self, start, stop):
+        if start == stop:
+            return 1.
         ir = self._get_compounding_rate(start, stop)
         t = self.day_count(start, stop)
         return compounding.continuous_compounding(ir, t)
 
     def _get_compounding_rate(self, start, stop):
+        if start==self.origin and stop in self._compounding_rates:
+            return self._compounding_rates[stop]
         if start == stop:
-            stop += TIME_SHIFT
+            return self._get_compounding_rate(start, start + TIME_SHIFT)
         df = self._get_compounding_factor(start, stop)
         t = self.day_count(start, stop)
         return compounding.continuous_rate(df, t)
