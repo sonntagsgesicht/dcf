@@ -8,4 +8,4 @@ doc/sphinx/_build/
 doc/sphinx/_static/
 doc/sphinx/_templates/
 .DS_Store
-def.py
+dev.py

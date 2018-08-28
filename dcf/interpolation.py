@@ -13,6 +13,7 @@
 
 
 import bisect
+import math
 import numpy
 
 
@@ -137,6 +138,36 @@ class linear(base_interpolation):
         i = bisect.bisect_left(self.x_list, float(x), 1, len(self.x_list) - 1)
         return self.y_list[i - 1] + (self.y_list[i] - self.y_list[i - 1]) * \
                                     (self.x_list[i - 1] - x) / (self.x_list[i - 1] - self.x_list[i])
+
+
+class loglinear(linear):
+    def __init__(self, x_list=list(), y_list=list()):
+        z = [x for x in x_list if not x]
+        self._y_at_zero = y_list[x_list.index(z[0])] if z else None
+        log_y_list = [-math.log(y) / x for x, y in zip(x_list, y_list) if x]
+        x_list = [x for x in x_list if x]
+        super(loglinear, self).__init__(x_list, log_y_list)
+
+    def __call__(self, x):
+        if not x:
+            return self._y_at_zero
+        log_y = super(loglinear, self).__call__(x)
+        return math.exp(-log_y * x)
+
+
+class logconstant(constant):
+    def __init__(self, x_list=list(), y_list=list()):
+        z = [x for x in x_list if not x]
+        self._y_at_zero = y_list[x_list.index(z[0])] if z else None
+        log_y_list = [-math.log(y) / x for x, y in zip(x_list, y_list) if x]
+        x_list = [x for x in x_list if x]
+        super(logconstant, self).__init__(x_list, log_y_list)
+
+    def __call__(self, x):
+        if not x:
+            return self._y_at_zero
+        log_y = super(logconstant, self).__call__(x)
+        return math.exp(-log_y * x)
 
 
 class spline(base_interpolation):

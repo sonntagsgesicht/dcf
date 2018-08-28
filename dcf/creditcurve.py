@@ -20,8 +20,8 @@ FORWARD_CREDIT_TENOR = '1Y'
 class CreditCurve(curve.RateCurve):
     """ generic curve for default probabilities (under construction) """
 
-    def __init__(self, x_list, y_list, y_inter=None, origin=None, day_count=None, forward_tenor=None):
-        super(self.__class__, self).__init__(x_list, y_list, y_inter, origin, day_count)
+    def __init__(self, domain, data, interpolation=None, origin=None, day_count=None, forward_tenor=None):
+        super(self.__class__, self).__init__(domain, data, interpolation, origin, day_count)
         self.forward_tenor = FORWARD_CREDIT_TENOR if forward_tenor is None else forward_tenor
 
     def get_survival_prob(self, start, stop):  # aka get_discount_factor
@@ -36,8 +36,9 @@ class CreditCurve(curve.RateCurve):
 
 class SurvivalProbabilityCurve(CreditCurve):
 
-    def get_storage_type(self, x):
-        return self._get_compounding_factor(self.origin, x)
+    @staticmethod
+    def get_storage_type(curve, x):
+        return curve.get_survival_prob(curve.origin, x)
 
     def _get_compounding_factor(self, start, stop):
         return self(start) if stop is None or stop is self.origin else self(start) / self(stop)
@@ -45,8 +46,9 @@ class SurvivalProbabilityCurve(CreditCurve):
 
 class FlatIntensityCurve(CreditCurve):
 
-    def get_storage_type(self, x):
-        return self._get_compounding_rate(self.origin, x)
+    @staticmethod
+    def get_storage_type(curve, x):
+        return curve.get_flat_intensity(curve.origin, x)
 
     def _get_compounding_rate(self, start, stop):
         if stop is None:
@@ -61,8 +63,9 @@ class FlatIntensityCurve(CreditCurve):
 
 class HazardRateCurve(CreditCurve):
 
-    def get_storage_type(self, x):
-        return self.get_hazard_rate(self.origin)
+    @staticmethod
+    def get_storage_type(curve, x):
+        return curve.get_hazard_rate(x)
 
     def _get_compounding_rate(self, start, stop):
         domain = [start] + [d for d in self.domain if start < d < stop] + [stop]

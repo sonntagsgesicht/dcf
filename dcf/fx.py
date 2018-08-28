@@ -31,20 +31,20 @@ class FxCurve(curve.DateCurve):
         assert domestic_curve.origin == foreign_curve.origin
         return cls(fx_spot, domestic_curve=domestic_curve, foreign_curve=foreign_curve)
 
-    def __init__(self, x_list, y_list=None, y_inter=None, origin=None, day_count=None,
+    def __init__(self, domain, data=None, interpolation=None, origin=None, day_count=None,
                  domestic_curve=None, foreign_curve=None):
         self.domestic_curve = domestic_curve
         self.foreign_curve = foreign_curve
         if origin is None:
             assert self.domestic_curve.origin == self.foreign_curve.origin
             origin = self.domestic_curve.origin
-        if isinstance(x_list, float) and y_list is None:
+        if isinstance(domain, float) and data is None:
             # build lists from single spot fx rate
-            y_list = [x_list]
-            x_list = [origin]
+            data = [domain]
+            domain = [origin]
         else:
-            assert len(x_list) == len(y_list)
-        super(FxCurve, self).__init__(x_list, y_list, y_inter, origin, day_count)
+            assert len(domain) == len(data)
+        super(FxCurve, self).__init__(domain, data, interpolation, origin, day_count)
 
     def __call__(self, x):
         if isinstance(x, (list, tuple)):

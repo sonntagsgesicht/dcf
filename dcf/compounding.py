@@ -28,6 +28,8 @@ def continuous_compounding(rate_value, maturity_value):
 
 
 def continuous_rate(df, period_fraction):
+    if not df:
+        pass
     return -math.log(df) / period_fraction
 
 
