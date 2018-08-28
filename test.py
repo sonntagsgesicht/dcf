@@ -491,7 +491,74 @@ class CreditCurveUnitTests(unittest.TestCase):
         self.assertAlmostEqual(curve.get_hazard_rate(t + '2y'), .3)
 
 
-#            self.assertAlmostEqual(curve.get_flat_intensity(t), rate * (d + 1))
+class CastCreditCurveUnitTests(unittest.TestCase):
+    def setUp(self):
+        self.cast_type = FlatIntensityCurve
+        self.grid = ['0D', '3M', '12M']
+        self.points = [0.02, 0.01, 0.015]
+        self.grid = ['0D', '1M', '2M', '3M', '4M', '5M', '6M', '1Y']
+        self.points = [0.02, 0.018, 0.0186, 0.018, 0.0167, 0.0155, 0.015, 0.015]
+
+        self.precision = 10
+
+        self.today = BusinessDate()
+        self.today_eom = self.today == BusinessDate.end_of_month(self.today.year, self.today.month)
+        self.periods = ('0D', '1D', '2B', '8D', '2W', '14B', '1M', '1M1D', '3M', '6M', '6M2W1D', '9M', '12M')
+
+        def pp(d, a, b):
+            print d, abs(a(d) - b(d)) < self.precision, a(d), b(d)
+
+        self.pp = pp
+
+        def curve(p='0D'):
+            grid = [self.today + p + _ for _ in self.grid]
+            return self.cast_type(grid, self.points)
+
+        self.curve = curve
+
+    def test_interpolation(self):
+        curve = self.curve()
+        for t in (SurvivalProbabilityCurve, FlatIntensityCurve, HazardRateCurve):
+            cast = curve.cast(t)
+            recast = cast.cast(self.cast_type)
+            self.assertEqual(map(type, self.cast_type._interpolation), map(type, curve.interpolation))
+            self.assertEqual(map(type, t._interpolation), map(type, cast.interpolation))
+            self.assertEqual(map(type, self.cast_type._interpolation), map(type, recast.interpolation))
+
+    def test_survival_cast(self):
+        for p in self.periods:
+            curve = self.curve(p)
+            cast = curve.cast(SurvivalProbabilityCurve).cast(self.cast_type)
+            for d in curve.domain[1:]:
+                self.assertAlmostEqual(cast(d), curve(d), self.precision)
+
+    def test_intensity_cast(self):
+        for p in self.periods:
+            curve = self.curve(p)
+            cast = curve.cast(FlatIntensityCurve).cast(self.cast_type)
+            for d in curve.domain[1:]:
+                self.assertAlmostEqual(cast(d), curve(d), self.precision)
+
+    def test_hazard_cast(self):
+        for p in self.periods:
+            curve = self.curve(p)
+            cast = curve.cast(HazardRateCurve).cast(self.cast_type)
+            for d in curve.domain[1:]:
+                self.assertAlmostEqual(cast(d), curve(d), self.precision)
+
+
+class CastSurvivalCurveUnitTests(CastCreditCurveUnitTests):
+    def setUp(self):
+        super(CastSurvivalCurveUnitTests, self).setUp()
+        self.cast_type = SurvivalProbabilityCurve
+        self.grid = ['0D', '3M', '12M']
+        self.points = [1., 0.9999, 0.997]
+
+
+class CastHazardRateCurveUnitTests(CastCreditCurveUnitTests):
+    def setUp(self):
+        super(CastHazardRateCurveUnitTests, self).setUp()
+        self.cast_type = HazardRateCurve
 
 
 class FxUnitTests(unittest.TestCase):
