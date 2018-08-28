@@ -11,69 +11,100 @@
 #  Website: https://github.com/pbrisk/dcf
 #  License: APACHE Version 2 License (see LICENSE file)
 
-import curve
-
-TIME_SHIFT = '1D'
-FORWARD_CREDIT_TENOR = '1Y'
+from curve import RateCurve
+from interpolation import constant, linear, loglinear, logconstant
 
 
-class CreditCurve(curve.RateCurve):
+class CreditCurve(RateCurve):
     """ generic curve for default probabilities (under construction) """
 
-    def __init__(self, domain, data, interpolation=None, origin=None, day_count=None, forward_tenor=None):
-        super(self.__class__, self).__init__(domain, data, interpolation, origin, day_count)
-        self.forward_tenor = FORWARD_CREDIT_TENOR if forward_tenor is None else forward_tenor
+    _forward_tenor = '1Y'
 
-    def get_survival_prob(self, start, stop):  # aka get_discount_factor
+    def get_survival_prob(self, start, stop=None):  # aka get_discount_factor
+        if stop is None:
+            return self.get_survival_prob(self.origin, start)
         return self._get_compounding_factor(start, stop)
 
-    def get_flat_intensity(self, start, stop):  # aka get_zero_rate
+    def get_flat_intensity(self, start, stop=None):  # aka get_zero_rate
+        if stop is None:
+            return self.get_flat_intensity(self.origin, start)
         return self._get_compounding_rate(start, stop)
 
     def get_hazard_rate(self, start):  # aka get_short_rate
-        return self._get_compounding_rate(start, start + TIME_SHIFT)
+        if start < min(self.domain):
+            return self.get_hazard_rate(min(self.domain))
+        if max(self.domain) <= start:
+            return self.get_hazard_rate(max(self.domain) - self.__class__._time_shift)
+
+        previous = max(d for d in self.domain if d <= start)
+        follow = min(d for d in self.domain if start < d)
+        assert previous <= start <= follow
+        assert previous < follow, map(str, (previous, start, follow))
+
+        return self.get_flat_intensity(previous, follow)
 
 
 class SurvivalProbabilityCurve(CreditCurve):
+    _interpolation = logconstant(), loglinear(), logconstant()
 
     @staticmethod
     def get_storage_type(curve, x):
         return curve.get_survival_prob(curve.origin, x)
 
     def _get_compounding_factor(self, start, stop):
-        return self(start) if stop is None or stop is self.origin else self(start) / self(stop)
+        if start is self.origin:
+            return self(stop)
+        return self(stop) / self(start)
+
+    def _get_compounding_rate(self, start, stop):
+        if start == stop == self.origin:
+            # intensity proxi at origin
+            stop = min(d for d in self.domain if self.origin < d)
+            # todo: calc left extrapolation (for linear zero rate interpolation)
+        return super(SurvivalProbabilityCurve, self)._get_compounding_rate(start, stop)
 
 
 class FlatIntensityCurve(CreditCurve):
+    _interpolation = constant(), linear(), constant()
 
     @staticmethod
     def get_storage_type(curve, x):
         return curve.get_flat_intensity(curve.origin, x)
 
     def _get_compounding_rate(self, start, stop):
-        if stop is None:
-            return self(start)
+        if start == stop == self.origin:
+            return self(self.origin)
         if start is self.origin:
             return self(stop)
+        if start == stop:
+            return self._get_compounding_rate(start, start + self.__class__._time_shift)
+
         s = self(start) * self.day_count(self.origin, start)
         e = self(stop) * self.day_count(self.origin, stop)
         t = self.day_count(start, stop)
-        return (s - e) / t
+        return (e - s) / t
 
 
 class HazardRateCurve(CreditCurve):
+    _interpolation = constant(), constant(), constant()
 
     @staticmethod
     def get_storage_type(curve, x):
         return curve.get_hazard_rate(x)
 
     def _get_compounding_rate(self, start, stop):
-        domain = [start] + [d for d in self.domain if start < d < stop] + [stop]
+        if start == stop:
+            return self(start)
+
+        current = start
         rate = 0.0
-        for s, e in zip(domain[:-1], domain[1:]):
-            hz = self.get_hazard_rate(s)
-            yf = self.day_count(s, e)
-            rate += hz * yf
+        step = self.__class__._time_shift
+
+        while current + step < stop:
+            rate += self(current) * self.day_count(current, current + step)
+            current += step
+
+        rate += self(current) * self.day_count(current, stop)
         return rate / self.day_count(start, stop)
 
     def get_hazard_rate(self, start):  # aka get_short_rate

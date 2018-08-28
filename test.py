@@ -99,24 +99,24 @@ class InterpolationUnitTests(unittest.TestCase):
                 self.assertAlmostEquals(f(x + s), y)
 
     def test_loglinear(self):
-        yy = [x*.5 for x in self.x]
-        log_yy = [-math.log(y)/x for x, y in zip(self.x, yy)]
+        yy = [x * .5 for x in self.x]
+        log_yy = [-math.log(y) / x for x, y in zip(self.x, yy)]
         lin = linear(self.x, log_yy)
         loglin = loglinear(self.x, yy)
         for w in [0.25]:
             for x in self.s:
-                x = 0.01 + x*w
-                self.assertAlmostEqual(loglin(x), math.exp(-lin(x)*x))
+                x = 0.01 + x * w
+                self.assertAlmostEqual(loglin(x), math.exp(-lin(x) * x))
 
     def test_logconstant(self):
-        yy = [x*.5 for x in self.x]
-        log_yy = [-math.log(y)/x for x, y in zip(self.x, yy)]
+        yy = [x * .5 for x in self.x]
+        log_yy = [-math.log(y) / x for x, y in zip(self.x, yy)]
         lin = constant(self.x, log_yy)
         loglin = logconstant(self.x, yy)
         for w in [0.25]:
             for x in self.s:
-                x = 0.01 + x*w
-                self.assertAlmostEqual(loglin(x), math.exp(-lin(x)*x))
+                x = 0.01 + x * w
+                self.assertAlmostEqual(loglin(x), math.exp(-lin(x) * x))
 
     def test_nearest(self):
         f = nearest(self.x, self.y)
@@ -320,11 +320,13 @@ class InterestRateCurveUnitTests(unittest.TestCase):
 
                 self.assertAlmostEqual(curve.get_zero_rate(self.today, d + p), rate)
                 self.assertAlmostEqual(curve.get_short_rate(d + p), rate)
-                self.assertAlmostEqual(curve.get_cash_rate(d + p), rate, 3)
+                yf = curve.day_count(d + p, (d + p) + curve.forward_tenor)
+                cr = simple_compounding(curve.get_cash_rate(d + p), yf)
+                self.assertAlmostEqual(continuous_rate(cr, yf), rate)
 
     def test_discount_factor_curve(self):
         zr_curve = ZeroRateCurve([self.today, self.today + '1d'], [.02, .02])
-        df_curve = DiscountFactorCurve(zr_curve.domain, [ 1., zr_curve.get_discount_factor(self.today + '1d')])
+        df_curve = DiscountFactorCurve(zr_curve.domain, [1., zr_curve.get_discount_factor(self.today + '1d')])
         for p in self.periods:
             x = self.today + p
             self.assertAlmostEqual(df_curve.get_discount_factor(x, x), 1.)
@@ -359,11 +361,13 @@ class CastZeroRateCurveUnitTests(unittest.TestCase):
 
         def pp(d, a, b):
             print d, abs(a(d) - b(d)) < self.precision, a(d), b(d)
+
         self.pp = pp
 
         def curve(p='0D'):
             grid = [self.today + p + _ for _ in self.grid]
             return self.cast_type(grid, self.points)
+
         self.curve = curve
 
     def test_interpolation(self):
@@ -412,7 +416,6 @@ class CastZeroRateCurveUnitTests(unittest.TestCase):
 
 
 class CastDiscountFactorCurveUnitTests(CastZeroRateCurveUnitTests):
-
     def setUp(self):
         super(CastDiscountFactorCurveUnitTests, self).setUp()
         self.cast_type = DiscountFactorCurve
@@ -421,14 +424,12 @@ class CastDiscountFactorCurveUnitTests(CastZeroRateCurveUnitTests):
 
 
 class CastShortRateCurveUnitTests(CastZeroRateCurveUnitTests):
-
     def setUp(self):
         super(CastShortRateCurveUnitTests, self).setUp()
         self.cast_type = ShortRateCurve
 
 
 class CastCashRateCurveUnitTests(CastZeroRateCurveUnitTests):
-
     def setUp(self):
         super(CastCashRateCurveUnitTests, self).setUp()
         self.cast_type = CashRateCurve
@@ -437,14 +438,60 @@ class CastCashRateCurveUnitTests(CastZeroRateCurveUnitTests):
 
 
 class CreditCurveUnitTests(unittest.TestCase):
+    def setUp(self):
+        self.today = BusinessDate()
+        self.domain = BusinessRange(self.today, self.today + '1Y', '3M')
+        self.len = len(self.domain)
+        self.periods = ('1D', '2B', '8D', '2W', '14B', '1M', '1M1D', '3M', '6M', '6M2W1D', '9M', '12M')
+
     def test_survival_curve(self):
-        pass
+        i_curve = FlatIntensityCurve([self.today, self.today + '1d'], [.02, .02])
+        s_curve = SurvivalProbabilityCurve(i_curve.domain, [1., i_curve.get_survival_prob(self.today + '1d')])
+        for p in self.periods:
+            x = self.today + p
+            self.assertAlmostEqual(s_curve.get_survival_prob(x, x), 1.)
+            z = i_curve.get_flat_intensity(x)
+            d = s_curve.get_flat_intensity(x)
+            self.assertAlmostEqual(z, d)
+            z = i_curve.get_survival_prob(x)
+            d = s_curve.get_survival_prob(x)
+            self.assertAlmostEqual(z, d)
+            z = i_curve.get_hazard_rate(x)
+            d = s_curve.get_hazard_rate(x)
+            self.assertAlmostEqual(z, d)
 
     def test_intensity_curve(self):
-        pass
+        rate = 0.02
+        curve = FlatIntensityCurve(self.domain, [rate] * self.len)
+        for d in self.domain:
+            for p in self.periods:
+                self.assertAlmostEqual(curve.get_survival_prob(d + p, d + p), 1.)
+
+                self.assertAlmostEqual(curve.get_flat_intensity(self.today, d + p), rate)
+                self.assertAlmostEqual(curve.get_hazard_rate(d + p), rate)
 
     def test_hazard_rate_curve(self):
-        pass
+        rate = 0.02
+        curve = HazardRateCurve(self.domain, [rate] * self.len)
+        for d in self.domain:
+            for p in self.periods:
+                self.assertAlmostEqual(curve.get_survival_prob(d + p, d + p), 1.)
+
+                self.assertAlmostEqual(curve.get_flat_intensity(self.today, d + p), rate)
+                self.assertAlmostEqual(curve.get_hazard_rate(d + p), rate)
+
+        curve = HazardRateCurve([self.today, self.today+'1y'], [0.1, 0.3])
+        t = curve.origin
+        self.assertAlmostEqual(curve.get_hazard_rate(t), .1)
+
+        self.assertAlmostEqual(curve.get_flat_intensity(t+'1y'), .1)
+        self.assertAlmostEqual(curve.get_hazard_rate(t+'1y'), .3)
+
+        self.assertAlmostEqual(curve.get_flat_intensity(t + '2y'), .2, 3)
+        self.assertAlmostEqual(curve.get_hazard_rate(t + '2y'), .3)
+
+
+#            self.assertAlmostEqual(curve.get_flat_intensity(t), rate * (d + 1))
 
 
 class FxUnitTests(unittest.TestCase):
