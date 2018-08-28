@@ -17,8 +17,23 @@ from interpolation import constant, linear, loglinear, logconstant
 
 class CreditCurve(RateCurve):
     """ generic curve for default probabilities (under construction) """
-
     _forward_tenor = '1Y'
+
+    def cast(self, cast_type, **kwargs):
+        old_domain = kwargs.get('domain', self.domain)
+
+        if issubclass(cast_type, (SurvivalProbabilityCurve,)):
+            domain = kwargs.get('domain', self.domain)
+            origin = kwargs.get('origin', self.origin)
+            new_domain = list(domain) + [origin + '1d']
+            kwargs['domain'] = sorted(set(new_domain))
+
+        if issubclass(cast_type, (SurvivalProbabilityCurve,)):
+            domain = kwargs.get('domain', self.domain)
+            new_domain = list(domain) + [max(domain) + '1d']
+            kwargs['domain'] = sorted(set(new_domain))
+
+        return super(CreditCurve, self).cast(cast_type, **kwargs)
 
     def get_survival_prob(self, start, stop=None):  # aka get_discount_factor
         if stop is None:
