@@ -11,8 +11,9 @@
 #  Website: https://github.com/pbrisk/dcf
 #  License: APACHE Version 2 License (see LICENSE file)
 
-from curve import RateCurve
+from curve import DAY_COUNT, RateCurve
 from interpolation import constant, linear, loglinear, logconstant
+from compounding import continuous_compounding, continuous_rate
 
 
 class CreditCurve(RateCurve):
@@ -22,15 +23,26 @@ class CreditCurve(RateCurve):
     def cast(self, cast_type, **kwargs):
         old_domain = kwargs.get('domain', self.domain)
 
-        if issubclass(cast_type, (SurvivalProbabilityCurve,)):
+        if issubclass(cast_type, (SurvivalProbabilityCurve, DefaultProbabilityCurve, )):
             domain = kwargs.get('domain', self.domain)
             origin = kwargs.get('origin', self.origin)
             new_domain = list(domain) + [origin + '1d']
             kwargs['domain'] = sorted(set(new_domain))
 
-        if issubclass(cast_type, (SurvivalProbabilityCurve,)):
+        if True:
             domain = kwargs.get('domain', self.domain)
-            new_domain = list(domain) + [max(domain) + '1d']
+            new_domain = list(domain) + [max(domain) + '1y']
+            kwargs['domain'] = sorted(set(new_domain))
+
+        if issubclass(cast_type, ()):
+            domain = kwargs.get('domain', self.domain)
+            forward_tenor = kwargs.get('forward_tenor', self.forward_tenor)
+            new_domain = list(domain)
+            for x in domain:
+                s = self.origin
+                while s <= x:
+                    s += forward_tenor
+                    new_domain.append(s)
             kwargs['domain'] = sorted(set(new_domain))
 
         return super(CreditCurve, self).cast(cast_type, **kwargs)
@@ -79,6 +91,17 @@ class SurvivalProbabilityCurve(CreditCurve):
         return super(SurvivalProbabilityCurve, self)._get_compounding_rate(start, stop)
 
 
+class DefaultProbabilityCurve(SurvivalProbabilityCurve):
+    """ wrapper of SurvivalProbabilityCurve """
+    @staticmethod
+    def get_storage_type(curve, x):
+        return 1. - curve.get_survival_prob(curve.origin, x)
+
+    def __init__(self, domain, data, interpolation=None, origin=None, day_count=None, forward_tenor=None):
+        data = [1. - d for d in data]
+        super(DefaultProbabilityCurve, self).__init__(domain, data, interpolation, origin, day_count, forward_tenor)
+
+
 class FlatIntensityCurve(CreditCurve):
     _interpolation = constant(), linear(), constant()
 
@@ -124,3 +147,45 @@ class HazardRateCurve(CreditCurve):
 
     def get_hazard_rate(self, start):  # aka get_short_rate
         return self(start)
+
+
+class MarginalDefaultProbabilityCurve(CreditCurve):
+    _interpolation = constant(), constant(), constant()
+
+    @staticmethod
+    def get_storage_type(curve, x):
+        return 1. - curve.get_survival_prob(x, x + curve.forward_tenor)
+
+    def __init__(self, domain, data, interpolation=None, origin=None, day_count=None, forward_tenor=None):
+        day_count = DAY_COUNT if day_count is None else day_count
+        forward_tenor = self.__class__._forward_tenor if forward_tenor is None else forward_tenor
+        data = [continuous_rate(1. - pd, day_count(d, d + forward_tenor)) for d, pd in zip(domain, data)]
+        super(MarginalDefaultProbabilityCurve, self).__init__(domain, data, interpolation, origin, day_count, forward_tenor)
+
+    def _get_compounding_rate(self, start, stop):
+        if start == stop:
+            return self(start)
+
+        current = start
+        df = 1.0
+        step = self.forward_tenor
+        while current + step < stop:
+            dc = self.day_count(current, current + step)
+            df *= continuous_compounding(self(current), dc)
+            current += step
+        dc = self.day_count(current, stop)
+        df *= continuous_compounding(self(current), dc)
+        return continuous_rate(df, self.day_count(start, stop))
+
+    def get_hazard_rate(self, start):  # aka get_short_rate
+        if start < min(self.domain):
+            return self.get_hazard_rate(min(self.domain))
+        if max(self.domain) <= start:
+            return self.get_flat_intensity(max(self.domain), max(self.domain) + self.__class__._time_shift)
+
+        previous = max(d for d in self.domain if d <= start)
+        follow = min(d for d in self.domain if start < d)
+        assert previous <= start <= follow
+        assert previous < follow, map(str, (previous, start, follow))
+
+        return self.get_flat_intensity(previous, follow)

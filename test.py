@@ -17,14 +17,14 @@ from datetime import datetime
 import unittest
 
 import math
-from businessdate import BusinessDate, BusinessRange
+from businessdate import BusinessDate, BusinessPeriod, BusinessRange
 
 from dcf import flat, linear, no, zero, left, right, nearest, spline, nak_spline, loglinear, logconstant, constant
 from dcf import continuous_compounding, continuous_rate, periodic_compounding, periodic_rate, \
     simple_compounding, simple_rate
 from dcf import Curve, DateCurve
 from dcf import DiscountFactorCurve, ZeroRateCurve, CashRateCurve, ShortRateCurve
-from dcf import SurvivalProbabilityCurve, FlatIntensityCurve, HazardRateCurve
+from dcf import SurvivalProbabilityCurve, DefaultProbabilityCurve, FlatIntensityCurve, HazardRateCurve, MarginalDefaultProbabilityCurve
 from dcf import FxCurve, FxContainer
 from dcf import CashFlowList, AmortizingCashFlowList, AnnuityCashFlowList, RateCashFlowList
 from dcf import MultiCashFlowList, FixedLoan, FloatLoan, FixedFloatSwap
@@ -500,6 +500,7 @@ class CastCreditCurveUnitTests(unittest.TestCase):
         self.points = [0.02, 0.018, 0.0186, 0.018, 0.0167, 0.0155, 0.015, 0.015]
 
         self.precision = 10
+        self.marginal_precision = 2
 
         self.today = BusinessDate()
         self.today_eom = self.today == BusinessDate.end_of_month(self.today.year, self.today.month)
@@ -546,6 +547,20 @@ class CastCreditCurveUnitTests(unittest.TestCase):
             for d in curve.domain[1:]:
                 self.assertAlmostEqual(cast(d), curve(d), self.precision)
 
+    def test_default_cast(self):
+        for p in self.periods:
+            curve = self.curve(p)
+            cast = curve.cast(DefaultProbabilityCurve).cast(self.cast_type)
+            for d in curve.domain[1:]:
+                self.assertAlmostEqual(cast(d), curve(d), self.precision)
+
+    def test_marginal_cast(self):
+        for p in self.periods:
+            curve = self.curve(p)
+            cast = curve.cast(MarginalDefaultProbabilityCurve).cast(self.cast_type)
+            for d in curve.domain[1:]:
+                self.assertAlmostEqual(cast(d), curve(d), self.marginal_precision)
+
 
 class CastSurvivalCurveUnitTests(CastCreditCurveUnitTests):
     def setUp(self):
@@ -555,11 +570,26 @@ class CastSurvivalCurveUnitTests(CastCreditCurveUnitTests):
         self.points = [1., 0.9999, 0.997]
 
 
+class CastDefaultCurveUnitTests(CastSurvivalCurveUnitTests):
+    def setUp(self):
+        super(CastDefaultCurveUnitTests, self).setUp()
+        self.cast_type = DefaultProbabilityCurve
+        self.points = [1.-p for p in self.points]
+
+
 class CastHazardRateCurveUnitTests(CastCreditCurveUnitTests):
     def setUp(self):
         super(CastHazardRateCurveUnitTests, self).setUp()
         self.cast_type = HazardRateCurve
 
+
+class CastMarginalDefaultCurveUnitTests(CastCreditCurveUnitTests):
+    def setUp(self):
+        super(CastMarginalDefaultCurveUnitTests, self).setUp()
+        self.cast_type = MarginalDefaultProbabilityCurve
+        self.grid = ['0D', '1Y', '2Y', '3Y']
+        self.points = [0.02, 0.022, 0.02, 0.03]
+        self.marginal_precision = 10
 
 class FxUnitTests(unittest.TestCase):
     def test_(self):
