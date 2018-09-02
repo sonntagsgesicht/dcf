@@ -11,16 +11,16 @@
 #  Website: https://github.com/pbrisk/dcf
 #  License: APACHE Version 2 License (see LICENSE file)
 
-import sys
+from sys import stdout
 from os import getcwd
 from datetime import datetime
-import unittest
+from unittest import TestCase, TestLoader, TextTestRunner
 
-import math
+from math import exp, log
 from businessdate import BusinessDate, BusinessRange
 
-from dcf import flat, linear, no, zero, left, right, nearest, spline, nak_spline, loglinearrate, logconstantrate, constant, \
-    loglinear, logconstant
+from dcf import flat, linear, no, zero, left, right, nearest, spline, nak_spline, loglinearrate, logconstantrate, \
+    loglinear, logconstant, constant
 from dcf import continuous_compounding, continuous_rate, periodic_compounding, periodic_rate, \
     simple_compounding, simple_rate
 from dcf import Curve, DateCurve
@@ -33,7 +33,7 @@ from dcf import MultiCashFlowList, FixedLoan, FloatLoan, FixedFloatSwap
 from dcf import RatingClass
 
 
-class InterpolationUnitTests(unittest.TestCase):
+class InterpolationUnitTests(TestCase):
     def setUp(self):
         self.a = 0.0
         self.b = 0.01
@@ -102,43 +102,43 @@ class InterpolationUnitTests(unittest.TestCase):
 
     def test_logyxlinear(self):
         yy = [x * .5 for x in self.x]
-        log_yy = [-math.log(y) / x for x, y in zip(self.x, yy)]
+        log_yy = [-log(y) / x for x, y in zip(self.x, yy)]
         lin = linear(self.x, log_yy)
         loglin = loglinearrate(self.x, yy)
         for w in [0.25]:
             for x in self.s:
                 x = 0.01 + x * w
-                self.assertAlmostEqual(loglin(x), math.exp(-lin(x) * x))
+                self.assertAlmostEqual(loglin(x), exp(-lin(x) * x))
 
     def test_logyxconstant(self):
         yy = [x * .5 for x in self.x]
-        log_yy = [-math.log(y) / x for x, y in zip(self.x, yy)]
+        log_yy = [-log(y) / x for x, y in zip(self.x, yy)]
         lin = constant(self.x, log_yy)
         loglin = logconstantrate(self.x, yy)
         for w in [0.25]:
             for x in self.s:
                 x = 0.01 + x * w
-                self.assertAlmostEqual(loglin(x), math.exp(-lin(x) * x))
+                self.assertAlmostEqual(loglin(x), exp(-lin(x) * x))
 
     def test_loglinear(self):
         yy = [x * .5 for x in self.x]
-        log_yy = [math.log(y) for x, y in zip(self.x, yy)]
+        log_yy = [log(y) for x, y in zip(self.x, yy)]
         lin = linear(self.x, log_yy)
         loglin = loglinear(self.x, yy)
         for w in [0.25]:
             for x in self.s:
                 x = 0.01 + x * w
-                self.assertAlmostEqual(loglin(x), math.exp(lin(x)))
+                self.assertAlmostEqual(loglin(x), exp(lin(x)))
 
     def test_logconstant(self):
         yy = [x * .5 for x in self.x]
-        log_yy = [math.log(y) for x, y in zip(self.x, yy)]
+        log_yy = [log(y) for x, y in zip(self.x, yy)]
         lin = constant(self.x, log_yy)
         loglin = logconstant(self.x, yy)
         for w in [0.25]:
             for x in self.s:
                 x = 0.01 + x * w
-                self.assertAlmostEqual(loglin(x), math.exp(lin(x)))
+                self.assertAlmostEqual(loglin(x), exp(lin(x)))
 
     def test_nearest(self):
         f = nearest(self.x, self.y)
@@ -180,7 +180,7 @@ class InterpolationUnitTests(unittest.TestCase):
             self.assertFalse(s in ff)
 
 
-class CubicSplineUnitTest(unittest.TestCase):
+class CubicSplineUnitTest(TestCase):
     def setUp(self):
         pass
 
@@ -247,7 +247,7 @@ class CubicSplineUnitTest(unittest.TestCase):
             self.assertAlmostEqual(f(point), value, 12)
 
 
-class CompoundingUnitTests(unittest.TestCase):
+class CompoundingUnitTests(TestCase):
     def test_(self):
         for t in (0.012, 0.2, 0.5, 0.8, 1.0, 1.5, 2.0, 5.0):
             rate = 0.01
@@ -276,7 +276,7 @@ class CompoundingUnitTests(unittest.TestCase):
                 self.assertAlmostEqual(periodic_compounding(rate, t, p), factor)
 
 
-class CurveUnitTests(unittest.TestCase):
+class CurveUnitTests(TestCase):
     def setUp(self):
         self.x_list = [float(x) * 0.01 for x in range(10)]
         self.y_list = list(self.x_list)
@@ -303,7 +303,7 @@ class CurveUnitTests(unittest.TestCase):
             self.assertAlmostEqual(new(x), self.curve(x) / 0.1)
 
 
-class DateCurveUnitTests(unittest.TestCase):
+class DateCurveUnitTests(TestCase):
     def setUp(self):
         self.dates = BusinessRange(BusinessDate(), BusinessDate() + '10Y')
         self.values = [0.01 * n ** 4 - 2 * n ** 2 for n in range(0, len(self.dates))]
@@ -326,7 +326,7 @@ class DateCurveUnitTests(unittest.TestCase):
             self.assertAlmostEqual(Curve1(d), Curve2(d))
 
 
-class InterestRateCurveUnitTests(unittest.TestCase):
+class InterestRateCurveUnitTests(TestCase):
     def setUp(self):
         self.today = BusinessDate()
         self.domain = BusinessRange(self.today, self.today + '1Y', '3M')
@@ -366,7 +366,7 @@ class InterestRateCurveUnitTests(unittest.TestCase):
             self.assertAlmostEqual(z, d)
 
 
-class CastZeroRateCurveUnitTests(unittest.TestCase):
+class CastZeroRateCurveUnitTests(TestCase):
     def setUp(self):
         self.cast_type = ZeroRateCurve
         self.grid = ['0D', '3M', '12M']
@@ -459,7 +459,7 @@ class CastCashRateCurveUnitTests(CastZeroRateCurveUnitTests):
         self.cash_precision = 10
 
 
-class CreditCurveUnitTests(unittest.TestCase):
+class CreditCurveUnitTests(TestCase):
     def setUp(self):
         self.today = BusinessDate()
         self.domain = BusinessRange(self.today, self.today + '1Y', '3M')
@@ -482,11 +482,11 @@ class CreditCurveUnitTests(unittest.TestCase):
             d = s_curve.get_hazard_rate(x)
             self.assertAlmostEqual(z, d)
 
-        # s_curve = SurvivalProbabilityCurve(i_curve.domain, [1., 0.])
-        # for p in self.periods:
-        #     x = self.today + p
-        #     s = s_curve.get_survival_prob(s_curve.origin, x)
-        #     self.assertAlmostEqual(s, 1.)
+        s_curve = SurvivalProbabilityCurve(i_curve.domain, [1., 0.])
+        for p in self.periods:
+            x = self.today + p
+            s = s_curve.get_survival_prob(s_curve.origin, x)
+            self.assertAlmostEqual(s, 0.)
 
     def test_intensity_curve(self):
         rate = 0.02
@@ -518,7 +518,7 @@ class CreditCurveUnitTests(unittest.TestCase):
         self.assertAlmostEqual(curve.get_flat_intensity(t + '2y'), .2, 3)
         self.assertAlmostEqual(curve.get_hazard_rate(t + '2y'), .3)
 
-    def _test_marginal_curve(self):
+    def test_marginal_curve(self):
         m = MarginalDefaultProbabilityCurve([self.today], [0.001])
         h = HazardRateCurve([self.today], [m.get_hazard_rate(self.today)])
         for d in self.domain:
@@ -528,18 +528,16 @@ class CreditCurveUnitTests(unittest.TestCase):
                 # print d, p, mv, hv
                 self.assertAlmostEqual(mv, hv, 4)
 
-        # for q in self.periods:
-        #     print self.today, self.today + q
-        #     m = MarginalDefaultProbabilityCurve([self.today+q], [1.00], origin=self.today)
-        #     for d in self.domain:
-        #         for p in self.periods:
-        #             s = m.get_survival_prob(d + p)
-        #             i = m.get_flat_intensity(d + p)
-        #             h = m.get_hazard_rate(d + p)
-        #             print d + p, s, i, h
+        for q in self.periods:
+            m = MarginalDefaultProbabilityCurve([self.today + q], [1.00], origin=self.today)
+            for d in self.domain:
+                for p in self.periods:
+                    s = m.get_survival_prob(d, d + p)
+                    # print d+p, s
+                    # self.assertAlmostEqual(s, 0.)
 
 
-class CastIntensityCurveUnitTests(unittest.TestCase):
+class CastIntensityCurveUnitTests(TestCase):
     def setUp(self):
         self.cast_type = FlatIntensityCurve
         self.grid = ['0D', '3M', '12M']
@@ -655,17 +653,17 @@ class CastMarginalDefaultCurveUnitTests(CastMarginalSurvivalCurveUnitTests):
         self.points = [1. - p for p in self.points]
 
 
-class FxUnitTests(unittest.TestCase):
+class FxUnitTests(TestCase):
     def test_(self):
         pass
 
 
-class CashflowUnitTests(unittest.TestCase):
+class CashflowUnitTests(TestCase):
     def test_(self):
         pass
 
 
-class RatingClassUnitTets(unittest.TestCase):
+class RatingClassUnitTets(TestCase):
     def test_rating_class_without_master_scale(self):
         self.assertRaises(TypeError, RatingClass, '*')
 
@@ -731,8 +729,8 @@ if __name__ == "__main__":
     print('----------------------------------------------------------------------')
     print('')
 
-    suite = unittest.TestLoader().loadTestsFromModule(__import__("__main__"))
-    testrunner = unittest.TextTestRunner(stream=sys.stdout, descriptions=2, verbosity=2)
+    suite = TestLoader().loadTestsFromModule(__import__("__main__"))
+    testrunner = TextTestRunner(stream=stdout, descriptions=2, verbosity=2)
     testrunner.run(suite)
 
     print('')
