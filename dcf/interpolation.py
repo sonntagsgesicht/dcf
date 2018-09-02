@@ -56,7 +56,7 @@ class base_interpolation(object):
 
     @classmethod
     def from_dict(cls, xy_dict):
-        return cls(xy_dict.keys(), xy_dict.values())
+        return cls(sorted(xy_dict), (xy_dict[k] for k in sorted(xy_dict)))
 
 
 class flat(base_interpolation):
@@ -126,10 +126,6 @@ class nearest(base_interpolation):
 
 
 class linear(base_interpolation):
-    """
-    interpolates the given data linear
-    """
-
     def __call__(self, x):
         if len(self.y_list) == 0:
             raise (OverflowError, "No data points for interpolation provided.")
@@ -142,31 +138,83 @@ class linear(base_interpolation):
 
 class loglinear(linear):
     def __init__(self, x_list=list(), y_list=list()):
-        z = [x for x in x_list if not x]
-        self._y_at_zero = y_list[x_list.index(z[0])] if z else None
-        log_y_list = [-math.log(y) / x for x, y in zip(x_list, y_list) if x]
-        x_list = [x for x in x_list if x]
+        if not all(0. < y for y in y_list):
+            raise ValueError('log interpolation requires positive values.')
+        log_y_list = [math.log(y) for y in y_list]
         super(loglinear, self).__init__(x_list, log_y_list)
 
     def __call__(self, x):
-        if not x:
-            return self._y_at_zero
         log_y = super(loglinear, self).__call__(x)
-        return math.exp(-log_y * x)
+        return math.exp(log_y)
+
+
+class negloglinear(linear):
+    def __init__(self, x_list=list(), y_list=list()):
+        if not all(0. < y for y in y_list):
+            raise ValueError('log interpolation requires positive values.')
+        log_y_list = [-math.log(y) for y in y_list]
+        super(negloglinear, self).__init__(x_list, log_y_list)
+
+    def __call__(self, x):
+        log_y = super(negloglinear, self).__call__(x)
+        return math.exp(-log_y)
 
 
 class logconstant(constant):
     def __init__(self, x_list=list(), y_list=list()):
+        if not all(0. < y for y in y_list):
+            raise ValueError('log interpolation requires positive values.')
+        log_y_list = [math.log(y) for y in y_list]
+        super(logconstant, self).__init__(x_list, log_y_list)
+
+    def __call__(self, x):
+        log_y = super(logconstant, self).__call__(x)
+        return math.exp(log_y)
+
+
+class neglogconstant(constant):
+    def __init__(self, x_list=list(), y_list=list()):
+        if not all(0. < y for y in y_list):
+            raise ValueError('log interpolation requires positive values.')
+        log_y_list = [-math.log(y) for y in y_list]
+        super(neglogconstant, self).__init__(x_list, log_y_list)
+
+    def __call__(self, x):
+        log_y = super(neglogconstant, self).__call__(x)
+        return math.exp(-log_y)
+
+
+class loglinearrate(linear):
+    def __init__(self, x_list=list(), y_list=list()):
+        if not all(0. < y for y in y_list):
+            raise ValueError('log interpolation requires positive values. Got %s' % str(y_list))
         z = [x for x in x_list if not x]
         self._y_at_zero = y_list[x_list.index(z[0])] if z else None
         log_y_list = [-math.log(y) / x for x, y in zip(x_list, y_list) if x]
         x_list = [x for x in x_list if x]
-        super(logconstant, self).__init__(x_list, log_y_list)
+        super(loglinearrate, self).__init__(x_list, log_y_list)
 
     def __call__(self, x):
         if not x:
             return self._y_at_zero
-        log_y = super(logconstant, self).__call__(x)
+        log_y = super(loglinearrate, self).__call__(x)
+        return math.exp(-log_y * x)
+
+
+class logconstantrate(constant):
+    def __init__(self, x_list=list(), y_list=list()):
+        if not all(0. < y for y in y_list):
+            raise ValueError('log interpolation requires positive values.')
+        z = [x for x in x_list if not x]
+        self._y_at_zero = y_list[x_list.index(z[0])] if z else None
+        log_y_list = [-math.log(y) / x for x, y in zip(x_list, y_list) if x]
+        x_list = [x for x in x_list if x]
+        super(logconstantrate, self).__init__(x_list, log_y_list)
+
+    def __call__(self, x):
+        if not x:
+            return self._y_at_zero
+        log_y = super(logconstantrate, self).__call__(x)
         return math.exp(-log_y * x)
 
 

@@ -15,7 +15,7 @@ from businessdate import BusinessRange
 
 from curve import RateCurve
 from compounding import continuous_compounding, continuous_rate, simple_compounding, simple_rate
-from interpolation import zero, constant, linear, loglinear, logconstant
+from interpolation import zero, constant, linear, loglinearrate, logconstantrate
 
 
 class InterestRateCurve(RateCurve):
@@ -150,7 +150,7 @@ class InterestRateCurve(RateCurve):
 
 
 class DiscountFactorCurve(InterestRateCurve):
-    _interpolation = logconstant(), loglinear(), logconstant()
+    _interpolation = logconstantrate(), loglinearrate(), logconstantrate()
 
     @staticmethod
     def get_storage_type(curve, x):

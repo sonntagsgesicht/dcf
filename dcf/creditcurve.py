@@ -12,7 +12,7 @@
 #  License: APACHE Version 2 License (see LICENSE file)
 
 from curve import DAY_COUNT, RateCurve
-from interpolation import constant, linear, loglinear, logconstant
+from interpolation import constant, linear, logconstantrate, loglinearrate, neglogconstant, negloglinear
 from compounding import continuous_compounding, continuous_rate
 
 
@@ -23,7 +23,7 @@ class CreditCurve(RateCurve):
     def cast(self, cast_type, **kwargs):
         old_domain = kwargs.get('domain', self.domain)
 
-        if issubclass(cast_type, (SurvivalProbabilityCurve, DefaultProbabilityCurve, )):
+        if issubclass(cast_type, (SurvivalProbabilityCurve, DefaultProbabilityCurve,)):
             domain = kwargs.get('domain', self.domain)
             origin = kwargs.get('origin', self.origin)
             new_domain = list(domain) + [origin + '1d']
@@ -72,7 +72,7 @@ class CreditCurve(RateCurve):
 
 
 class SurvivalProbabilityCurve(CreditCurve):
-    _interpolation = logconstant(), loglinear(), logconstant()
+    _interpolation = logconstantrate(), loglinearrate(), logconstantrate()
 
     @staticmethod
     def get_storage_type(curve, x):
@@ -93,12 +93,15 @@ class SurvivalProbabilityCurve(CreditCurve):
 
 class DefaultProbabilityCurve(SurvivalProbabilityCurve):
     """ wrapper of SurvivalProbabilityCurve """
+
     @staticmethod
     def get_storage_type(curve, x):
         return 1. - curve.get_survival_prob(curve.origin, x)
 
     def __init__(self, domain, data, interpolation=None, origin=None, day_count=None, forward_tenor=None):
         data = [1. - d for d in data]
+        if not all(data):
+            raise ValueError('Found non positive survival probabilities.')
         super(DefaultProbabilityCurve, self).__init__(domain, data, interpolation, origin, day_count, forward_tenor)
 
 
@@ -149,33 +152,26 @@ class HazardRateCurve(CreditCurve):
         return self(start)
 
 
-class MarginalDefaultProbabilityCurve(CreditCurve):
-    _interpolation = constant(), constant(), constant()
+class MarginalSurvivalProbabilityCurve(CreditCurve):
+    _interpolation = neglogconstant(), negloglinear(), neglogconstant()
 
     @staticmethod
     def get_storage_type(curve, x):
-        return 1. - curve.get_survival_prob(x, x + curve.forward_tenor)
+        return curve.get_survival_prob(x, x + curve.forward_tenor)
 
-    def __init__(self, domain, data, interpolation=None, origin=None, day_count=None, forward_tenor=None):
-        day_count = DAY_COUNT if day_count is None else day_count
-        forward_tenor = self.__class__._forward_tenor if forward_tenor is None else forward_tenor
-        data = [continuous_rate(1. - pd, day_count(d, d + forward_tenor)) for d, pd in zip(domain, data)]
-        super(MarginalDefaultProbabilityCurve, self).__init__(domain, data, interpolation, origin, day_count, forward_tenor)
-
-    def _get_compounding_rate(self, start, stop):
+    def _get_compounding_factor(self, start, stop):
         if start == stop:
-            return self(start)
+            return 1.
 
         current = start
         df = 1.0
         step = self.forward_tenor
         while current + step < stop:
-            dc = self.day_count(current, current + step)
-            df *= continuous_compounding(self(current), dc)
+            df *= self(current)
             current += step
-        dc = self.day_count(current, stop)
-        df *= continuous_compounding(self(current), dc)
-        return continuous_rate(df, self.day_count(start, stop))
+        r = continuous_rate(self(current), self.day_count(current, current + step))
+        df *= continuous_compounding(r, self.day_count(current, stop))
+        return df
 
     def get_hazard_rate(self, start):  # aka get_short_rate
         if start < min(self.domain):
@@ -185,7 +181,21 @@ class MarginalDefaultProbabilityCurve(CreditCurve):
 
         previous = max(d for d in self.domain if d <= start)
         follow = min(d for d in self.domain if start < d)
-        assert previous <= start <= follow
         assert previous < follow, map(str, (previous, start, follow))
+        assert previous <= start <= follow, map(str, (previous, start, follow))
 
         return self.get_flat_intensity(previous, follow)
+
+
+class MarginalDefaultProbabilityCurve(MarginalSurvivalProbabilityCurve):
+    """ wrapper of SurvivalProbabilityCurve """
+
+    @staticmethod
+    def get_storage_type(curve, x):
+        return 1. - curve.get_survival_prob(x, x + curve.forward_tenor)
+
+    def __init__(self, domain, data, interpolation=None, origin=None, day_count=None, forward_tenor=None):
+        data = [1. - d for d in data]
+        if not all(data):
+            raise ValueError('Found non positive survival probabilities.')
+        super(MarginalDefaultProbabilityCurve, self).__init__(domain, data, interpolation, origin, day_count, forward_tenor)

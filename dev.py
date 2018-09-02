@@ -2,7 +2,8 @@ import matplotlib.pyplot as plt
 
 from businessdate import BusinessDate, BusinessRange
 
-from dcf import DiscountFactorCurve, ZeroRateCurve, CashRateCurve, ShortRateCurve
+from dcf import DiscountFactorCurve, ZeroRateCurve, CashRateCurve, ShortRateCurve, \
+    MarginalDefaultProbabilityCurve, MarginalSurvivalProbabilityCurve
 
 
 def plot_curve(curves, x=None):
@@ -105,12 +106,28 @@ def plot_cast(curve, x=None):
     plt.show()
 
 
+
+
+if 1:
+    today = BusinessDate()
+    grid = ['0D', '1Y', '2Y', '3Y']
+    points = [0.02, 0.022, 0.02, 0.03]
+
+    curve_type = MarginalDefaultProbabilityCurve
+    curve = curve_type([today + _ for _ in grid], [1. - p for p in points])
+
+    print curve
+    for p in grid:
+        print p,
+        print curve.get_survival_prob((today + p)),
+        print curve.get_survival_prob(today + p , (today + p) + curve.forward_tenor)
+
 if 0:
     today = BusinessDate()
     curve = CashRateCurve([today, today + '3M'], [0.02, 0.01], forward_tenor='1M')
     plot_curve(curve)
 
-if 1:
+if 0:
     today = BusinessDate()
 
     curve_type = CashRateCurve
