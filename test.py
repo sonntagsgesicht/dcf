@@ -469,18 +469,19 @@ class CreditCurveUnitTests(TestCase):
     def test_survival_curve(self):
         i_curve = FlatIntensityCurve([self.today, self.today + '1d'], [.02, .02])
         s_curve = SurvivalProbabilityCurve(i_curve.domain, [1., i_curve.get_survival_prob(self.today + '1d')])
-        for p in self.periods:
-            x = self.today + p
-            self.assertAlmostEqual(s_curve.get_survival_prob(x, x), 1.)
-            z = i_curve.get_flat_intensity(x)
-            d = s_curve.get_flat_intensity(x)
-            self.assertAlmostEqual(z, d)
-            z = i_curve.get_survival_prob(x)
-            d = s_curve.get_survival_prob(x)
-            self.assertAlmostEqual(z, d)
-            z = i_curve.get_hazard_rate(x)
-            d = s_curve.get_hazard_rate(x)
-            self.assertAlmostEqual(z, d)
+        for t in self.domain:
+            for p in self.periods:
+                x = t + p
+                self.assertAlmostEqual(s_curve.get_survival_prob(x, x), 1.)
+                z = i_curve.get_flat_intensity(x)
+                d = s_curve.get_flat_intensity(x)
+                self.assertAlmostEqual(z, d)
+                z = i_curve.get_survival_prob(x)
+                d = s_curve.get_survival_prob(x)
+                self.assertAlmostEqual(z, d)
+                z = i_curve.get_hazard_rate(x)
+                d = s_curve.get_hazard_rate(x)
+                self.assertAlmostEqual(z, d)
 
         s_curve = SurvivalProbabilityCurve(i_curve.domain, [1., 0.])
         for p in self.periods:
@@ -501,12 +502,15 @@ class CreditCurveUnitTests(TestCase):
     def test_hazard_rate_curve(self):
         rate = 0.02
         curve = HazardRateCurve(self.domain, [rate] * self.len)
+        flat = FlatIntensityCurve(self.domain, [rate] * self.len)
         for d in self.domain:
             for p in self.periods:
-                self.assertAlmostEqual(curve.get_survival_prob(d + p, d + p), 1.)
-
-                self.assertAlmostEqual(curve.get_flat_intensity(self.today, d + p), rate)
-                self.assertAlmostEqual(curve.get_hazard_rate(d + p), rate)
+                t = d + p
+                self.assertAlmostEqual(curve.get_survival_prob(t, t), 1.)
+                self.assertAlmostEqual(curve.get_flat_intensity(t), rate)
+                self.assertAlmostEqual(curve.get_hazard_rate(t), rate)
+                self.assertAlmostEqual(flat.get_flat_intensity(t), rate)
+                self.assertAlmostEqual(flat.get_hazard_rate(t), rate)
 
         curve = HazardRateCurve([self.today, self.today + '1y'], [0.1, 0.3])
         t = curve.origin
@@ -519,14 +523,14 @@ class CreditCurveUnitTests(TestCase):
         self.assertAlmostEqual(curve.get_hazard_rate(t + '2y'), .3)
 
     def test_marginal_curve(self):
-        m = MarginalDefaultProbabilityCurve([self.today], [0.001])
-        h = HazardRateCurve([self.today], [m.get_hazard_rate(self.today)])
+        rate = 0.1
+        i = FlatIntensityCurve([self.today], [rate])
+        m = MarginalSurvivalProbabilityCurve([self.today], [i.get_survival_prob(self.today + '1y')])
         for d in self.domain:
             for p in self.periods:
-                mv = m.get_survival_prob(d + p)
-                hv = h.get_survival_prob(d + p)
-                # print d, p, mv, hv
-                self.assertAlmostEqual(mv, hv, 4)
+                mv = m.get_flat_intensity(d + p)
+                fi = i.get_flat_intensity(d + p)
+                self.assertAlmostEqual(mv, fi, 3)  # precision of 3 due to day_count effects
 
         for q in self.periods:
             m = MarginalDefaultProbabilityCurve([self.today + q], [1.00], origin=self.today)

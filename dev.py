@@ -1,9 +1,10 @@
 import matplotlib.pyplot as plt
 
-from businessdate import BusinessDate, BusinessRange
+from businessdate import BusinessDate, BusinessPeriod, BusinessRange
 
 from dcf import DiscountFactorCurve, ZeroRateCurve, CashRateCurve, ShortRateCurve, \
-    MarginalDefaultProbabilityCurve, MarginalSurvivalProbabilityCurve
+    MarginalDefaultProbabilityCurve, MarginalSurvivalProbabilityCurve, \
+    continuous_rate, continuous_compounding
 
 
 def plot_curve(curves, x=None):
@@ -106,21 +107,24 @@ def plot_cast(curve, x=None):
     plt.show()
 
 
-
-
 if 1:
     today = BusinessDate()
-    grid = ['0D', '1Y', '2Y', '3Y']
-    points = [0.02, 0.022, 0.02, 0.03]
-
-    curve_type = MarginalDefaultProbabilityCurve
-    curve = curve_type([today + _ for _ in grid], [1. - p for p in points])
+    grid = ['0D', '1M', '2M', '3M', '4M', '5M', '6M', '9m']
+    grid = tuple(BusinessPeriod().add_months(i) for i in range(48))
+    pd_value = 0.01
+    curve = MarginalDefaultProbabilityCurve([today], [pd_value])
 
     print curve
     for p in grid:
+        t = curve.day_count(today, today + p)
+        y = curve.day_count(today, today + '1y')
+        hz = continuous_rate(1.0 - pd_value, 1.0015)
+        s = continuous_compounding(hz, t)
+
         print p,
-        print curve.get_survival_prob((today + p)),
-        print curve.get_survival_prob(today + p , (today + p) + curve.forward_tenor)
+        print t,
+        print 1. - curve.get_survival_prob((today + p)),
+        print 1. - s
 
 if 0:
     today = BusinessDate()
