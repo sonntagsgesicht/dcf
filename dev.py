@@ -4,7 +4,7 @@ from businessdate import BusinessDate, BusinessPeriod, BusinessRange
 
 from dcf import DiscountFactorCurve, ZeroRateCurve, CashRateCurve, ShortRateCurve, \
     MarginalDefaultProbabilityCurve, MarginalSurvivalProbabilityCurve, \
-    continuous_rate, continuous_compounding
+    continuous_rate, continuous_compounding, RatingClass, SHORT_MASTER_SCALE
 
 
 def plot_curve(curves, x=None):
@@ -106,8 +106,46 @@ def plot_cast(curve, x=None):
     plt.title(curve.__class__.__name__ + '.get_storage_rate(time)')
     plt.show()
 
-
 if 1:
+    RatingClass.SLOPPY = True
+    r = RatingClass(-0.001, masterscale=('A', 'B', 'C', 'D'))
+    print list(r), float(r)
+
+    r = RatingClass(0.0, masterscale=('A', 'B', 'C', 'D'))
+    print list(r), float(r)
+
+    r = RatingClass(0.000001, masterscale=('A', 'B', 'C', 'D'))
+    print list(r), float(r)
+
+    r = RatingClass(0.5, masterscale=('A', 'B', 'C', 'D'))
+    print list(r), float(r)
+
+    r = RatingClass(2.0, masterscale=('A', 'B', 'C', 'D'))
+    print list(r), float(r)
+    for c in r.masterscale.rating_classes():
+        print list(c), float(c)
+        pass
+
+if 0:
+    today = BusinessDate()
+    grid = ['0D', '1M', '2M', '3M', '4M', '5M', '6M', '9m']
+    grid = tuple(BusinessPeriod().add_months(i) for i in range(48))
+    pd_value = 0.1
+    curve = MarginalSurvivalProbabilityCurve([today], [pd_value])
+    other = MarginalSurvivalProbabilityCurve([today], [pd_value])
+    print curve + other
+    print curve - other
+    print curve * other
+    print curve / other
+
+if 0:
+    rcls = RatingClass(0.02, masterscale=SHORT_MASTER_SCALE)
+    print rcls
+    print repr(rcls)
+    print rcls.masterscale
+    print repr(rcls.masterscale)
+
+if 0:
     today = BusinessDate()
     grid = ['0D', '1M', '2M', '3M', '4M', '5M', '6M', '9m']
     grid = tuple(BusinessPeriod().add_months(i) for i in range(48))
