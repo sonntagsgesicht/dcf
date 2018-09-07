@@ -464,7 +464,7 @@ class CreditCurveUnitTests(TestCase):
         self.today = BusinessDate()
         self.domain = BusinessRange(self.today, self.today + '1Y', '3M')
         self.len = len(self.domain)
-        self.periods = ('1D', '2B', '8D', '2W', '14B', '1M', '1M1D', '3M', '6M', '6M2W1D', '9M', '12M')
+        self.periods = ('0D', '1D', '2B', '8D', '2W', '14B', '1M', '1M1D', '3M', '6M', '6M2W1D', '9M', '12M')
 
     def test_survival_curve(self):
         i_curve = FlatIntensityCurve([self.today, self.today + '1d'], [.02, .02])
@@ -483,7 +483,7 @@ class CreditCurveUnitTests(TestCase):
                 d = s_curve.get_hazard_rate(x)
                 self.assertAlmostEqual(z, d)
 
-        s_curve = SurvivalProbabilityCurve(i_curve.domain, [1., 0.])
+        s_curve = SurvivalProbabilityCurve(i_curve.domain, [0., 0.])
         for p in self.periods:
             x = self.today + p
             s = s_curve.get_survival_prob(s_curve.origin, x)
@@ -537,8 +537,7 @@ class CreditCurveUnitTests(TestCase):
             for d in self.domain:
                 for p in self.periods:
                     s = m.get_survival_prob(d, d + p)
-                    # print d+p, s
-                    # self.assertAlmostEqual(s, 0.)
+                    self.assertAlmostEqual(s, 0.)
 
 
 class CastIntensityCurveUnitTests(TestCase):
@@ -696,7 +695,7 @@ class RatingClassUnitTets(TestCase):
         self.assertAlmostEqual(min(list(r)), 0.)
 
     def test_sloppy_rating_class_with_master_scale(self):
-        RatingClass.SLOPPY=True
+        RatingClass.SLOPPY = True
         r = RatingClass(-0.001, masterscale=('A', 'B', 'C', 'D'))
         self.assertEqual([-1.0, 0.0, 0.0, 0.0], list(r))
         r = RatingClass(0.0, masterscale=('A', 'B', 'C', 'D'))
@@ -715,11 +714,11 @@ class RatingClassUnitTets(TestCase):
                                              '[B]-RatingClass(0.0100000), '
                                              '[C]-RatingClass(0.1000000), '
                                              '[D]-RatingClass(1.0000000)]')
-        self.assertEqual(repr(r.masterscale),'master_scale('
-                                             '[A]-RatingClass(0.0010000), '
-                                             '[B]-RatingClass(0.0100000), '
-                                             '[C]-RatingClass(0.1000000), '
-                                             '[D]-RatingClass(1.0000000))')
+        self.assertEqual(repr(r.masterscale), 'master_scale('
+                                              '[A]-RatingClass(0.0010000), '
+                                              '[B]-RatingClass(0.0100000), '
+                                              '[C]-RatingClass(0.1000000), '
+                                              '[D]-RatingClass(1.0000000))')
 
         for y, z in r.masterscale.items():
             x = RatingClass(z, r.masterscale)

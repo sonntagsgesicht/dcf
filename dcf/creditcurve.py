@@ -89,6 +89,8 @@ class SurvivalProbabilityCurve(CreditCurve):
     def _get_compounding_factor(self, start, stop):
         if start is self.origin:
             return self(stop)
+        if start == stop:
+            return 1. if 2*float_info.min <= self(start) else 0.
         return self(stop) / self(start)
 
     def _get_compounding_rate(self, start, stop):
@@ -165,7 +167,8 @@ class MarginalSurvivalProbabilityCurve(CreditCurve):
         data = [max(float_info.min, min(d, 1. - float_info.min)) for d in data]
         if not all(data):
             raise ValueError('Found non positive survival probabilities.')
-        super(MarginalSurvivalProbabilityCurve, self).__init__(domain, data, interpolation, origin, day_count, forward_tenor)
+        super(MarginalSurvivalProbabilityCurve, self).__init__(domain, data, interpolation, origin, day_count,
+                                                               forward_tenor)
 
     @staticmethod
     def get_storage_type(curve, x):
@@ -173,17 +176,20 @@ class MarginalSurvivalProbabilityCurve(CreditCurve):
 
     def _get_compounding_factor(self, start, stop):
         if start == stop:
-            return 1.
+            return 1. if 2*float_info.min <= self(start) else 0.
 
         current = start
         df = 1.0
         step = self.forward_tenor
         while current + step < stop:
-            df *= self(current)
+            df *= self(current) if 2 * float_info.min <= self(current) else 0.
             current += step
 
-        r = continuous_rate(self(current), self.day_count(current, current + step))
-        df *= continuous_compounding(r, self.day_count(current, stop))
+        if 2 * float_info.min <= self(current):
+            r = continuous_rate(self(current), self.day_count(current, current + step))
+            df *= continuous_compounding(r, self.day_count(current, stop))
+        else:
+            df *= 0.
         return df
 
     def get_hazard_rate(self, start):  # aka get_short_rate
