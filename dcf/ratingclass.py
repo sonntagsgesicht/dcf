@@ -12,7 +12,10 @@
 #  License: APACHE Version 2 License (see LICENSE file)
 
 from math import exp, log
-from warnings import warn
+import logging
+
+_logger = logging.getLogger('dcf')
+
 
 LONG_MASTER_SCALE = ('AAA+', 'AAA', 'AAA-', 'AA+', 'AA', 'AA-', 'A+', 'A', 'A-',
                      'BBB+', 'BBB', 'BBB-', 'BB+', 'BB', 'BB-', 'B+', 'B', 'B-',
@@ -78,14 +81,17 @@ class RatingClass(object):
         return list(self)
 
     def __init__(self, value=0., masterscale=None):
-        if not isinstance(value, float):
-            raise TypeError('value argument must have type float not %s' % value.__class__)
-
         if not isinstance(masterscale, RatingClass.master_scale):
             if isinstance(masterscale, dict):
                 masterscale = self.__class__.master_scale(masterscale)
             elif isinstance(masterscale, (tuple, list)) or hasattr(masterscale, '__iter__'):
                 masterscale = self.__class__.master_scale.fromkeys(masterscale)
+
+        if masterscale:
+            value = masterscale[value] if value in masterscale else value
+
+        if not isinstance(value, float):
+            raise TypeError('value argument must be key in masterscale or have type float not %s' % value.__class__)
 
         self._value = value
         self._masterscale = masterscale
@@ -118,9 +124,9 @@ class RatingClass(object):
             value_list = [round(x, 7) for x in self.masterscale.values()]
 
             if not min(value_list) <= value <= max(value_list):
-                msg = 'masterscale does not embrace %.7f\n %s' % (float(self), repr(self.masterscale))
+                msg = 'masterscale does not embrace %.7f' % float(self)  # + '\n %s' % repr(self.masterscale)
                 if self.__class__.SLOPPY:
-                    warn(msg)
+                    _logger.warning(msg)
                 else:
                     raise ValueError(msg)
 

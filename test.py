@@ -15,6 +15,7 @@ from sys import stdout
 from os import getcwd
 from datetime import datetime
 from unittest import TestCase, TestLoader, TextTestRunner
+import logging
 
 from math import exp, log
 from businessdate import BusinessDate, BusinessRange
@@ -31,6 +32,11 @@ from dcf import FxCurve, FxContainer
 from dcf import CashFlowList, AmortizingCashFlowList, AnnuityCashFlowList, RateCashFlowList
 from dcf import MultiCashFlowList, FixedLoan, FloatLoan, FixedFloatSwap
 from dcf import RatingClass
+
+logging.basicConfig()
+# h = logging.StreamHandler()
+# h.setFormatter(logging.Formatter('%(asctime)s %(module)-18s %(levelname)-8s %(message)-120s', '%Y%m%d %H%M%S'))
+# logging.getLogger('dcf').addHandler(h)
 
 
 class InterpolationUnitTests(TestCase):
@@ -693,6 +699,13 @@ class RatingClassUnitTets(TestCase):
         self.assertEqual(len(list(r)), len(r.masterscale))
         self.assertAlmostEqual(sum(list(r)), 1.)
         self.assertAlmostEqual(min(list(r)), 0.)
+
+        r = RatingClass(value='A', masterscale=('A', 'B', 'C', 'D'))
+        self.assertAlmostEqual(0.001, float(r))
+        for k, v in r.masterscale.items():
+            self.assertAlmostEqual(v, float(RatingClass(k, r.masterscale)))
+
+        self.assertRaises(TypeError, RatingClass, 'X', r.masterscale)
 
     def test_sloppy_rating_class_with_master_scale(self):
         RatingClass.SLOPPY = True
