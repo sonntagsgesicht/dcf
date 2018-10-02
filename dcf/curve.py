@@ -141,11 +141,14 @@ class Curve(object):
 
 class DateCurve(Curve):
 
-    def __init__(self, domain, data, interpolation=None, origin=None, day_count=None):
-        self.origin = domain[0] if origin is None else origin
-        self.day_count = DAY_COUNT if day_count is None else day_count
-        super(DateCurve, self).__init__([self.day_count(self.origin, x) for x in domain], data, interpolation)
+    def __init__(self, domain=None, data=None, interpolation=None, origin=None, day_count=None):
+        self.origin = origin
         self._domain = domain
+        self.day_count = DAY_COUNT if day_count is None else day_count
+        if domain:
+            self.origin = domain[0] if origin is None else origin
+            domain = [self.day_count(self.origin, x) for x in domain]
+        super(DateCurve, self).__init__(domain, data, interpolation)
 
     @property
     def domain(self):
@@ -211,7 +214,7 @@ class RateCurve(DateCurve):
                         kwargs.get('forward_tenor', self.forward_tenor))
         return new
 
-    def __init__(self, domain, data, interpolation=None, origin=None, day_count=None, forward_tenor=None):
+    def __init__(self, domain=None, data=None, interpolation=None, origin=None, day_count=None, forward_tenor=None):
         super(RateCurve, self).__init__(domain, data, interpolation, origin, day_count)
         self.forward_tenor = self.__class__._forward_tenor if forward_tenor is None else forward_tenor
 
