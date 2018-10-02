@@ -213,7 +213,7 @@ class MarginalDefaultProbabilityCurve(MarginalSurvivalProbabilityCurve):
     def get_storage_type(curve, x):
         return 1. - curve.get_survival_prob(x, x + curve.forward_tenor)
 
-    def __init__(self, domain, data, interpolation=None, origin=None, day_count=None, forward_tenor=None):
+    def __init__(self, domain=(), data=(), interpolation=None, origin=None, day_count=None, forward_tenor=None):
         data = [1. - d for d in data]
         super(MarginalDefaultProbabilityCurve, self).__init__(domain, data, interpolation, origin, day_count,
                                                               forward_tenor)
