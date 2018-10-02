@@ -66,6 +66,10 @@ class Curve(object):
             y_mid = interpolation
         else:
             raise (AttributeError, str(interpolation) + " is not a proper ")
+
+        domain = list() if domain is None else domain
+        data = list() if data is None else data
+
         assert len(domain) == len(data)
         assert len(domain) == len(set(domain))
 

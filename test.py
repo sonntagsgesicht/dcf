@@ -308,6 +308,9 @@ class CurveUnitTests(TestCase):
         for x in new.domain:
             self.assertAlmostEqual(new(x), self.curve(x) / 0.1)
 
+    def test_init(self):
+        Curve()
+
 
 class DateCurveUnitTests(TestCase):
     def setUp(self):
