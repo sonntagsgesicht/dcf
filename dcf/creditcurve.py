@@ -76,7 +76,7 @@ class CreditCurve(RateCurve):
 class SurvivalProbabilityCurve(CreditCurve):
     _interpolation = logconstantrate(), loglinearrate(), logconstantrate()
 
-    def __init__(self, domain=None, data=None, interpolation=None, origin=None, day_count=None, forward_tenor=None):
+    def __init__(self, domain=(), data=(), interpolation=None, origin=None, day_count=None, forward_tenor=None):
         data = [max(float_info.min, min(d, 1. - float_info.min)) for d in data]
         if not all(data):
             raise ValueError('Found non positive survival probabilities.')
@@ -108,7 +108,7 @@ class DefaultProbabilityCurve(SurvivalProbabilityCurve):
     def get_storage_type(curve, x):
         return 1. - curve.get_survival_prob(curve.origin, x)
 
-    def __init__(self, domain=None, data=None, interpolation=None, origin=None, day_count=None, forward_tenor=None):
+    def __init__(self, domain=(), data=(), interpolation=None, origin=None, day_count=None, forward_tenor=None):
         data = [1. - d for d in data]
         super(DefaultProbabilityCurve, self).__init__(domain, data, interpolation, origin, day_count, forward_tenor)
 
@@ -163,7 +163,7 @@ class HazardRateCurve(CreditCurve):
 class MarginalSurvivalProbabilityCurve(CreditCurve):
     _interpolation = neglogconstant(), negloglinear(), neglogconstant()
 
-    def __init__(self, domain=None, data=None, interpolation=None, origin=None, day_count=None, forward_tenor=None):
+    def __init__(self, domain=(), data=(), interpolation=None, origin=None, day_count=None, forward_tenor=None):
         data = [max(float_info.min, min(d, 1. - float_info.min)) for d in data]
         if not all(data):
             raise ValueError('Found non positive survival probabilities.')

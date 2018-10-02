@@ -24,7 +24,7 @@ from dcf import flat, linear, no, zero, left, right, nearest, spline, nak_spline
     loglinear, logconstant, constant
 from dcf import continuous_compounding, continuous_rate, periodic_compounding, periodic_rate, \
     simple_compounding, simple_rate
-from dcf import Curve, DateCurve
+from dcf import Curve, DateCurve, RateCurve
 from dcf import DiscountFactorCurve, ZeroRateCurve, CashRateCurve, ShortRateCurve
 from dcf import SurvivalProbabilityCurve, DefaultProbabilityCurve, FlatIntensityCurve, HazardRateCurve, \
     MarginalSurvivalProbabilityCurve, MarginalDefaultProbabilityCurve
@@ -309,7 +309,9 @@ class CurveUnitTests(TestCase):
             self.assertAlmostEqual(new(x), self.curve(x) / 0.1)
 
     def test_init(self):
-        Curve()
+        self.assertEqual(str(Curve()), str(list()))
+        self.assertEqual(str(DateCurve()), str(list()))
+        self.assertEqual(str(RateCurve()), str(list()))
 
 
 class DateCurveUnitTests(TestCase):
