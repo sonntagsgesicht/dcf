@@ -702,6 +702,14 @@ class VolCurveUnitTests(TestCase):
                 self.assertAlmostEqual(term_curve.get_terminal_vol(x, x), inst_curve.get_terminal_vol(x, x), pre)
                 self.assertAlmostEqual(term_curve.get_instantaneous_vol(x), inst_curve.get_instantaneous_vol(x), pre)
 
+    def test_terminal2_curve(self):
+        domain = [self.today, self.today + '2y', self.today + '3y', self.today + '4y']
+        data = [0.15, 0.2, 0.2, 0.15]
+        term_curve = TerminalVolatilityCurve(domain, data)
+        start = BusinessDate(20181231)
+        stop = BusinessDate(20190101)
+        self.assertRaises(ZeroDivisionError, term_curve.get_terminal_vol, start, stop)
+
     def test_inst_curve(self):
         pre = 1  # some interpolation artifacts may occur
         domain = [self.today, self.today + '2y', self.today + '3y', self.today + '4y']

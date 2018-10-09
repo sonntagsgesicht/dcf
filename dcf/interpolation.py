@@ -320,10 +320,8 @@ class spline(base_interpolation):
 
         # setup the matrix
         n = len(self.x_list)
-        # mat = numpy.zeros((n, n))
-        # b = numpy.zeros((n, 1))
-        mat = [[0.] * n] * n
-        b = [[0.]] * n
+        mat = [[0. for _ in range(n)] for _ in range(n)]
+        b = [[0.] for _ in range(n)]
         x = self.x_list
         y = self.y_list
 
@@ -364,8 +362,6 @@ class spline(base_interpolation):
             b[n - 1][0] = 3 * (y[n - 1] - y[n - 2]) / (x[n - 1] - x[n - 2]) ** 2 + 0.5 * right_boundary_slope
 
         import numpy
-        mat = numpy.matrix(mat)
-        b = numpy.matrix(b)
         k = numpy.linalg.solve(mat, b)
 
         for i in range(1, n):
