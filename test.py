@@ -668,160 +668,52 @@ class CastMarginalDefaultCurveUnitTests(CastMarginalSurvivalCurveUnitTests):
 class VolCurveUnitTests(TestCase):
     def setUp(self):
         self.today = BusinessDate()
-        self.domain = BusinessRange(self.today, self.today + '1Y', '3M')
+        self.domain = BusinessRange(self.today, self.today + '5Y', '1Y')
         self.len = len(self.domain)
         self.periods = ('0D', '1D', '2B', '8D', '2W', '14B', '1M', '1M1D', '3M', '6M', '6M2W1D', '9M', '12M')
 
+    def test_flat_curve(self):
+        for value in (0.0, 0.01, 0.1, 0.2):
+            data = [value] * len(self.domain)
+            term_curve = TerminalVolatilityCurve(self.domain, data)
+            inst_curve = InstantaneousVolatilityCurve(self.domain, data)
+            for t in self.domain:
+                for p in self.periods:
+                    x = t + p
+                    self.assertAlmostEqual(value, term_curve.get_terminal_vol(x))
+                    self.assertAlmostEqual(value, inst_curve.get_terminal_vol(x))
+
+                    self.assertAlmostEqual(value, term_curve.get_terminal_vol(x, x))
+                    self.assertAlmostEqual(value, inst_curve.get_terminal_vol(x, x))
+
+                    self.assertAlmostEqual(value, term_curve.get_instantaneous_vol(x))
+                    self.assertAlmostEqual(value, inst_curve.get_instantaneous_vol(x))
+
     def test_terminal_curve(self):
-        term_curve = TerminalVolatilityCurve([self.today, self.today + '1d'], [.02, .02])
-        iv = [term_curve.get_instantaneous_vol(x) for x in term_curve.domain]
-        inst_curve = InstantaneousVolatilityCurve(term_curve.domain, iv)
+        pre = 2
+        domain = [self.today, self.today + '2y', self.today + '3y', self.today + '4y']
+        data = [0.15, 0.2, 0.2, 0.19]
+        term_curve = TerminalVolatilityCurve(domain, data)
+        inst_curve = term_curve.cast(InstantaneousVolatilityCurve)
         for t in self.domain:
             for p in self.periods:
                 x = t + p
-                self.assertAlmostEqual(term_curve.get_terminal_vol(x, x), inst_curve(x))
-                self.assertAlmostEqual(inst_curve.get_terminal_vol(x, x), inst_curve(x))
+                self.assertAlmostEqual(term_curve.get_terminal_vol(x), inst_curve.get_terminal_vol(x), pre)
+                self.assertAlmostEqual(term_curve.get_terminal_vol(x, x), inst_curve.get_terminal_vol(x, x), pre)
+                self.assertAlmostEqual(term_curve.get_instantaneous_vol(x), inst_curve.get_instantaneous_vol(x), pre)
 
-                z = term_curve.get_terminal_vol(x)
-                d = inst_curve.get_terminal_vol(x)
-                self.assertAlmostEqual(z, d)
-                z = term_curve.get_instantaneous_vol(x)
-                d = inst_curve.get_instantaneous_vol(x)
-                self.assertAlmostEqual(z, d)
-
-        inst_curve = TerminalVolatilityCurve(term_curve.domain, [0., 0.])
-        for p in self.periods:
-            x = self.today + p
-            s = inst_curve.get_terminal_vol(inst_curve.origin, x)
-            self.assertAlmostEqual(s, 0.)
-
-    def test_intensity_curve(self):
-        rate = 0.02
-        curve = FlatIntensityCurve(self.domain, [rate] * self.len)
-        for d in self.domain:
+    def test_inst_curve(self):
+        pre = 1  # some interpolation artifacts may occur
+        domain = [self.today, self.today + '2y', self.today + '3y', self.today + '4y']
+        data = [0.15, 0.2, 0.2, 0.19]
+        inst_curve = InstantaneousVolatilityCurve(domain, data)
+        term_curve = inst_curve.cast(TerminalVolatilityCurve)
+        for t in self.domain:
             for p in self.periods:
-                self.assertAlmostEqual(curve.get_survival_prob(d + p, d + p), 1.)
-
-                self.assertAlmostEqual(curve.get_flat_intensity(self.today, d + p), rate)
-                self.assertAlmostEqual(curve.get_hazard_rate(d + p), rate)
-
-    def test_hazard_rate_curve(self):
-        rate = 0.02
-        curve = HazardRateCurve(self.domain, [rate] * self.len)
-        flat = FlatIntensityCurve(self.domain, [rate] * self.len)
-        for d in self.domain:
-            for p in self.periods:
-                t = d + p
-                self.assertAlmostEqual(curve.get_survival_prob(t, t), 1.)
-                self.assertAlmostEqual(curve.get_flat_intensity(t), rate)
-                self.assertAlmostEqual(curve.get_hazard_rate(t), rate)
-                self.assertAlmostEqual(flat.get_flat_intensity(t), rate)
-                self.assertAlmostEqual(flat.get_hazard_rate(t), rate)
-
-        curve = HazardRateCurve([self.today, self.today + '1y'], [0.1, 0.3])
-        t = curve.origin
-        self.assertAlmostEqual(curve.get_hazard_rate(t), .1)
-
-        self.assertAlmostEqual(curve.get_flat_intensity(t + '1y'), .1)
-        self.assertAlmostEqual(curve.get_hazard_rate(t + '1y'), .3)
-
-        self.assertAlmostEqual(curve.get_flat_intensity(t + '2y'), .2, 3)
-        self.assertAlmostEqual(curve.get_hazard_rate(t + '2y'), .3)
-
-    def test_marginal_curve(self):
-        rate = 0.1
-        i = FlatIntensityCurve([self.today], [rate])
-        m = MarginalSurvivalProbabilityCurve([self.today], [i.get_survival_prob(self.today + '1y')])
-        for d in self.domain:
-            for p in self.periods:
-                mv = m.get_flat_intensity(d + p)
-                fi = i.get_flat_intensity(d + p)
-                self.assertAlmostEqual(mv, fi, 3)  # precision of 3 due to day_count effects
-
-        for q in self.periods:
-            m = MarginalDefaultProbabilityCurve([self.today + q], [1.00], origin=self.today)
-            for d in self.domain:
-                for p in self.periods:
-                    s = m.get_survival_prob(d, d + p)
-                    self.assertAlmostEqual(s, 0.)
-
-
-class CastVolCurveUnitTests(TestCase):
-    def setUp(self):
-        self.cast_type = FlatIntensityCurve
-        self.grid = ['0D', '3M', '12M']
-        self.points = [0.02, 0.01, 0.015]
-        self.grid = ['0D', '1M', '2M', '3M', '4M', '5M', '6M', '1Y']
-        self.points = [0.02, 0.018, 0.0186, 0.018, 0.0167, 0.0155, 0.015, 0.015]
-
-        self.precision = 10
-        self.marginal_precision = 2
-
-        self.today = BusinessDate()
-        self.today_eom = self.today == BusinessDate.end_of_month(self.today.year, self.today.month)
-        self.periods = ('0D', '1D', '2B', '8D', '2W', '14B', '1M', '1M1D', '3M', '6M', '6M2W1D', '9M', '12M')
-
-        def pp(d, a, b):
-            print d, abs(a(d) - b(d)) < self.precision, a(d), b(d)
-
-        self.pp = pp
-
-        def curve(p='0D'):
-            grid = [self.today + p + _ for _ in self.grid]
-            return self.cast_type(grid, self.points)
-
-        self.curve = curve
-
-    def test_interpolation(self):
-        curve = self.curve()
-        for t in (SurvivalProbabilityCurve, FlatIntensityCurve, HazardRateCurve):
-            cast = curve.cast(t)
-            recast = cast.cast(self.cast_type)
-            self.assertEqual(map(type, self.cast_type._interpolation), map(type, curve.interpolation))
-            self.assertEqual(map(type, t._interpolation), map(type, cast.interpolation))
-            self.assertEqual(map(type, self.cast_type._interpolation), map(type, recast.interpolation))
-
-    def test_survival_cast(self):
-        for p in self.periods:
-            curve = self.curve(p)
-            cast = curve.cast(SurvivalProbabilityCurve).cast(self.cast_type)
-            for d in curve.domain[1:]:
-                self.assertAlmostEqual(cast(d), curve(d), self.precision)
-
-    def test_intensity_cast(self):
-        for p in self.periods:
-            curve = self.curve(p)
-            cast = curve.cast(FlatIntensityCurve).cast(self.cast_type)
-            for d in curve.domain[1:]:
-                self.assertAlmostEqual(cast(d), curve(d), self.precision)
-
-    def test_hazard_cast(self):
-        for p in self.periods:
-            curve = self.curve(p)
-            cast = curve.cast(HazardRateCurve).cast(self.cast_type)
-            for d in curve.domain[1:]:
-                self.assertAlmostEqual(cast(d), curve(d), self.precision)
-
-    def test_default_cast(self):
-        for p in self.periods:
-            curve = self.curve(p)
-            cast = curve.cast(DefaultProbabilityCurve).cast(self.cast_type)
-            for d in curve.domain[1:]:
-                self.assertAlmostEqual(cast(d), curve(d), self.precision)
-
-    def test_marginal_survival_cast(self):
-        for p in self.periods:
-            curve = self.curve(p)
-            cast = curve.cast(MarginalSurvivalProbabilityCurve).cast(self.cast_type)
-            for d in curve.domain[1:]:
-                self.assertAlmostEqual(cast(d), curve(d), self.marginal_precision)
-
-    def test_marginal_default_cast(self):
-        for p in self.periods:
-            curve = self.curve(p)
-            cast = curve.cast(MarginalDefaultProbabilityCurve).cast(self.cast_type)
-            for d in curve.domain[1:]:
-                self.assertAlmostEqual(cast(d), curve(d), self.marginal_precision)
+                x = t + p
+                self.assertAlmostEqual(term_curve.get_terminal_vol(x), inst_curve.get_terminal_vol(x), pre)
+                self.assertAlmostEqual(term_curve.get_terminal_vol(x, x), inst_curve.get_terminal_vol(x, x), pre)
+                self.assertAlmostEqual(term_curve.get_instantaneous_vol(x), inst_curve.get_instantaneous_vol(x), pre)
 
 
 class FxUnitTests(TestCase):

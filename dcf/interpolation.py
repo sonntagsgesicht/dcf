@@ -14,7 +14,6 @@
 
 import bisect
 import math
-import numpy
 
 
 class base_interpolation(object):
@@ -220,7 +219,7 @@ class logconstantrate(constant):
 
 class squaredconst(constant):
     def __init__(self, x_list=list(), y_list=list()):
-        sqrd_y_list = [y*y for y in y_list]
+        sqrd_y_list = [y * y for y in y_list]
         super(squaredconst, self).__init__(x_list, sqrd_y_list)
 
     def __call__(self, x):
@@ -230,7 +229,7 @@ class squaredconst(constant):
 
 class squaredlinear(linear):
     def __init__(self, x_list=list(), y_list=list()):
-        sqrd_y_list = [y*y for y in y_list]
+        sqrd_y_list = [y * y for y in y_list]
         super(squaredlinear, self).__init__(x_list, sqrd_y_list)
 
     def __call__(self, x):
@@ -263,7 +262,7 @@ class spline(base_interpolation):
             self.intervals.append([self.x_list[i], self.x_list[i + 1]])
 
         if self.y_list:
-            self.set_interpolation_coefficients()
+            self._set_interpolation_coefficients()
 
     def __call__(self, x):
         """
@@ -273,7 +272,7 @@ class spline(base_interpolation):
         """
         if not self.y_list:
             raise (OverflowError, "No data points for interpolation provided.")
-        ival = spline.get_interval(x, self.intervals)
+        ival = spline._get_interval(x, self.intervals)
         i = self.intervals.index(ival)
         t = (x - ival[0]) / (ival[1] - ival[0])
         y = self.y_list
@@ -282,7 +281,7 @@ class spline(base_interpolation):
         return (1 - t) * y[i] + t * y[i + 1] + t * (1 - t) * (a * (1 - t) + b * t)
 
     @staticmethod
-    def get_interval(x, intervals):
+    def _get_interval(x, intervals):
         """
         finds interval of the interpolation in which x lies.
         :param x:
@@ -294,11 +293,11 @@ class spline(base_interpolation):
             return intervals[0]
         n2 = n / 2
         if x < intervals[n2][0]:
-            return spline.get_interval(x, intervals[:n2])
+            return spline._get_interval(x, intervals[:n2])
         else:
-            return spline.get_interval(x, intervals[n2:])
+            return spline._get_interval(x, intervals[n2:])
 
-    def set_interpolation_coefficients(self):
+    def _set_interpolation_coefficients(self):
         """
         computes the coefficients for the single polynomials of the spline.
         """
@@ -321,47 +320,52 @@ class spline(base_interpolation):
 
         # setup the matrix
         n = len(self.x_list)
-        mat = numpy.zeros((n, n))
-        b = numpy.zeros((n, 1))
+        # mat = numpy.zeros((n, n))
+        # b = numpy.zeros((n, 1))
+        mat = [[0.] * n] * n
+        b = [[0.]] * n
         x = self.x_list
         y = self.y_list
 
         if n > 2:
             for i in range(1, n - 1):
-                mat[i, i - 1] = 1.0 / (x[i] - x[i - 1])
-                mat[i, i + 1] = 1.0 / (x[i + 1] - x[i])
-                mat[i, i] = 2 * (mat[i, i - 1] + mat[i, i + 1])
+                mat[i][i - 1] = 1.0 / (x[i] - x[i - 1])
+                mat[i][i + 1] = 1.0 / (x[i + 1] - x[i])
+                mat[i][i] = 2 * (mat[i][i - 1] + mat[i][i + 1])
 
-                b[i, 0] = 3 * ((y[i] - y[i - 1]) / (x[i] - x[i - 1]) ** 2
+                b[i][0] = 3 * ((y[i] - y[i - 1]) / (x[i] - x[i - 1]) ** 2
                                + (y[i + 1] - y[i]) / (x[i + 1] - x[i]) ** 2)
         elif n < 2:
             raise ValueError('too less points for interpolation')
 
         if self.boundary_condition is None:  # not a knot
-            mat[0, 0] = 1.0 / (x[1] - x[0]) ** 2
-            mat[0, 2] = -1.0 / (x[2] - x[1]) ** 2
-            mat[0, 1] = mat[0, 0] + mat[0, 2]
+            mat[0][0] = 1.0 / (x[1] - x[0]) ** 2
+            mat[0][2] = -1.0 / (x[2] - x[1]) ** 2
+            mat[0][1] = mat[0][0] + mat[0][2]
 
-            b[0, 0] = 2.0 * ((y[1] - y[0]) / (x[1] - x[0]) ** 3
+            b[0][0] = 2.0 * ((y[1] - y[0]) / (x[1] - x[0]) ** 3
                              - (y[2] - y[1]) / (x[2] - x[1]) ** 3)
 
-            mat[n - 1, n - 3] = 1.0 / (x[n - 2] - x[n - 3]) ** 2
-            mat[n - 1, n - 1] = -1.0 / (x[n - 1] - x[n - 2]) ** 2
-            mat[n - 1, n - 2] = mat[n - 1, n - 3] + mat[n - 1, n - 1]
+            mat[n - 1][n - 3] = 1.0 / (x[n - 2] - x[n - 3]) ** 2
+            mat[n - 1][n - 1] = -1.0 / (x[n - 1] - x[n - 2]) ** 2
+            mat[n - 1][n - 2] = mat[n - 1][n - 3] + mat[n - 1][n - 1]
 
-            b[n - 1, 0] = 2.0 * ((y[n - 2] - y[n - 3]) / (x[n - 2] - x[n - 3]) ** 3
+            b[n - 1][0] = 2.0 * ((y[n - 2] - y[n - 3]) / (x[n - 2] - x[n - 3]) ** 3
                                  - (y[n - 1] - y[n - 2]) / (x[n - 1] - x[n - 2]) ** 3)
         else:
-            mat[0, 0] = 2.0 / (x[1] - x[0])
-            mat[0, 1] = 1.0 / (x[1] - x[0])
+            mat[0][0] = 2.0 / (x[1] - x[0])
+            mat[0][1] = 1.0 / (x[1] - x[0])
 
-            b[0, 0] = 3 * (y[1] - y[0]) / (x[1] - x[0]) ** 2 - 0.5 * left_boundary_slope
+            b[0][0] = 3 * (y[1] - y[0]) / (x[1] - x[0]) ** 2 - 0.5 * left_boundary_slope
 
-            mat[n - 1, n - 2] = 1.0 / (x[n - 1] - x[n - 2])
-            mat[n - 1, n - 1] = 2.0 / (x[n - 1] - x[n - 2])
+            mat[n - 1][n - 2] = 1.0 / (x[n - 1] - x[n - 2])
+            mat[n - 1][n - 1] = 2.0 / (x[n - 1] - x[n - 2])
 
-            b[n - 1, 0] = 3 * (y[n - 1] - y[n - 2]) / (x[n - 1] - x[n - 2]) ** 2 + 0.5 * right_boundary_slope
+            b[n - 1][0] = 3 * (y[n - 1] - y[n - 2]) / (x[n - 1] - x[n - 2]) ** 2 + 0.5 * right_boundary_slope
 
+        import numpy
+        mat = numpy.matrix(mat)
+        b = numpy.matrix(b)
         k = numpy.linalg.solve(mat, b)
 
         for i in range(1, n):

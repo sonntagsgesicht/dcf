@@ -167,11 +167,11 @@ if 1:
     vols = [0.15, 0.2, 0.2, 0.18]
 
     i = InstantaneousVolatilityCurve(grid, vols)
-    #f = ForwardVolatilityCurve(grid, vols)
-    t = TerminalVolatilityCurve(grid, vols)
-    #v = i, f, t
+    t = i.cast(TerminalVolatilityCurve)
+    #t = TerminalVolatilityCurve(grid, vols)
+    #i = t.cast(InstantaneousVolatilityCurve)
     v = i, t
-    plot_vol(t)
+    plot_vol(v)
 
 if 0:
     today = BusinessDate()
@@ -187,10 +187,7 @@ if 0:
     for b in rng:
         print v.__class__.__name__.ljust(24), b, p % w(v, b)
     print ''
-    v = ForwardVolatilityCurve(grid, vols)
-    for b in rng:
-        print v.__class__.__name__.ljust(24), b, p % w(v, b)
-    print ''
+
     v = TerminalVolatilityCurve(grid, vols)
     for b in rng:
         print v.__class__.__name__.ljust(24), b, p % w(v, b)

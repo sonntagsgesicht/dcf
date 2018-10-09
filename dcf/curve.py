@@ -141,6 +141,7 @@ class Curve(object):
 
 
 class DateCurve(Curve):
+    _time_shift = '1d'
 
     def __init__(self, domain=(), data=(), interpolation=None, origin=None, day_count=None):
         self.origin = domain[0] if origin is None and domain else origin
@@ -179,9 +180,7 @@ class DateCurve(Curve):
 
     def to_curve(self):
         x_list = self.domain
-
         y_list = self([self.day_count(self.origin, x) for x in x_list])
-
         return Curve(x_list, y_list, (self._y_left, self._y_mid, self._y_right))
 
     def update(self, x_list=list(), y_list=list()):
@@ -192,6 +191,23 @@ class DateCurve(Curve):
             self._domain = sorted(self._domain)
 
             super(DateCurve, self).update([self.day_count(self.origin, x) for x in x_list], y_list)
+
+    def integrate(self, start, stop):
+        # todo use `result, error = scipy.integrate(self, start, stop)
+        value = 0.0
+        step = self.__class__._time_shift
+        current = start
+        while current + step < stop:
+            value += self(current) * self.day_count(current, current + step)
+            current += step
+        value += self(current) * self.day_count(current, stop)
+        return value / self.day_count(start, stop)
+
+    def diff(self, start):
+        # todo use `scipy`
+        stop = start + self.__class__._time_shift
+        value = self(stop) - self(start)
+        return value / self.day_count(start, stop)
 
 
 class RateCurve(DateCurve):

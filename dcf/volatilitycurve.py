@@ -14,13 +14,13 @@
 import logging
 from math import sqrt
 
-from curve import DateCurve
+from curve import RateCurve
 from interpolation import zero, linear, constant
 
 _logger = logging.getLogger('dcf')
 
 
-class VolatilityCurve(DateCurve):
+class VolatilityCurve(RateCurve):
     """ generic curve for default probabilities (under construction) """
     _time_shift = '1d'
     _interpolation = zero(), linear(), constant()
@@ -31,17 +31,20 @@ class VolatilityCurve(DateCurve):
         if issubclass(cast_type, (TerminalVolatilityCurve)):
             domain = kwargs.get('domain', self.domain)
             origin = kwargs.get('origin', self.origin)
-            new_domain = list(domain) + [origin + '1d']
+            new_domain = list(domain) + [origin + '1d'] + [max(domain) + '10y']
             kwargs['domain'] = sorted(set(new_domain))
 
-        if True:
+        if False:
             domain = kwargs.get('domain', self.domain)
             new_domain = list(domain) + [max(domain) + '1y']
             kwargs['domain'] = sorted(set(new_domain))
 
-        if issubclass(cast_type, ()):
+        if issubclass(cast_type, (InstantaneousVolatilityCurve)):
             domain = kwargs.get('domain', self.domain)
-            new_domain = list(domain)
+            origin = kwargs.get('origin', self.origin)
+            new_domain = list()
+            for d in domain + [origin]:
+                new_domain.extend([d - cast_type._time_shift, d, d + cast_type._time_shift])
             kwargs['domain'] = sorted(set(new_domain))
 
         return super(VolatilityCurve, self).cast(cast_type, **kwargs)
@@ -54,6 +57,11 @@ class VolatilityCurve(DateCurve):
 
 
 class InstantaneousVolatilityCurve(VolatilityCurve):
+
+    @staticmethod
+    def get_storage_type(curve, x):
+        return curve.get_instantaneous_vol(x)
+
     def get_instantaneous_vol(self, start):
         return self(start)
 
@@ -64,20 +72,17 @@ class InstantaneousVolatilityCurve(VolatilityCurve):
             return self(start)
         if start > stop:
             return 0.0
-
-        current = start
-        vol = 0.0
-        step = self.__class__._time_shift
-
-        while current + step < stop:
-            vol += self(current) * self.day_count(current, current + step)
-            current += step
-
-        vol += self(current) * self.day_count(current, stop)
-        return vol / self.day_count(start, stop)
+        return self.integrate(start, stop)
 
 
 class TerminalVolatilityCurve(VolatilityCurve):
+    # class variable to set floor of volatility
+    FLOOR = None
+
+    @staticmethod
+    def get_storage_type(curve, x):
+        return curve.get_terminal_vol(x)
+
     def get_instantaneous_vol(self, start):
         return self.get_terminal_vol(start, start + self.__class__._time_shift)
 
@@ -93,17 +98,19 @@ class TerminalVolatilityCurve(VolatilityCurve):
 
         var_start = self.day_count(self.origin, start) * self(start) ** 2
         var_end = self.day_count(self.origin, stop) * self(stop) ** 2
-        var = var_end - var_start
+        var = (var_end - var_start) / self.day_count(start, stop)
+
         if var < 0.:
             r = self.origin, start, stop, self(start), self(stop), var_start, var_start, var
-            m = 'Negative variance detected in %s at: %s' % (repr(self), ' '.join(map(str, r)))
-            print m
-            _logger.warning(m)
+            m1 = 'Negative variance detected in %s' % repr(self)
+            _logger.warning(m1)
+            m2 = 'at: %s' % ' '.join(map(str, r))
+            _logger.warning(m2)
+            if self.__class__.FLOOR is None:
+                raise ZeroDivisionError(m1)
+        var = max(var, self.__class__.FLOOR**2) if self.__class__.FLOOR is not None else var
 
-        var = 0. if var < 0. else var
-        se = self.day_count(start, stop)
-        return sqrt(var / se)
-
+        return sqrt(var)
 
 # class ForwardVolatilityCurve(TerminalVolatilityCurve):
 #     def get_terminal_vol(self, start, stop=None):
