@@ -104,7 +104,7 @@ class TerminalVolatilityCurve(VolatilityCurve):
             r = self.origin, start, stop, self(start), self(stop), var_start, var_start, var
             m1 = 'Negative variance detected in %s' % repr(self)
             _logger.warning(m1)
-            m2 = 'at: %s' % ' '.join(map(str, r))
+            m2 = 'Negative variance detected at: %s' % ' '.join(map(str, r))
             _logger.warning(m2)
             if self.__class__.FLOOR is None:
                 raise ZeroDivisionError(m1)

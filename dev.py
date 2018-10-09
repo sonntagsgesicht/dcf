@@ -159,7 +159,7 @@ def plot_cast(curve, x=None):
     plt.show()
 
 
-if 1:
+if 0:
     today = BusinessDate()
     rng = BusinessRange(today, today + '5y', '3m')
 
