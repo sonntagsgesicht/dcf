@@ -1,9 +1,11 @@
+import numpy
 import matplotlib.pyplot as plt
 
 from businessdate import BusinessDate, BusinessPeriod, BusinessRange
 
 from dcf import DiscountFactorCurve, ZeroRateCurve, CashRateCurve, ShortRateCurve, \
     MarginalDefaultProbabilityCurve, MarginalSurvivalProbabilityCurve, \
+    TerminalVolatilityCurve, InstantaneousVolatilityCurve, \
     continuous_rate, continuous_compounding, RatingClass, SHORT_MASTER_SCALE
 
 
@@ -62,6 +64,56 @@ def plot_curve(curves, x=None):
     plt.show()
 
 
+def plot_vol(curves, x=None):
+    if not isinstance(curves, (tuple, list)):
+        curves = curves,
+
+    fig, axs = plt.subplots(1, len(curves))
+
+    if not isinstance(axs, (tuple, list, numpy.ndarray)):
+        axs = [axs]
+
+    for ax, curve in zip(axs, curves):
+        today = curve.origin
+        if x is None:
+            if curve.domain[-1] < today + '1y':
+                x = BusinessRange(today - '3m', curve.domain[-1] + '3m', step='1d', rolling=curve.origin)
+            elif curve.domain[-1] < today + '2y':
+                x = BusinessRange(today - '6m', curve.domain[-1] + '6m', step='1w', rolling=curve.origin)
+            else:
+                x = BusinessRange(today - '1y', curve.domain[-1] + '1y', step='1m', rolling=curve.origin)
+
+        z = [today.diff_in_days(_) for _ in x]
+
+        y = [curve.get_terminal_vol(_) for _ in x]
+        ax.plot(z, y, label='get_terminal_vol(time)')
+
+        y = [curve.get_terminal_vol(_, _ + '1d') for _ in x]
+        ax.plot(z, y, label='get_terminal_vol(time, time+1d)')
+
+        y = [curve.get_terminal_vol(_, _ + '3m') for _ in x]
+        ax.plot(z, y, label='get_terminal_vol(time, time+3m)')
+
+        y = [curve.get_terminal_vol(_, _ + '6m') for _ in x]
+        ax.plot(z, y, label='get_terminal_vol(time, time+6m)')
+
+        y = [curve.get_terminal_vol(_, _ + '1y') for _ in x]
+        ax.plot(z, y, label='get_terminal_vol(time, time+1y)')
+
+        y = [curve.get_instantaneous_vol(_) for _ in x]
+        ax.plot(z, y, label='get_instantaneous_vol(time)')
+
+        ax.set_xlabel('time (d)')
+        ax.set_ylabel('vol')
+        #ax.set_ylim(.01, .025)
+
+        ax.legend(loc='lower left', frameon=False)
+        ax.set_title(curve.__class__.__name__)
+
+    fig.tight_layout()
+    plt.show()
+
+
 def plot_cast(curve, x=None):
     today = curve.origin
 
@@ -106,7 +158,44 @@ def plot_cast(curve, x=None):
     plt.title(curve.__class__.__name__ + '.get_storage_rate(time)')
     plt.show()
 
+
 if 1:
+    today = BusinessDate()
+    rng = BusinessRange(today, today + '5y', '3m')
+
+    grid = [today, today + '2y',today + '3y', today + '4y']
+    vols = [0.15, 0.2, 0.2, 0.18]
+
+    i = InstantaneousVolatilityCurve(grid, vols)
+    #f = ForwardVolatilityCurve(grid, vols)
+    t = TerminalVolatilityCurve(grid, vols)
+    #v = i, f, t
+    v = i, t
+    plot_vol(t)
+
+if 0:
+    today = BusinessDate()
+    rng = BusinessRange(today, today + '5y', '3m')
+
+    grid = [today, today + '2y', today + '4y']
+    vols = [0.1, 0.2, 0.17]
+
+    p = '%0.4f, %0.4f, %0.4f'
+    w = lambda v, b: (v.get_instantaneous_vol(b), v.get_terminal_vol(b), v.get_terminal_vol(b, b + '1y'))
+
+    v = InstantaneousVolatilityCurve(grid, vols)
+    for b in rng:
+        print v.__class__.__name__.ljust(24), b, p % w(v, b)
+    print ''
+    v = ForwardVolatilityCurve(grid, vols)
+    for b in rng:
+        print v.__class__.__name__.ljust(24), b, p % w(v, b)
+    print ''
+    v = TerminalVolatilityCurve(grid, vols)
+    for b in rng:
+        print v.__class__.__name__.ljust(24), b, p % w(v, b)
+
+if 0:
     RatingClass.SLOPPY = True
     r = RatingClass(-0.001, masterscale=('A', 'B', 'C', 'D'))
     print list(r), float(r)

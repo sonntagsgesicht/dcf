@@ -218,6 +218,26 @@ class logconstantrate(constant):
         return math.exp(-log_y * x)
 
 
+class squaredconst(constant):
+    def __init__(self, x_list=list(), y_list=list()):
+        sqrd_y_list = [y*y for y in y_list]
+        super(squaredconst, self).__init__(x_list, sqrd_y_list)
+
+    def __call__(self, x):
+        sqrd_y = super(squaredconst, self).__call__(x)
+        return math.sqrt(sqrd_y)
+
+
+class squaredlinear(linear):
+    def __init__(self, x_list=list(), y_list=list()):
+        sqrd_y_list = [y*y for y in y_list]
+        super(squaredlinear, self).__init__(x_list, sqrd_y_list)
+
+    def __call__(self, x):
+        sqrd_y = super(squaredlinear, self).__call__(x)
+        return math.sqrt(sqrd_y)
+
+
 class spline(base_interpolation):
     """
     interpolates the data with cubic splines.
