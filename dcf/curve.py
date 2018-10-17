@@ -193,7 +193,7 @@ class DateCurve(Curve):
             super(DateCurve, self).update([self.day_count(self.origin, x) for x in x_list], y_list)
 
     def integrate(self, start, stop):
-        # todo use `result, error = scipy.integrate(self, start, stop)
+        # todo use result, error = scipy.integrate(self, start, stop)
         value = 0.0
         step = self.__class__._time_shift
         current = start
@@ -203,8 +203,8 @@ class DateCurve(Curve):
         value += self(current) * self.day_count(current, stop)
         return value / self.day_count(start, stop)
 
-    def diff(self, start):
-        # todo use `scipy`
+    def derivative(self, start):
+        # todo use scipy.misc.derivative(self, start, self.__class__._time_shift)
         stop = start + self.__class__._time_shift
         value = self(stop) - self(start)
         return value / self.day_count(start, stop)
