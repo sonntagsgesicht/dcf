@@ -1,6 +1,6 @@
 build/
 dist/
-*.egg-info
+dcf.egg-info/
 *.pyc
 .idea/
 .cache/

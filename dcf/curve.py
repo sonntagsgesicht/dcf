@@ -179,8 +179,8 @@ class DateCurve(Curve):
         return new
 
     def to_curve(self):
-        x_list = self.domain
-        y_list = self([self.day_count(self.origin, x) for x in x_list])
+        x_list = [self.day_count(self.origin, x) for x in self.domain]
+        y_list = self(self.domain)
         return Curve(x_list, y_list, (self._y_left, self._y_mid, self._y_right))
 
     def update(self, x_list=list(), y_list=list()):

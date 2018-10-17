@@ -15,6 +15,23 @@
 import curve
 
 
+class Price(object):
+
+    def __init__(self, value, origin):
+        self.value = value
+        self.origin = origin
+
+    def __float__(self):
+        return float(self.value)
+
+    def __str__(self):
+        return '%s(%f;%s)' % (self.__class__.__name__, self.value, str(self.origin))
+
+
+class FxSpot(Price):
+    pass
+
+
 class FxCurve(curve.DateCurve):
     """fx rate curve for currency pair"""
 
@@ -31,19 +48,23 @@ class FxCurve(curve.DateCurve):
         assert domestic_curve.origin == foreign_curve.origin
         return cls(fx_spot, domestic_curve=domestic_curve, foreign_curve=foreign_curve)
 
-    def __init__(self, domain, data=None, interpolation=None, origin=None, day_count=None,
+    def __init__(self, domain=1., data=None, interpolation=None, origin=None, day_count=None,
                  domestic_curve=None, foreign_curve=None):
         self.domestic_curve = domestic_curve
         self.foreign_curve = foreign_curve
         if origin is None:
             assert self.domestic_curve.origin == self.foreign_curve.origin
             origin = self.domestic_curve.origin
-        if isinstance(domain, float) and data is None:
-            # build lists from single spot fx rate
-            data = [domain]
-            domain = [origin]
-        else:
-            assert len(domain) == len(data)
+        if data is None:
+            if isinstance(domain, float):
+                # build lists from single spot fx rate
+                data = [domain]
+                domain = [origin]
+            elif isinstance(domain, FxSpot):
+                data = [domain.value]
+                domain = [domain.origin]
+                origin = None
+        assert len(domain) == len(data)
         super(FxCurve, self).__init__(domain, data, interpolation, origin, day_count)
 
     def __call__(self, x):
