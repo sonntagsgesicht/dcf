@@ -16,19 +16,27 @@ import curve
 
 
 class Price(object):
+    @property
+    def value(self):
+        return self._value
 
-    def __init__(self, value, origin):
-        self.value = value
-        self.origin = origin
+    @property
+    def origin(self):
+        return self._origin
+
+    def __init__(self, value=0., origin=None, day_count=None):
+        self._value = value
+        self._origin = origin
+        self.day_count = curve.DAY_COUNT if day_count is None else day_count
 
     def __float__(self):
         return float(self.value)
 
     def __str__(self):
-        return '%s(%f;%s)' % (self.__class__.__name__, self.value, str(self.origin))
+        return '%s(%f; %s)' % (self.__class__.__name__, self.value, str(self.origin))
 
 
-class FxSpot(Price):
+class FxRate(Price):
     pass
 
 
@@ -60,7 +68,7 @@ class FxCurve(curve.DateCurve):
                 # build lists from single spot fx rate
                 data = [domain]
                 domain = [origin]
-            elif isinstance(domain, FxSpot):
+            elif isinstance(domain, Price):
                 data = [domain.value]
                 domain = [domain.origin]
                 origin = None
