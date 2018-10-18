@@ -178,8 +178,9 @@ class DateCurve(Curve):
         new.origin = self.origin
         return new
 
-    def to_curve(self):
-        x_list = [self.day_count(self.origin, x) for x in self.domain]
+    def to_curve(self, origin=None):
+        origin = self.origin if origin is None else origin
+        x_list = [self.day_count(origin, x) for x in self.domain]
         y_list = self(self.domain)
         return Curve(x_list, y_list, (self._y_left, self._y_mid, self._y_right))
 
