@@ -9,3 +9,7 @@ doc/sphinx/_static/
 doc/sphinx/_templates/
 .DS_Store
 dev.py
+.coverage
+coverage.xml
+doc/coverage/
+htmlcov/

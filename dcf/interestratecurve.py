@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 
-#  dcf (discounted cashflow)
-#  -------------------------
-#  A Python library for generating discounted cashflows.
-#  Typical banking business methods are provided like interpolation, compounding,
-#  discounting and fx.
-#
-#  Author:  pbrisk <pbrisk_at_github@icloud.com>
-#  Copyright: 2016, 2017 Deutsche Postbank AG
-#  Website: https://github.com/pbrisk/dcf
-#  License: APACHE Version 2 License (see LICENSE file)
+# dcf
+# ---
+# A Python library for generating discounted cashflows.
+# 
+# Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
+# Version:  0.5, copyright Tuesday 13 August 2019
+# Website:  https://github.com/sonntagsgesicht/dcf
+# License:  Apache License 2.0 (see LICENSE file)
+
 
 from businessdate import BusinessRange
 
