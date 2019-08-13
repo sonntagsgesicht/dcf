@@ -19,7 +19,7 @@ import logging
 from math import exp, log
 from businessdate import BusinessDate, BusinessRange
 
-from dcf import flat, linear, no, zero, left, right, nearest, spline, nak_spline, loglinearrate, logconstantrate, \
+from dcf import flat, linear, no, zero, left, right, nearest, loglinearrate, logconstantrate, \
     loglinear, logconstant, constant
 from dcf import continuous_compounding, continuous_rate, periodic_compounding, periodic_rate, \
     simple_compounding, simple_rate
@@ -181,73 +181,6 @@ class InterpolationUnitTests(TestCase):
             self.assertTrue(s in ff)
             ff.update([s])
             self.assertFalse(s in ff)
-
-
-class CubicSplineUnitTest(TestCase):
-    def setUp(self):
-        pass
-
-    def test_spline_linear(self):
-        x = [0, 2, 4, 6]
-        y0 = [5, 5.4, 5.8, 6.2]
-        f = spline(x, y0)
-        self.assertAlmostEqual(f(1), 5.2)
-        self.assertAlmostEqual(f(3), 5.6)
-        # self.assertRaises(ValueError, f(-1))
-
-    def test_spline_quadratic(self):
-        x = [0, 2, 4, 6]
-        y1 = [1, 5, 17, 37]
-        f = spline(x, y1, (2, 2))
-        self.assertAlmostEqual(f(3), 9 + 1)
-        self.assertAlmostEqual(f(5), 25 + 1)
-
-    def test_importance_of_bordercondition(self):
-        x = [0, 2, 4, 6]
-        y1 = [1, 5, 17, 37]
-        f = spline(x, y1, (0, 0))
-        self.assertNotAlmostEqual(f(3), 9 + 1)
-        self.assertNotAlmostEqual(f(5), 25 + 1)
-
-    def test_spline_cubic(self):
-        x = [0, 2, 4, 6]
-        y2 = [0, 8, 64, 216]
-        f = spline(x, y2, (0, 36))
-        self.assertAlmostEqual(f(5), 125)
-
-    def test_compare_with_data(self):
-        file = open('test_data/cubic_spline.txt')
-        self.read_data = False
-        self.read_interpolation = False
-
-        xdata = list()
-        ydata = list()
-        grid = list()
-        interpolation_values = list()
-
-        for line in file:
-            if line.rstrip('\n') == 'DATAPOINTS':
-                self.read_data = True
-                self.read_interpolation = False
-            elif line.rstrip('\n') == 'INTERPOLATIONPOINTS':
-                self.read_data = False
-                self.read_interpolation = True
-            elif self.read_data:
-                parts = line.rstrip().split(';')
-                xdata.append(float(parts[0]))
-                ydata.append(float(parts[1]))
-            elif self.read_interpolation:
-                parts = line.rstrip().split(';')
-                grid.append(float(parts[0]))
-                interpolation_values.append(float(parts[1]))
-
-        file.close()
-
-        f = spline(xdata, ydata)
-        g = nak_spline(xdata, ydata)
-        for point, value in zip(grid, interpolation_values):
-            self.assertEqual(f(point), g(point))
-            self.assertAlmostEqual(f(point), value, 12)
 
 
 class CompoundingUnitTests(TestCase):

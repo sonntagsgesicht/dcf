@@ -10,7 +10,7 @@
 # License:  Apache License 2.0 (see LICENSE file)
 
 
-from .interpolation import base_interpolation, constant, linear
+from .interpolation import constant, linear
 from .interpolationscheme import dyn_scheme
 from .compounding import continuous_compounding, continuous_rate
 
@@ -37,11 +37,8 @@ class Curve(object):
 
         :param list(float) domain: source values
         :param list(float) data: target values
-        :param function interpolation: interpolation function on x_list (optional)
-            or triple of (left, mid, right) interpolation functions with
-            left for x < x_list[0] (as default triple.right is used)
-            right for x > x_list][-1] (as default constant is used)
-            mid else (as default linear is used)
+        :param function interpolation: interpolation function on x_list (optional),
+        default is taken from class member _interpolation
 
         Curve object to build function :math:`f:R \rightarrow R, x \mapsto y`
         from finite point vectors :math:`x` and :math:`y`

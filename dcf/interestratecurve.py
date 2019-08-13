@@ -13,8 +13,8 @@
 from businessdate import BusinessRange
 
 from .curve import RateCurve
-from .compounding import continuous_compounding, continuous_rate, simple_compounding, simple_rate
-from .interpolation import zero, constant, linear, loglinearrate, logconstantrate
+from .compounding import continuous_rate, simple_compounding, simple_rate
+from .interpolation import constant, linear, loglinearrate, logconstantrate
 from .interpolationscheme import dyn_scheme
 
 

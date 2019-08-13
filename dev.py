@@ -317,7 +317,7 @@ if 0:
                 print d, zero(d) == cast(d), zero(d), cast(d)
     '''
 
-if 1:
+if 0:
     from dcf.interpolationscheme import dyn_scheme
     from dcf.interpolation import constant, linear
 
