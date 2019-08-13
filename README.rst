@@ -31,13 +31,7 @@ The latest stable version can always be installed or updated via pip:
 
 .. code-block:: bash
 
-    $ pip install businessdate
-
-If the above fails, please try easy_install instead:
-
-.. code-block:: bash
-
-    $ easy_install businessdate
+    $ pip install dcf
 
 
 Examples
@@ -55,14 +49,14 @@ The latest development version can be installed directly from GitHub:
 
 .. code-block:: bash
 
-    $ pip install --upgrade git+https://github.com/pbrisk/dcf.git
+    $ pip install --upgrade git+https://github.com/sonntagsgesicht/dcf.git
 
 
 Contributions
 -------------
 
-.. _issues: https://github.com/pbrisk/dcf/issues
-.. __: https://github.com/pbrisk/dcf/pulls
+.. _issues: https://github.com/sonntagsgesicht/dcf/issues
+.. __: https://github.com/sonntagsgesicht/dcf/pulls
 
 Issues_ and `Pull Requests`__ are always welcome.
 
@@ -70,7 +64,7 @@ Issues_ and `Pull Requests`__ are always welcome.
 License
 -------
 
-.. __: https://github.com/pbrisk/dcf/raw/master/LICENSE
+.. __: https://github.com/sonntagsgesicht/dcf/raw/master/LICENSE
 
 Code and documentation are available according to the Apache Software License (see LICENSE__).
 

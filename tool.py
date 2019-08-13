@@ -52,4 +52,4 @@ if __name__ == '__main__':
 
     root_dir = getcwd() + sep + pkg.__name__
     new_header = header_from_pkg(pkg)
-    replace_headers(root_dir, new_header)
+    replace_headers(root_dir, new_header, False)
