@@ -16,13 +16,15 @@ from datetime import datetime
 from unittest import TestCase, TestLoader, TextTestRunner
 import logging
 
-from math import exp, log
+from math import exp, log, floor
 from businessdate import BusinessDate, BusinessRange
+from scipy.interpolate import interp1d
 
 from dcf import flat, linear, no, zero, left, right, nearest, loglinearrate, logconstantrate, \
     loglinear, logconstant, constant
 from dcf import continuous_compounding, continuous_rate, periodic_compounding, periodic_rate, \
     simple_compounding, simple_rate
+from dcf import dyn_scheme
 from dcf import Curve, DateCurve, RateCurve
 from dcf import DiscountFactorCurve, ZeroRateCurve, CashRateCurve, ShortRateCurve
 from dcf import SurvivalProbabilityCurve, DefaultProbabilityCurve, FlatIntensityCurve, HazardRateCurve, \
@@ -216,7 +218,9 @@ class CurveUnitTests(TestCase):
     def setUp(self):
         self.x_list = [float(x) * 0.01 for x in range(10)]
         self.y_list = list(self.x_list)
-        self.curve = Curve(self.x_list, self.y_list)
+        self.interploation = dyn_scheme(constant, linear, constant)
+        self.curve = Curve(self.x_list, self.y_list, self.interploation)
+        self.x_test = [float(x) * 0.005 for x in range(-10, 30)]
 
     def test_algebra(self):
         other = Curve(self.x_list, self.y_list)
@@ -242,6 +246,48 @@ class CurveUnitTests(TestCase):
         self.assertEqual(str(Curve()), str(list()))
         self.assertEqual(str(DateCurve()), str(list()))
         self.assertEqual(str(RateCurve()), str(list()))
+
+    def test_interpolation(self):
+        # test default interpolation scheme
+        for x in self.x_test:
+            f  = lambda t: max(.0, min(t, .09))
+            self.assertAlmostEqual(f(x), self.curve(x))
+
+        ccc = dyn_scheme(constant, constant, constant)
+        curve = Curve(self.x_list, self.y_list, ccc)
+        constant_curve = Curve(self.x_list, self.y_list, constant)
+        for x in self.x_test:
+            f = lambda t: max(.0, min(floor(t/.01)*.01, .09))
+            self.assertAlmostEqual(f(x), curve(x))
+            self.assertAlmostEqual(constant_curve(x), curve(x))
+
+        lll = dyn_scheme(linear, linear, linear)
+        curve = Curve(self.x_list, self.y_list, lll)
+        linear_curve = Curve(self.x_list, self.y_list, linear)
+        for x in self.x_test:
+            f = lambda t: t
+            self.assertAlmostEqual(f(x), curve(x))
+            self.assertAlmostEqual(linear_curve(x), curve(x))
+
+        dcf_curve = Curve(self.x_list, self.y_list, dyn_scheme(constant, linear, constant))
+        scipy_linear = lambda x,y : interp1d(x, y, kind="linear")
+        scipy_curve = Curve(self.x_list, self.y_list, dyn_scheme(constant, scipy_linear, constant))
+        for x in self.x_test:
+            self.assertAlmostEqual(scipy_curve(x), dcf_curve(x))
+
+        dcf_curve = Curve(self.x_list, self.y_list, dyn_scheme(linear, linear, linear))
+        scipy_scheme = lambda x,y : \
+            interp1d(x, y, kind="linear", fill_value="extrapolate")
+        scipy_curve = Curve(self.x_list, self.y_list, scipy_scheme)
+        for x in self.x_test:
+            self.assertAlmostEqual(scipy_curve(x), dcf_curve(x))
+
+        dcf_curve = Curve(self.x_list, self.y_list, dyn_scheme(constant, linear, constant))
+        scipy_scheme = lambda x,y : \
+            interp1d(x, y, kind="linear", bounds_error=False, fill_value=(self.y_list[0], self.y_list[-1]))
+        scipy_curve = Curve(self.x_list, self.y_list, scipy_scheme)
+        for x in self.x_test:
+            self.assertAlmostEqual(scipy_curve(x), dcf_curve(x))
 
 
 class DateCurveUnitTests(TestCase):
