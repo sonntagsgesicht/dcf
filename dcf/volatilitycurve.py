@@ -3,7 +3,7 @@
 # dcf
 # ---
 # A Python library for generating discounted cashflows.
-# 
+#
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
 # Version:  0.3, copyright Tuesday 13 August 2019
 # Website:  https://github.com/sonntagsgesicht/dcf
@@ -15,6 +15,7 @@ from math import sqrt
 
 from .curve import RateCurve
 from .interpolation import zero, linear, constant
+from .interpolationscheme import dyn_scheme
 
 _logger = logging.getLogger('dcf')
 
@@ -22,7 +23,7 @@ _logger = logging.getLogger('dcf')
 class VolatilityCurve(RateCurve):
     """ generic curve for default probabilities (under construction) """
     _time_shift = '1d'
-    _interpolation = zero(), linear(), constant()
+    _interpolation = dyn_scheme(zero, linear, constant)
 
     def cast(self, cast_type, **kwargs):
         old_domain = kwargs.get('domain', self.domain)

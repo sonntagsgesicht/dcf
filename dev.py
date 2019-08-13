@@ -316,3 +316,18 @@ if 0:
 
                 print d, zero(d) == cast(d), zero(d), cast(d)
     '''
+
+if 1:
+    from dcf.interpolationscheme import dyn_scheme
+    from dcf.interpolation import constant, linear
+
+    s = [constant()] * 3
+    s = constant, linear, constant
+    ccc = dyn_scheme(*s)
+    print(ccc)
+
+    f=ccc(list(range(11)), list(range(10, 21)))
+    for i in range(-10, 30):
+        i = float(i)/2
+        print((i, f(i)))
+

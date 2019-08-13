@@ -3,7 +3,7 @@
 # dcf
 # ---
 # A Python library for generating discounted cashflows.
-# 
+#
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
 # Version:  0.3, copyright Tuesday 13 August 2019
 # Website:  https://github.com/sonntagsgesicht/dcf
@@ -15,6 +15,7 @@ from businessdate import BusinessRange
 from .curve import RateCurve
 from .compounding import continuous_compounding, continuous_rate, simple_compounding, simple_rate
 from .interpolation import zero, constant, linear, loglinearrate, logconstantrate
+from .interpolationscheme import dyn_scheme
 
 
 class InterestRateCurve(RateCurve):
@@ -149,7 +150,7 @@ class InterestRateCurve(RateCurve):
 
 
 class DiscountFactorCurve(InterestRateCurve):
-    _interpolation = logconstantrate(), loglinearrate(), logconstantrate()
+    _interpolation = dyn_scheme(logconstantrate, loglinearrate, logconstantrate)
 
     @staticmethod
     def get_storage_type(curve, x):
@@ -169,7 +170,7 @@ class DiscountFactorCurve(InterestRateCurve):
 
 
 class ZeroRateCurve(InterestRateCurve):
-    _interpolation = constant(), linear(), constant()
+    _interpolation = dyn_scheme(constant, linear, constant)
 
     @staticmethod
     def get_storage_type(curve, x):
@@ -190,7 +191,7 @@ class ZeroRateCurve(InterestRateCurve):
 
 
 class ShortRateCurve(InterestRateCurve):
-    _interpolation = constant(), constant(), constant()
+    _interpolation = dyn_scheme(constant, constant, constant)
 
     @staticmethod
     def get_storage_type(curve, x):

@@ -321,9 +321,6 @@ class DateCurveUnitTests(TestCase):
         for d in self.dates:
             self.assertTrue(d in self.curve.domain)
         d = BusinessDate() + '3M'
-        self.curve.update([d], [0.01])
-        self.assertTrue(d in self.curve.domain)
-        self.assertEqual(d, self.curve.domain[1])
 
     def test_shift_origin(self):
         origin1 = BusinessDate()
@@ -405,9 +402,9 @@ class CastZeroRateCurveUnitTests(TestCase):
         for t in (DiscountFactorCurve, ZeroRateCurve, ShortRateCurve):
             cast = curve.cast(t)
             recast = cast.cast(self.cast_type)
-            self.assertEqual(list(map(type, self.cast_type._interpolation)), list(map(type, curve.interpolation)))
-            self.assertEqual(list(map(type, t._interpolation)), list(map(type, cast.interpolation)))
-            self.assertEqual(list(map(type, self.cast_type._interpolation)), list(map(type, recast.interpolation)))
+            self.assertEquals(self.cast_type._interpolation, curve.interpolation)
+            self.assertEquals(t._interpolation, cast.interpolation)
+            self.assertEquals(self.cast_type._interpolation, recast.interpolation)
 
     def test_discount_cast(self):
         for p in self.periods:
@@ -579,9 +576,9 @@ class CastIntensityCurveUnitTests(TestCase):
         for t in (SurvivalProbabilityCurve, FlatIntensityCurve, HazardRateCurve):
             cast = curve.cast(t)
             recast = cast.cast(self.cast_type)
-            self.assertEqual(list(map(type, self.cast_type._interpolation)), list(map(type, curve.interpolation)))
-            self.assertEqual(list(map(type, t._interpolation)), list(map(type, cast.interpolation)))
-            self.assertEqual(list(map(type, self.cast_type._interpolation)), list(map(type, recast.interpolation)))
+            self.assertEqual(self.cast_type._interpolation, curve.interpolation)
+            self.assertEqual(t._interpolation, cast.interpolation)
+            self.assertEqual(self.cast_type._interpolation, recast.interpolation)
 
     def test_survival_cast(self):
         for p in self.periods:

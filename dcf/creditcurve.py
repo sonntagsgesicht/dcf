@@ -3,7 +3,7 @@
 # dcf
 # ---
 # A Python library for generating discounted cashflows.
-# 
+#
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
 # Version:  0.3, copyright Tuesday 13 August 2019
 # Website:  https://github.com/sonntagsgesicht/dcf
@@ -13,8 +13,9 @@
 from sys import float_info
 
 from .curve import RateCurve
-from .interpolation import constant, linear, logconstantrate, loglinearrate, neglogconstant, negloglinear
 from .compounding import continuous_compounding, continuous_rate
+from .interpolation import constant, linear, logconstantrate, loglinearrate, neglogconstant, negloglinear
+from .interpolationscheme import dyn_scheme
 
 
 class CreditCurve(RateCurve):
@@ -73,7 +74,7 @@ class CreditCurve(RateCurve):
 
 
 class SurvivalProbabilityCurve(CreditCurve):
-    _interpolation = logconstantrate(), loglinearrate(), logconstantrate()
+    _interpolation = dyn_scheme(logconstantrate, loglinearrate, logconstantrate)
 
     def __init__(self, domain=(), data=(), interpolation=None, origin=None, day_count=None, forward_tenor=None):
         data = [max(float_info.min, min(d, 1. - float_info.min)) for d in data]
@@ -113,7 +114,7 @@ class DefaultProbabilityCurve(SurvivalProbabilityCurve):
 
 
 class FlatIntensityCurve(CreditCurve):
-    _interpolation = constant(), linear(), constant()
+    _interpolation = dyn_scheme(constant, linear, constant)
 
     @staticmethod
     def get_storage_type(curve, x):
@@ -134,7 +135,7 @@ class FlatIntensityCurve(CreditCurve):
 
 
 class HazardRateCurve(CreditCurve):
-    _interpolation = constant(), constant(), constant()
+    _interpolation = dyn_scheme(constant, constant, constant)
 
     @staticmethod
     def get_storage_type(curve, x):
@@ -160,7 +161,7 @@ class HazardRateCurve(CreditCurve):
 
 
 class MarginalSurvivalProbabilityCurve(CreditCurve):
-    _interpolation = neglogconstant(), negloglinear(), neglogconstant()
+    _interpolation = dyn_scheme(neglogconstant, negloglinear, neglogconstant)
 
     def __init__(self, domain=(), data=(), interpolation=None, origin=None, day_count=None, forward_tenor=None):
         data = [max(float_info.min, min(d, 1. - float_info.min)) for d in data]

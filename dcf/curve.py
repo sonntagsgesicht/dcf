@@ -3,7 +3,7 @@
 # dcf
 # ---
 # A Python library for generating discounted cashflows.
-# 
+#
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
 # Version:  0.3, copyright Tuesday 13 August 2019
 # Website:  https://github.com/sonntagsgesicht/dcf
@@ -11,6 +11,7 @@
 
 
 from .interpolation import base_interpolation, constant, linear
+from .interpolationscheme import dyn_scheme
 from .compounding import continuous_compounding, continuous_rate
 
 
@@ -28,7 +29,7 @@ def DAY_COUNT(start, end):
 
 class Curve(object):
 
-    _interpolation = constant(), linear(), constant()
+    _interpolation = dyn_scheme(constant, linear, constant)
 
     def __init__(self, domain=(), data=(), interpolation=None):
         r"""
@@ -36,7 +37,7 @@ class Curve(object):
 
         :param list(float) domain: source values
         :param list(float) data: target values
-        :param list(interpolation) interpolation: interpolation function on x_list (optional)
+        :param function interpolation: interpolation function on x_list (optional)
             or triple of (left, mid, right) interpolation functions with
             left for x < x_list[0] (as default triple.right is used)
             right for x > x_list][-1] (as default constant is used)
@@ -46,70 +47,40 @@ class Curve(object):
         from finite point vectors :math:`x` and :math:`y`
         using piecewise various interpolation functions.
         """
-        if not interpolation:
+        if interpolation is None:
             interpolation = self.__class__._interpolation
 
-        y_left, y_mid, y_right = self.__class__._interpolation
-        if isinstance(interpolation, (tuple, list)):
-            if len(interpolation) == 3:
-                y_left, y_mid, y_right = interpolation
-            elif len(interpolation) == 2:
-                y_mid, y_right = interpolation
-                y_left = y_right
-            elif len(interpolation) == 1:
-                y_mid, = interpolation
-            else:
-                raise ValueError
-        elif isinstance(interpolation, base_interpolation):
-            y_mid = interpolation
-        else:
-            raise AttributeError
-
-        assert len(domain) == len(data)
-        assert len(domain) == len(set(domain))
-
-        #: Interpolation:
-        self._y_mid = type(y_mid)(domain, data)
-        self._y_right = type(y_right)(domain, data)
-        self._y_left = type(y_left)(domain, data)
+        self._scheme = interpolation
+        self._func = interpolation(domain, data)
+        self._domain = domain
 
     @property
     def interpolation(self):
-        return self._y_left, self._y_mid, self._y_right
+        return self._scheme
 
     @property
     def domain(self):
-        return self._y_mid.x_list
+        return self._domain
 
     def __call__(self, x):
         if isinstance(x, (tuple, list)):
             return [self(xx) for xx in x]
-        y = 0.0
-        if x < self._y_left.x_list[0]:
-            # extrapolate to left
-            y = self._y_left(x)
-        elif x > self._y_right.x_list[-1]:
-            # extrapolate to right
-            y = self._y_right(x)
-        else:
-            # interpolate in the middle
-            y = self._y_mid(x)
-        return y
+        return self._func(x)
 
     def __add__(self, other):
         x_list = sorted(set(self.domain + other.domain))
         y_list = [self(x) + other(x) for x in x_list]
-        return self.__class__(x_list, y_list, (self._y_left, self._y_mid, self._y_right))
+        return self.__class__(x_list, y_list, self.interpolation)
 
     def __sub__(self, other):
         x_list = sorted(set(self.domain + other.domain))
         y_list = [self(x) - other(x) for x in x_list]
-        return self.__class__(x_list, y_list, (self._y_left, self._y_mid, self._y_right))
+        return self.__class__(x_list, y_list, self.interpolation)
 
     def __mul__(self, other):
         x_list = sorted(set(self.domain + other.domain))
         y_list = [self(x) * other(x) for x in x_list]
-        return self.__class__(x_list, y_list, (self._y_left, self._y_mid, self._y_right))
+        return self.__class__(x_list, y_list, self.interpolation)
 
     def __truediv__(self, other):
         return self.__div__(other)
@@ -119,7 +90,7 @@ class Curve(object):
         if any(not other(x) for x in x_list):
             raise ZeroDivisionError("Division with %s requires on zero values." % other.__class__.__name__)
         y_list = [self(x) / other(x) for x in x_list]
-        return self.__class__(x_list, y_list, (self._y_left, self._y_mid, self._y_right))
+        return self.__class__(x_list, y_list, self.interpolation)
 
     def __str__(self):
         return str([z for z in zip(self.domain, self(self.domain))])
@@ -127,18 +98,13 @@ class Curve(object):
     def __repr__(self):
         return self.__class__.__name__ + '(' + self.__str__() + ')'
 
-    def update(self, x_list=list(), y_list=list()):
-        self._y_left.update(x_list, y_list)
-        self._y_mid.update(x_list, y_list)
-        self._y_right.update(x_list, y_list)
-
     def shifted(self, delta=0.0):
         if delta:
             x_list = [x + delta for x in self.domain]
         else:
             x_list = self.domain
         y_list = self(self.domain)
-        return self.__class__(x_list, y_list, (self._y_left, self._y_mid, self._y_right))
+        return self.__class__(x_list, y_list, self.interpolation)
 
 
 class DateCurve(Curve):
@@ -184,15 +150,6 @@ class DateCurve(Curve):
         x_list = [self.day_count(origin, x) for x in self.domain]
         y_list = self(self.domain)
         return Curve(x_list, y_list, (self._y_left, self._y_mid, self._y_right))
-
-    def update(self, x_list=list(), y_list=list()):
-        if y_list:
-            for x in x_list:
-                if x not in self._domain:
-                    self._domain.append(x)
-            self._domain = sorted(self._domain)
-
-            super(DateCurve, self).update([self.day_count(self.origin, x) for x in x_list], y_list)
 
     def integrate(self, start, stop):
         # todo use result, error = scipy.integrate(self, start, stop)
