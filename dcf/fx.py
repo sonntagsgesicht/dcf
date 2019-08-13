@@ -99,7 +99,7 @@ class FxContainer(dict):
 
     .. code-block:: python
 
-        today = businessdate()
+        today = today()
         curve = ZeroRateCurve([today], [.02])
         container = FxContainer('USD', curve)
         foreign = ZeroRateCurve([today], [.01])

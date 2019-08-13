@@ -291,7 +291,7 @@ class spline(base_interpolation):
         n = len(intervals)
         if n < 2:
             return intervals[0]
-        n2 = n / 2
+        n2 = int(n / 2)
         if x < intervals[n2][0]:
             return spline._get_interval(x, intervals[:n2])
         else:

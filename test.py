@@ -314,7 +314,7 @@ class CurveUnitTests(TestCase):
 
 class DateCurveUnitTests(TestCase):
     def setUp(self):
-        self.dates = BusinessRange(BusinessDate(), BusinessDate() + '10Y')
+        self.dates = BusinessRange(BusinessDate(), BusinessDate() + '10Y', '1Y')
         self.values = [0.01 * n ** 4 - 2 * n ** 2 for n in range(0, len(self.dates))]
         self.curve = DateCurve(self.dates, self.values)
 
@@ -387,7 +387,7 @@ class CastZeroRateCurveUnitTests(TestCase):
         self.cash_precision = 2
 
         self.today = BusinessDate()
-        self.today_eom = self.today == BusinessDate.end_of_month(self.today.year, self.today.month)
+        self.today_eom = self.today == self.today.end_of_month()
         self.periods = ('0D', '1D', '2B', '8D', '2W', '14B', '1M', '1M1D', '3M', '6M', '6M2W1D', '9M', '12M')
 
         def pp(d, a, b):
@@ -561,7 +561,7 @@ class CastIntensityCurveUnitTests(TestCase):
         self.marginal_precision = 2
 
         self.today = BusinessDate()
-        self.today_eom = self.today == BusinessDate.end_of_month(self.today.year, self.today.month)
+        self.today_eom = self.today == self.today.end_of_month()
         self.periods = ('0D', '1D', '2B', '8D', '2W', '14B', '1M', '1M1D', '3M', '6M', '6M2W1D', '9M', '12M')
 
         def pp(d, a, b):
@@ -706,8 +706,8 @@ class VolCurveUnitTests(TestCase):
         domain = [self.today, self.today + '2y', self.today + '3y', self.today + '4y']
         data = [0.15, 0.2, 0.2, 0.15]
         term_curve = TerminalVolatilityCurve(domain, data)
-        start = BusinessDate(20181231)
-        stop = BusinessDate(20190101)
+        start = self.today + '3y'
+        stop = self.today + '4y'
         self.assertRaises(ZeroDivisionError, term_curve.get_terminal_vol, start, stop)
 
     def test_inst_curve(self):

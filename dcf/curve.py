@@ -17,15 +17,15 @@ from .compounding import continuous_compounding, continuous_rate
 
 
 def DAY_COUNT(start, end):
-    if hasattr(start, 'diff_in_years'):
-        # duck typing businessdate.BusinessDate.diff_in_years
-        return start.diff_in_years(end)
+    if hasattr(start, 'diff_in_days'):
+        # duck typing businessdate.BusinessDate.diff_in_days
+        d = start.diff_in_days(end)
     else:
         d = end - start
         if hasattr(d, 'days'):
             # assume datetime.date or finance.BusinessDate (else days as float)
             d = d.days
-        return float(d) / 365.25
+    return float(d) / 365.25
 
 
 class Curve(object):
@@ -112,6 +112,9 @@ class Curve(object):
         x_list = sorted(set(self.domain + other.domain))
         y_list = [self(x) * other(x) for x in x_list]
         return self.__class__(x_list, y_list, (self._y_left, self._y_mid, self._y_right))
+
+    def __truediv__(self, other):
+        return self.__div__(other)
 
     def __div__(self, other):
         x_list = sorted(set(self.domain + other.domain))
