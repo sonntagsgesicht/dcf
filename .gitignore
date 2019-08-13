@@ -13,3 +13,4 @@ dev.py
 coverage.xml
 doc/coverage/
 htmlcov/
+tool.py
