@@ -39,20 +39,20 @@ class RatingClass(object):
         def fromkeys(cls, iterable, value=None):
             iterable = tuple(iterable)
             value = exp(-(len(iterable) - 1) * log(10)) if value is None else value
-            ms = (lambda x, n: map(exp, (log(x) - log(x) * i / (n - 1) for i in range(n))))
-            return RatingClass.master_scale(zip(iterable, ms(value, len(iterable))))
+            ms = (lambda x, n: list(map(exp, (log(x) - log(x) * i / (n - 1) for i in range(n)))))
+            return RatingClass.master_scale(list(zip(iterable, ms(value, len(iterable)))))
 
         def rating_classes(self):
-            return list(RatingClass(f, self) for f in self.values())
+            return list(RatingClass(f, self) for f in list(self.values()))
 
         def keys(self):
-            return list(str(i) for i, _ in self.items())
+            return list(str(i) for i, _ in list(self.items()))
 
         def values(self):
-            return list(float(i) for _, i in self.items())
+            return list(float(i) for _, i in list(self.items()))
 
         def items(self):
-            i = super(RatingClass.master_scale, self).items()
+            i = list(super(RatingClass.master_scale, self).items())
             return list((k, float(v)) for k, v in sorted(i, key=lambda x: x[1]))
 
         def get(self, k, d=None):
@@ -109,7 +109,7 @@ class RatingClass(object):
                 if round(float(self), 7) == round(float(self.masterscale[k]), 7):
                     return k
             # build linear combination of base classes
-            pairs = zip(self.masterscale.keys(), list(self))
+            pairs = list(zip(list(self.masterscale.keys()), list(self)))
             pairs = ('%.7f %s' % (f, s) for s, f in pairs if f)
             return ' + '.join(pairs)
 
@@ -121,7 +121,7 @@ class RatingClass(object):
     def __iter__(self):
         if self._masterscale:
             value = round(float(self), 7)
-            value_list = [round(x, 7) for x in self.masterscale.values()]
+            value_list = [round(x, 7) for x in list(self.masterscale.values())]
 
             if not min(value_list) <= value <= max(value_list):
                 msg = 'masterscale does not embrace %.7f' % float(self)  # + '\n %s' % repr(self.masterscale)

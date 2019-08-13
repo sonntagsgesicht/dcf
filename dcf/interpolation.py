@@ -45,10 +45,10 @@ class base_interpolation(object):
                     self.x_list.pop(i)
                     self.y_list.pop(i)
         else:
-            x_list = map(float, x_list)
-            y_list = map(float, y_list)
+            x_list = list(map(float, x_list))
+            y_list = list(map(float, y_list))
             data = [(x, y) for x, y in zip(self.x_list, self.y_list) if x not in x_list]
-            data.extend(zip(x_list, y_list))
+            data.extend(list(zip(x_list, y_list)))
             data = sorted(data)
             self.x_list = [float(x) for (x, y) in data]
             self.y_list = [float(y) for (x, y) in data]
@@ -86,7 +86,7 @@ class zero(base_interpolation):
 class left(base_interpolation):
     def __call__(self, x):
         if len(self.y_list) == 0:
-            raise (OverflowError, "No data points for interpolation provided.")
+            raise OverflowError
         if x in self.x_list:
             i = self.x_list.index(x)
         else:
@@ -101,7 +101,7 @@ class constant(left):  # why is is this derived from class left and not from int
 class right(base_interpolation):
     def __call__(self, x):
         if len(self.y_list) == 0:
-            raise (OverflowError, "No data points for interpolation provided.")
+            raise OverflowError
         if x in self.x_list:
             i = self.x_list.index(x)
         else:
@@ -112,7 +112,7 @@ class right(base_interpolation):
 class nearest(base_interpolation):
     def __call__(self, x):
         if len(self.y_list) == 0:
-            raise (OverflowError, "No data points for interpolation provided.")
+            raise OverflowError
         if len(self.y_list) == 1:
             return self.y_list[0]
         if x in self.x_list:
@@ -127,7 +127,7 @@ class nearest(base_interpolation):
 class linear(base_interpolation):
     def __call__(self, x):
         if len(self.y_list) == 0:
-            raise (OverflowError, "No data points for interpolation provided.")
+            raise OverflowError
         if len(self.y_list) == 1:
             return self.y_list[0]
         i = bisect.bisect_left(self.x_list, float(x), 1, len(self.x_list) - 1)
@@ -271,7 +271,7 @@ class spline(base_interpolation):
         :return:
         """
         if not self.y_list:
-            raise (OverflowError, "No data points for interpolation provided.")
+            raise OverflowError
         ival = spline._get_interval(x, self.intervals)
         i = self.intervals.index(ival)
         t = (x - ival[0]) / (ival[1] - ival[0])

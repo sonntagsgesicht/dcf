@@ -185,31 +185,31 @@ if 0:
 
     v = InstantaneousVolatilityCurve(grid, vols)
     for b in rng:
-        print v.__class__.__name__.ljust(24), b, p % w(v, b)
-    print ''
+        print(v.__class__.__name__.ljust(24), b, p % w(v, b))
+    print('')
 
     v = TerminalVolatilityCurve(grid, vols)
     for b in rng:
-        print v.__class__.__name__.ljust(24), b, p % w(v, b)
+        print(v.__class__.__name__.ljust(24), b, p % w(v, b))
 
 if 0:
     RatingClass.SLOPPY = True
     r = RatingClass(-0.001, masterscale=('A', 'B', 'C', 'D'))
-    print list(r), float(r)
+    print(list(r), float(r))
 
     r = RatingClass(0.0, masterscale=('A', 'B', 'C', 'D'))
-    print list(r), float(r)
+    print(list(r), float(r))
 
     r = RatingClass(0.000001, masterscale=('A', 'B', 'C', 'D'))
-    print list(r), float(r)
+    print(list(r), float(r))
 
     r = RatingClass(0.5, masterscale=('A', 'B', 'C', 'D'))
-    print list(r), float(r)
+    print(list(r), float(r))
 
     r = RatingClass(2.0, masterscale=('A', 'B', 'C', 'D'))
-    print list(r), float(r)
+    print(list(r), float(r))
     for c in r.masterscale.rating_classes():
-        print list(c), float(c)
+        print(list(c), float(c))
         pass
 
 if 0:
@@ -219,17 +219,17 @@ if 0:
     pd_value = 0.1
     curve = MarginalSurvivalProbabilityCurve([today], [pd_value])
     other = MarginalSurvivalProbabilityCurve([today], [pd_value])
-    print curve + other
-    print curve - other
-    print curve * other
-    print curve / other
+    print(curve + other)
+    print(curve - other)
+    print(curve * other)
+    print(curve / other)
 
 if 0:
     rcls = RatingClass(0.02, masterscale=SHORT_MASTER_SCALE)
-    print rcls
-    print repr(rcls)
-    print rcls.masterscale
-    print repr(rcls.masterscale)
+    print(rcls)
+    print(repr(rcls))
+    print(rcls.masterscale)
+    print(repr(rcls.masterscale))
 
 if 0:
     today = BusinessDate()
@@ -238,17 +238,17 @@ if 0:
     pd_value = 0.01
     curve = MarginalDefaultProbabilityCurve([today], [pd_value])
 
-    print curve
+    print(curve)
     for p in grid:
         t = curve.day_count(today, today + p)
         y = curve.day_count(today, today + '1y')
         hz = continuous_rate(1.0 - pd_value, 1.0015)
         s = continuous_compounding(hz, t)
 
-        print p,
-        print t,
-        print 1. - curve.get_survival_prob((today + p)),
-        print 1. - s
+        print(p, end=' ')
+        print(t, end=' ')
+        print(1. - curve.get_survival_prob((today + p)), end=' ')
+        print(1. - s)
 
 if 0:
     today = BusinessDate()
@@ -268,16 +268,16 @@ if 0:
     cast = curve.cast(cast_type, domain=curve.domain, forward_tenor='1m')
     re = cast.cast(curve_type, domain=curve.domain, forward_tenor='1m')
 
-    print curve.domain, curve(curve.domain)
-    print cast.domain, cast(cast.domain)
-    print re.domain, re(re.domain)
-    print ''
+    print(curve.domain, curve(curve.domain))
+    print(cast.domain, cast(cast.domain))
+    print(re.domain, re(re.domain))
+    print('')
     for d in curve.domain:
-        print d, curve(d), re(d)
-    print ''
+        print(d, curve(d), re(d))
+    print('')
     for d in BusinessRange(curve.origin, curve.domain[-1] + '1m', '1m', curve.origin):
         # print d, cast.get_zero_rate(d), curve.get_zero_rate(d)
-        print d, curve.get_cash_rate(d), curve.get_cash_rate(d, step='3m'), cast.get_cash_rate(d)
+        print(d, curve.get_cash_rate(d), curve.get_cash_rate(d, step='3m'), cast.get_cash_rate(d))
 
     x = BusinessRange(curve.origin - '6m', curve.domain[-1] + '1y', '1d', curve.origin)
     x = BusinessRange(curve.origin, curve.domain[-1] + '1m', '1m', curve.origin)

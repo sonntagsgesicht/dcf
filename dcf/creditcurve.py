@@ -13,9 +13,9 @@
 
 from sys import float_info
 
-from curve import RateCurve
-from interpolation import constant, linear, logconstantrate, loglinearrate, neglogconstant, negloglinear
-from compounding import continuous_compounding, continuous_rate
+from .curve import RateCurve
+from .interpolation import constant, linear, logconstantrate, loglinearrate, neglogconstant, negloglinear
+from .compounding import continuous_compounding, continuous_rate
 
 
 class CreditCurve(RateCurve):
@@ -68,7 +68,7 @@ class CreditCurve(RateCurve):
         previous = max(d for d in self.domain if d <= start)
         follow = min(d for d in self.domain if start < d)
         assert previous <= start <= follow
-        assert previous < follow, map(str, (previous, start, follow))
+        assert previous < follow, list(map(str, (previous, start, follow)))
 
         return self.get_flat_intensity(previous, follow)
 
@@ -200,8 +200,8 @@ class MarginalSurvivalProbabilityCurve(CreditCurve):
 
         previous = max(d for d in self.domain if d <= start)
         follow = min(d for d in self.domain if start < d)
-        assert previous < follow, map(str, (previous, start, follow))
-        assert previous <= start <= follow, map(str, (previous, start, follow))
+        assert previous < follow, list(map(str, (previous, start, follow)))
+        assert previous <= start <= follow, list(map(str, (previous, start, follow)))
 
         return self.get_flat_intensity(previous, follow)
 

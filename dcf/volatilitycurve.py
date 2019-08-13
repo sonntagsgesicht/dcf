@@ -14,8 +14,8 @@
 import logging
 from math import sqrt
 
-from curve import RateCurve
-from interpolation import zero, linear, constant
+from .curve import RateCurve
+from .interpolation import zero, linear, constant
 
 _logger = logging.getLogger('dcf')
 

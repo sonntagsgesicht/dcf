@@ -12,8 +12,8 @@
 #  License: APACHE Version 2 License (see LICENSE file)
 
 
-from interpolation import base_interpolation, constant, linear
-from compounding import continuous_compounding, continuous_rate
+from .interpolation import base_interpolation, constant, linear
+from .compounding import continuous_compounding, continuous_rate
 
 
 def DAY_COUNT(start, end):
@@ -65,7 +65,7 @@ class Curve(object):
         elif isinstance(interpolation, base_interpolation):
             y_mid = interpolation
         else:
-            raise (AttributeError, str(interpolation) + " is not a proper ")
+            raise AttributeError
 
         assert len(domain) == len(data)
         assert len(domain) == len(set(domain))

@@ -51,7 +51,7 @@ class CashFlowList(OrderedDict):
         if amount_list is None:
             amount_list = [1e6] * len(pay_date_list)
         assert len(amount_list) == len(pay_date_list)
-        super(CashFlowList, self).__init__(zip(pay_date_list, amount_list))
+        super(CashFlowList, self).__init__(list(zip(pay_date_list, amount_list)))
 
     def __getitem__(self, item):
         if isinstance(item, (tuple, list)):
@@ -142,8 +142,8 @@ class MultiCashFlowList(CashFlowList):
     def __init__(self, legs):
         for l in legs:
             assert isinstance(l, CashFlowList)
-        date_list = list(set().union([l.keys() in legs]))
-        super(MultiCashFlowList, self).__init__(zip(date_list, [None] * len(date_list)))
+        date_list = list(set().union([list(l.keys()) in legs]))
+        super(MultiCashFlowList, self).__init__(list(zip(date_list, [None] * len(date_list))))
         self.legs = legs
 
     def __getitem__(self, item):

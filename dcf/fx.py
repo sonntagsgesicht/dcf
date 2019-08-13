@@ -12,7 +12,7 @@
 #  License: APACHE Version 2 License (see LICENSE file)
 
 
-import curve
+from . import curve
 
 
 class Price(object):

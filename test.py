@@ -49,33 +49,33 @@ class InterpolationUnitTests(TestCase):
         f = flat(0.01)
         for x in self.x:
             for s in self.s:
-                self.assertAlmostEquals(f(x + 2), 0.01)
+                self.assertAlmostEqual(f(x + 2), 0.01)
 
     def test_linear(self):
         f = linear(self.x, self.y)
         for x in [0.] + self.x:
             for s in self.s:
-                self.assertAlmostEquals(f(x + s), self.a + self.b * (x + s))
+                self.assertAlmostEqual(f(x + s), self.a + self.b * (x + s))
 
     def test_no(self):
         f = no(self.x, self.y)
         for x, y in zip(self.x, self.y):
-            self.assertAlmostEquals(f(x), y)
+            self.assertAlmostEqual(f(x), y)
         for x in self.x:
             self.assertRaises(ValueError, lambda: f(x + 0.001))
 
     def test_zero(self):
         f = zero(self.x, self.y)
         for x, y in zip(self.x, self.y):
-            self.assertAlmostEquals(f(x), y)
+            self.assertAlmostEqual(f(x), y)
         for x in self.x:
-            self.assertAlmostEquals(f(x + 0.001), .0)
-            self.assertAlmostEquals(f(x - 0.001), .0)
+            self.assertAlmostEqual(f(x + 0.001), .0)
+            self.assertAlmostEqual(f(x - 0.001), .0)
 
     def test_left(self):
         f = left(self.x, self.y)
         for x, y in zip(self.x, self.y):
-            self.assertAlmostEquals(f(x), y)
+            self.assertAlmostEqual(f(x), y)
         for x in [0.] + self.x + [4.]:
             for s in self.s:
                 if x + s < self.x[0]:
@@ -86,12 +86,12 @@ class InterpolationUnitTests(TestCase):
                     y = self.y[self.x.index(x)]
                 else:
                     y = self.y[-1]
-                self.assertAlmostEquals(f(x + s), y)
+                self.assertAlmostEqual(f(x + s), y)
 
     def test_right(self):
         f = right(self.x, self.y)
         for x, y in zip(self.x, self.y):
-            self.assertAlmostEquals(f(x), y)
+            self.assertAlmostEqual(f(x), y)
         for x in [0.] + self.x + [4.]:
             for s in self.s:
                 if x + s <= self.x[0]:
@@ -102,7 +102,7 @@ class InterpolationUnitTests(TestCase):
                     y = self.y[self.x.index(x) + 1]
                 else:
                     y = self.y[-1]
-                self.assertAlmostEquals(f(x + s), y)
+                self.assertAlmostEqual(f(x + s), y)
 
     def test_logyxlinear(self):
         yy = [x * .5 for x in self.x]
@@ -147,7 +147,7 @@ class InterpolationUnitTests(TestCase):
     def test_nearest(self):
         f = nearest(self.x, self.y)
         for x, y in zip(self.x, self.y):
-            self.assertAlmostEquals(f(x), y)
+            self.assertAlmostEqual(f(x), y)
         for x in [0.] + self.x + [4.]:
             for s in self.s:
                 if x + s <= self.x[0]:
@@ -162,7 +162,7 @@ class InterpolationUnitTests(TestCase):
                         y = self.y[i + 1]
                 else:
                     y = self.y[-1]
-                self.assertAlmostEquals(f(x + s), y)
+                self.assertAlmostEqual(f(x + s), y)
 
     def test_update(self):
         f = linear(self.x, self.y)
@@ -391,7 +391,7 @@ class CastZeroRateCurveUnitTests(TestCase):
         self.periods = ('0D', '1D', '2B', '8D', '2W', '14B', '1M', '1M1D', '3M', '6M', '6M2W1D', '9M', '12M')
 
         def pp(d, a, b):
-            print d, abs(a(d) - b(d)) < self.precision, a(d), b(d)
+            print((d, abs(a(d) - b(d)) < self.precision, a(d), b(d)))
 
         self.pp = pp
 
@@ -406,9 +406,9 @@ class CastZeroRateCurveUnitTests(TestCase):
         for t in (DiscountFactorCurve, ZeroRateCurve, ShortRateCurve):
             cast = curve.cast(t)
             recast = cast.cast(self.cast_type)
-            self.assertEqual(map(type, self.cast_type._interpolation), map(type, curve.interpolation))
-            self.assertEqual(map(type, t._interpolation), map(type, cast.interpolation))
-            self.assertEqual(map(type, self.cast_type._interpolation), map(type, recast.interpolation))
+            self.assertEqual(list(map(type, self.cast_type._interpolation)), list(map(type, curve.interpolation)))
+            self.assertEqual(list(map(type, t._interpolation)), list(map(type, cast.interpolation)))
+            self.assertEqual(list(map(type, self.cast_type._interpolation)), list(map(type, recast.interpolation)))
 
     def test_discount_cast(self):
         for p in self.periods:
@@ -565,7 +565,7 @@ class CastIntensityCurveUnitTests(TestCase):
         self.periods = ('0D', '1D', '2B', '8D', '2W', '14B', '1M', '1M1D', '3M', '6M', '6M2W1D', '9M', '12M')
 
         def pp(d, a, b):
-            print d, abs(a(d) - b(d)) < self.precision, a(d), b(d)
+            print((d, abs(a(d) - b(d)) < self.precision, a(d), b(d)))
 
         self.pp = pp
 
@@ -580,9 +580,9 @@ class CastIntensityCurveUnitTests(TestCase):
         for t in (SurvivalProbabilityCurve, FlatIntensityCurve, HazardRateCurve):
             cast = curve.cast(t)
             recast = cast.cast(self.cast_type)
-            self.assertEqual(map(type, self.cast_type._interpolation), map(type, curve.interpolation))
-            self.assertEqual(map(type, t._interpolation), map(type, cast.interpolation))
-            self.assertEqual(map(type, self.cast_type._interpolation), map(type, recast.interpolation))
+            self.assertEqual(list(map(type, self.cast_type._interpolation)), list(map(type, curve.interpolation)))
+            self.assertEqual(list(map(type, t._interpolation)), list(map(type, cast.interpolation)))
+            self.assertEqual(list(map(type, self.cast_type._interpolation)), list(map(type, recast.interpolation)))
 
     def test_survival_cast(self):
         for p in self.periods:
@@ -754,7 +754,7 @@ class RatingClassUnitTets(TestCase):
 
         r = RatingClass(value=0.3, masterscale=('A', 'B', 'C', 'D'))
         self.assertAlmostEqual(float(r), 0.3)
-        self.assertAlmostEquals(list(r), [0., 0., 0.7777778, 0.2222222])
+        self.assertAlmostEqual(list(r), [0., 0., 0.7777778, 0.2222222])
         self.assertEqual('0.7777778 C + 0.2222222 D', str(r))
         self.assertEqual('[' + str(r) + ']-RatingClass(0.3000000)', repr(r))
 
@@ -764,7 +764,7 @@ class RatingClassUnitTets(TestCase):
 
         r = RatingClass(value='A', masterscale=('A', 'B', 'C', 'D'))
         self.assertAlmostEqual(0.001, float(r))
-        for k, v in r.masterscale.items():
+        for k, v in list(r.masterscale.items()):
             self.assertAlmostEqual(v, float(RatingClass(k, r.masterscale)))
 
         self.assertRaises(TypeError, RatingClass, 'X', r.masterscale)
@@ -784,7 +784,7 @@ class RatingClassUnitTets(TestCase):
 
     def test_master_scale_rating_classes(self):
         r = RatingClass(value=0.3, masterscale=('A', 'B', 'C', 'D'))
-        self.assertEqual(r.masterscale.keys(), ['A', 'B', 'C', 'D'])
+        self.assertEqual(list(r.masterscale.keys()), ['A', 'B', 'C', 'D'])
         self.assertEqual(str(r.masterscale), '[[A]-RatingClass(0.0010000), '
                                              '[B]-RatingClass(0.0100000), '
                                              '[C]-RatingClass(0.1000000), '
@@ -795,7 +795,7 @@ class RatingClassUnitTets(TestCase):
                                               '[C]-RatingClass(0.1000000), '
                                               '[D]-RatingClass(1.0000000))')
 
-        for y, z in r.masterscale.items():
+        for y, z in list(r.masterscale.items()):
             x = RatingClass(z, r.masterscale)
             self.assertEqual(str(x), y)
             self.assertEqual(repr(x), '[%s]-RatingClass(%.7f)' % (y, z))
@@ -809,7 +809,7 @@ class RatingClassUnitTets(TestCase):
 
         for k in r.masterscale:
             r.masterscale[k] = -1.
-        self.assertEqual(r.masterscale.values(), [-1.] * len(r.masterscale))
+        self.assertEqual(list(r.masterscale.values()), [-1.] * len(r.masterscale))
 
 
 if __name__ == "__main__":
@@ -818,9 +818,9 @@ if __name__ == "__main__":
     print('')
     print('======================================================================')
     print('')
-    print('run %s' % __file__)
-    print('in %s' % getcwd())
-    print('started  at %s' % str(start_time))
+    print(('run %s' % __file__))
+    print(('in %s' % getcwd()))
+    print(('started  at %s' % str(start_time)))
     print('')
     print('----------------------------------------------------------------------')
     print('')
@@ -832,10 +832,10 @@ if __name__ == "__main__":
     print('')
     print('======================================================================')
     print('')
-    print('ran %s' % __file__)
-    print('in %s' % getcwd())
-    print('started  at %s' % str(start_time))
-    print('finished at %s' % str(datetime.now()))
+    print(('ran %s' % __file__))
+    print(('in %s' % getcwd()))
+    print(('started  at %s' % str(start_time)))
+    print(('finished at %s' % str(datetime.now())))
     print('')
     print('----------------------------------------------------------------------')
     print('')

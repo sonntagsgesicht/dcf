@@ -13,9 +13,9 @@
 
 from businessdate import BusinessRange
 
-from curve import RateCurve
-from compounding import continuous_compounding, continuous_rate, simple_compounding, simple_rate
-from interpolation import zero, constant, linear, loglinearrate, logconstantrate
+from .curve import RateCurve
+from .compounding import continuous_compounding, continuous_rate, simple_compounding, simple_rate
+from .interpolation import zero, constant, linear, loglinearrate, logconstantrate
 
 
 class InterestRateCurve(RateCurve):
@@ -92,7 +92,7 @@ class InterestRateCurve(RateCurve):
         previous = max(d for d in self.domain if d <= start)
         follow = min(d for d in self.domain if start < d)
         assert previous <= start <= follow
-        assert previous < follow, map(str, (previous, start, follow))
+        assert previous < follow, list(map(str, (previous, start, follow)))
 
         return self.get_zero_rate(previous, follow)
 
