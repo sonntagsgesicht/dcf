@@ -19,7 +19,7 @@ __author__ = 'sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]'
 __email__ = 'sonntagsgesicht@icloud.com'
 __url__ = 'https://github.com/sonntagsgesicht/' + __name__
 __license__ = 'Apache License 2.0'
-__dependencies__ = ('businessdate',)
+__dependencies__ = ()
 
 import logging
 logging.getLogger(__name__).addHandler(logging.NullHandler())

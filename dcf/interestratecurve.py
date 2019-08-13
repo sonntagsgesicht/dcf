@@ -10,8 +10,6 @@
 # License:  Apache License 2.0 (see LICENSE file)
 
 
-from businessdate import BusinessRange
-
 from .curve import RateCurve
 from .compounding import continuous_rate, simple_compounding, simple_rate
 from .interpolation import constant, linear, loglinearrate, logconstantrate
@@ -38,7 +36,10 @@ class InterestRateCurve(RateCurve):
             forward_tenor = kwargs.get('forward_tenor', self.forward_tenor)
             new_domain = list(domain)
             for x in domain:
-                new_domain.extend(BusinessRange(self.origin, x, forward_tenor, x))
+                # new_domain.extend(businessdate.BusinessRange(self.origin, x, forward_tenor, x))
+                while self.origin < x:
+                    new_domain.append(x)
+                    x -= forward_tenor
             kwargs['domain'] = sorted(set(new_domain))
 
         return super(InterestRateCurve, self).cast(cast_type, **kwargs)
@@ -221,24 +222,6 @@ class CashRateCurve(InterestRateCurve):
     def get_storage_type(curve, x):
         return curve.get_cash_rate(x)
 
-    def ____get_compounding_rate(self, start, stop):
-        if start == stop:
-            return self(start)
-
-        df = 1.0
-        step = self.forward_tenor
-        grid = BusinessRange(start, stop, step, stop)
-        if grid:
-            for s, e in zip(grid[:-1], grid[1:]):
-                dc = self.day_count(s, e)
-                df *= simple_compounding(self(s), dc)
-            dc = self.day_count(grid[-1], stop)
-            df *= simple_compounding(self(grid[-1]), dc)
-        else:
-            dc = self.day_count(start, stop)
-            df *= simple_compounding(self(start), dc)
-        return continuous_rate(df, self.day_count(start, stop))
-
     def _get_compounding_rate(self, start, stop):
         if start == stop:
             return self(start)
@@ -253,42 +236,6 @@ class CashRateCurve(InterestRateCurve):
         dc = self.day_count(current, stop)
         df *= simple_compounding(self(current), dc)
         return continuous_rate(df, self.day_count(start, stop))
-
-    def __get_compounding_rate(self, start, stop):
-        if start == stop:
-            return self._get_compounding_rate(start, start + self.__class__._time_shift)
-
-        if start is self.origin:
-            # negative time
-            if stop <= self.origin:
-                return self._get_compounding_rate(self.origin, self.origin)
-
-            # first stub to join self.domain
-            previous = max(d for d in self.domain if d <= self.origin)
-            follow = min(d for d in self.domain if self.origin < d)
-            if previous <= stop <= follow:
-                dp = self.day_count(previous, previous + self.forward_tenor)
-                cp = continuous_rate(simple_compounding(self(previous), dp), dp)
-                df = self.day_count(follow, follow + self.forward_tenor)
-                cf = continuous_rate(simple_compounding(self(follow), df), df)
-                r = cp + (cf - cp) * (self.day_count(previous, stop) / self.day_count(previous, follow))
-                return r
-
-            # roll on domain as much as possible
-            domain = [d for d in self.domain if self.origin < d <= stop]
-            df = self.get_discount_factor(self.origin, min(domain))
-            for s, e in zip(domain[:-1], domain[1:]):
-                dc = self.day_count(s, e)
-                df *= simple_compounding(self(s), dc)
-            dc = self.day_count(max(domain), stop)
-            df *= simple_compounding(self(max(domain)), dc)
-            return continuous_rate(df, self.day_count(start, stop))
-
-        # calc partial rates from full distance rates
-        s = self._get_compounding_rate(self.origin, start) * self.day_count(self.origin, start)
-        e = self._get_compounding_rate(self.origin, stop) * self.day_count(self.origin, stop)
-        t = self.day_count(start, stop)
-        return (e - s) / t
 
     def get_cash_rate(self, start, stop=None, step=None):
         if stop and step:
