@@ -3,14 +3,14 @@
 # dcf
 # ---
 # A Python library for generating discounted cashflows.
-# 
+#
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
 # Version:  0.3, copyright Tuesday 13 August 2019
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
 
-from . import curve
+from .curve import DateCurve, RateCurve
 
 
 class Price(object):
@@ -22,10 +22,9 @@ class Price(object):
     def origin(self):
         return self._origin
 
-    def __init__(self, value=0., origin=None, day_count=None):
+    def __init__(self, value=0., origin=None):
         self._value = value
         self._origin = origin
-        self.day_count = curve.DAY_COUNT if day_count is None else day_count
 
     def __float__(self):
         return float(self.value)
@@ -38,7 +37,7 @@ class FxRate(Price):
     pass
 
 
-class FxCurve(curve.DateCurve):
+class FxCurve(DateCurve):
     """fx rate curve for currency pair"""
 
     @classmethod
@@ -152,7 +151,7 @@ class FxContainer(dict):
         N in EUR * spot = N in USD for currency = EUR and self.currency = USD
         """
         assert isinstance(foreign_currency, type(self.currency))
-        assert isinstance(foreign_curve, curve.RateCurve)
+        assert isinstance(foreign_curve, RateCurve)
         assert isinstance(fx_spot, float)
 
         # create missing FxCurves

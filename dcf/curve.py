@@ -28,7 +28,6 @@ def DAY_COUNT(start, end):
 
 
 class Curve(object):
-
     _interpolation = dyn_scheme(constant, linear, constant)
 
     def __init__(self, domain=(), data=(), interpolation=None):
@@ -106,10 +105,11 @@ class Curve(object):
 
 class DateCurve(Curve):
     _time_shift = '1d'
+    _day_count = DAY_COUNT
 
     def __init__(self, domain=(), data=(), interpolation=None, origin=None, day_count=None):
         self.origin = domain[0] if origin is None and domain else origin
-        self.day_count = DAY_COUNT if day_count is None else day_count
+        self.day_count = self.__class__._day_count if day_count is None else day_count
         super(DateCurve, self).__init__([self.day_count(self.origin, x) for x in domain], data, interpolation)
         self._domain = domain
 
@@ -167,7 +167,6 @@ class DateCurve(Curve):
 
 
 class RateCurve(DateCurve):
-
     _time_shift = '1D'
     _forward_tenor = '3M'
 
