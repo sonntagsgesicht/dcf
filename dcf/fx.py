@@ -1,21 +1,43 @@
 # -*- coding: utf-8 -*-
 
-#  dcf (discounted cashflow)
-#  -------------------------
-#  A Python library for generating discounted cashflows.
-#  Typical banking business methods are provided like interpolation, compounding,
-#  discounting and fx.
+# dcf
+# ---
+# A Python library for generating discounted cashflows.
 #
-#  Author:  pbrisk <pbrisk_at_github@icloud.com>
-#  Copyright: 2016, 2017 Deutsche Postbank AG
-#  Website: https://github.com/pbrisk/dcf
-#  License: APACHE Version 2 License (see LICENSE file)
+# Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
+# Version:  0.3, copyright Tuesday 13 August 2019
+# Website:  https://github.com/sonntagsgesicht/dcf
+# License:  Apache License 2.0 (see LICENSE file)
 
 
-import curve
+from .curve import DateCurve, RateCurve
 
 
-class FxCurve(curve.DateCurve):
+class Price(object):
+    @property
+    def value(self):
+        return self._value
+
+    @property
+    def origin(self):
+        return self._origin
+
+    def __init__(self, value=0., origin=None):
+        self._value = value
+        self._origin = origin
+
+    def __float__(self):
+        return float(self.value)
+
+    def __str__(self):
+        return '%s(%f; %s)' % (self.__class__.__name__, self.value, str(self.origin))
+
+
+class FxRate(Price):
+    pass
+
+
+class FxCurve(DateCurve):
     """fx rate curve for currency pair"""
 
     @classmethod
@@ -31,20 +53,24 @@ class FxCurve(curve.DateCurve):
         assert domestic_curve.origin == foreign_curve.origin
         return cls(fx_spot, domestic_curve=domestic_curve, foreign_curve=foreign_curve)
 
-    def __init__(self, x_list, y_list=None, y_inter=None, origin=None, day_count=None,
+    def __init__(self, domain=1., data=None, interpolation=None, origin=None, day_count=None,
                  domestic_curve=None, foreign_curve=None):
         self.domestic_curve = domestic_curve
         self.foreign_curve = foreign_curve
         if origin is None:
             assert self.domestic_curve.origin == self.foreign_curve.origin
             origin = self.domestic_curve.origin
-        if isinstance(x_list, float) and y_list is None:
-            # build lists from single spot fx rate
-            y_list = [x_list]
-            x_list = [origin]
-        else:
-            assert len(x_list) == len(y_list)
-        super(FxCurve, self).__init__(x_list, y_list, y_inter, origin, day_count)
+        if data is None:
+            if isinstance(domain, float):
+                # build lists from single spot fx rate
+                data = [domain]
+                domain = [origin]
+            elif isinstance(domain, Price):
+                data = [domain.value]
+                domain = [domain.origin]
+                origin = None
+        assert len(domain) == len(data)
+        super(FxCurve, self).__init__(domain, data, interpolation, origin, day_count)
 
     def __call__(self, x):
         if isinstance(x, (list, tuple)):
@@ -70,7 +96,7 @@ class FxContainer(dict):
 
     .. code-block:: python
 
-        today = businessdate()
+        today = today()
         curve = ZeroRateCurve([today], [.02])
         container = FxContainer('USD', curve)
         foreign = ZeroRateCurve([today], [.01])
@@ -125,7 +151,7 @@ class FxContainer(dict):
         N in EUR * spot = N in USD for currency = EUR and self.currency = USD
         """
         assert isinstance(foreign_currency, type(self.currency))
-        assert isinstance(foreign_curve, curve.RateCurve)
+        assert isinstance(foreign_curve, RateCurve)
         assert isinstance(fx_spot, float)
 
         # create missing FxCurves

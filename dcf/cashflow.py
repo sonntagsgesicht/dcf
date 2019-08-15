@@ -1,22 +1,21 @@
 # -*- coding: utf-8 -*-
 
-#  dcf (discounted cashflow)
-#  -------------------------
-#  A Python library for generating discounted cashflows.
-#  Typical banking business methods are provided like interpolation, compounding,
-#  discounting and fx.
-#
-#  Author:  pbrisk <pbrisk_at_github@icloud.com>
-#  Copyright: 2016, 2017 Deutsche Postbank AG
-#  Website: https://github.com/pbrisk/dcf
-#  License: APACHE Version 2 License (see LICENSE file)
+# dcf
+# ---
+# A Python library for generating discounted cashflows.
+# 
+# Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
+# Version:  0.3, copyright Tuesday 13 August 2019
+# Website:  https://github.com/sonntagsgesicht/dcf
+# License:  Apache License 2.0 (see LICENSE file)
+
 
 try:
     from collections import OrderedDict
 except ImportError:
     OrderedDict = dict
 
-from curve import ZeroRateCurve
+from dcf import ZeroRateCurve
 
 
 def _frange(start, stop=None, step=None):
@@ -51,7 +50,7 @@ class CashFlowList(OrderedDict):
         if amount_list is None:
             amount_list = [1e6] * len(pay_date_list)
         assert len(amount_list) == len(pay_date_list)
-        super(CashFlowList, self).__init__(zip(pay_date_list, amount_list))
+        super(CashFlowList, self).__init__(list(zip(pay_date_list, amount_list)))
 
     def __getitem__(self, item):
         if isinstance(item, (tuple, list)):
@@ -60,10 +59,14 @@ class CashFlowList(OrderedDict):
             return super(CashFlowList, self).__getitem__(item)
 
     def get_value(self, discount_curve, valuation_date=None):
-        if valuation_date is None:
-            valuation_date = discount_curve.domain[0]
+
+        valuation_date = discount_curve.origin if valuation_date is None else valuation_date
         pd = [d for d in self if valuation_date < d]
-        return discount_curve.get_swap_leg_valuation(pd, self[pd])
+
+        if isinstance(self[pd], float):  # todo: check valuation ...
+            return self[pd] * discount_curve.get_swap_annuity(pd)
+        else:
+            return sum([discount_curve.get_discount_factor(discount_curve.origin, t) * r for t, r in zip(pd, self[pd])])
 
     def yield_to_maturity(self, valuation_date):
         # todo bracketing on yield
@@ -138,8 +141,8 @@ class MultiCashFlowList(CashFlowList):
     def __init__(self, legs):
         for l in legs:
             assert isinstance(l, CashFlowList)
-        date_list = list(set().union([l.keys() in legs]))
-        super(MultiCashFlowList, self).__init__(zip(date_list, [None] * len(date_list)))
+        date_list = list(set().union([list(l.keys()) in legs]))
+        super(MultiCashFlowList, self).__init__(list(zip(date_list, [None] * len(date_list))))
         self.legs = legs
 
     def __getitem__(self, item):
