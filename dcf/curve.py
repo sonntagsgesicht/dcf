@@ -149,21 +149,36 @@ class DateCurve(Curve):
         return Curve(x_list, y_list, (self._y_left, self._y_mid, self._y_right))
 
     def integrate(self, start, stop):
-        # todo use result, error = scipy.integrate(self, start, stop)
-        value = 0.0
-        step = self.__class__._time_shift
-        current = start
-        while current + step < stop:
-            value += self(current) * self.day_count(current, current + step)
-            current += step
-        value += self(current) * self.day_count(current, stop)
-        return value / self.day_count(start, stop)
+        """ integrates curve and returns results as annualized rates """
+        # try use result, error = scipy.integrate(self, start, stop)
+        try:
+            from scipy.integrate import quad
+            #raise ImportError()
+            s = self.day_count(self.origin, start)
+            e = self.day_count(self.origin, stop)
+            f = super(DateCurve, self).__call__
+            value, error = quad(f, s, e)
+        except ImportError:
+            value = 0.0
+            step = self.__class__._time_shift
+            current = start
+            while current + step < stop:
+                value += self(current) * self.day_count(current, current + step)
+                current += step
+            value += self(current) * self.day_count(current, stop)
+        result = value / self.day_count(start, stop)
+        return result
 
     def derivative(self, start):
         # todo use scipy.misc.derivative(self, start, self.__class__._time_shift)
-        stop = start + self.__class__._time_shift
-        value = self(stop) - self(start)
-        return value / self.day_count(start, stop)
+        try:
+            from scipy.misc import derivative
+            value = derivative(self, start, self.__class__._time_shift)
+        except ImportError:
+            stop = start + self.__class__._time_shift
+            value = self(stop) - self(start)
+        result = value / self.day_count(start, stop)
+        return result
 
 
 class RateCurve(DateCurve):
