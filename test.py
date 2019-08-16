@@ -381,9 +381,9 @@ class CastZeroRateCurveUnitTests(TestCase):
         for t in (DiscountFactorCurve, ZeroRateCurve, ShortRateCurve):
             cast = curve.cast(t)
             recast = cast.cast(self.cast_type)
-            self.assertEquals(self.cast_type._interpolation, curve.interpolation)
-            self.assertEquals(t._interpolation, cast.interpolation)
-            self.assertEquals(self.cast_type._interpolation, recast.interpolation)
+            self.assertEqual(self.cast_type._interpolation, curve.interpolation)
+            self.assertEqual(t._interpolation, cast.interpolation)
+            self.assertEqual(self.cast_type._interpolation, recast.interpolation)
 
     def test_discount_cast(self):
         for p in self.periods:
