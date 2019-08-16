@@ -52,10 +52,18 @@ Example Usage
 
 .. code-block:: python
 
+    from datetime import date
     from dcf import ZeroRateCurve
 
-    >>> ZeroRateCurve([20140101, 20160101], [.03, .05]).get_zero_rate(20140101, 20150101)
+    >>> start = date(2014,1,1)
+    >>> mid = date(2015,1,1)
+    >>> end = date(2016,1,1)
+
+    >>> ZeroRateCurve([start, end], [.03, .05]).get_zero_rate(start, mid)
     0.04
+
+    >>> ZeroRateCurve([start, end], [.03, .05]).get_discount_factor(start, mid)
+    0.9607894392
 
 
 Install
@@ -67,13 +75,6 @@ The latest stable version can always be installed or updated via pip:
 
     $ pip install dcf
 
-
-Examples
---------
-
-.. code-block:: python
-
-    # Simplest example possible
 
 
 Development Version
