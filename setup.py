@@ -14,7 +14,7 @@ import dcf as pkg
 
 import codecs
 try:
-    from setuptools import setup
+    from setuptools import setup, find_packages
 except ImportError:
     from distutils.core import setup
 
@@ -27,7 +27,7 @@ setup(
     author_email=pkg.__email__,
     url=pkg.__url__,
     license=pkg.__license__,
-    packages=pkg.__packages__,
+    packages=find_packages(),
     install_requires=pkg.__dependencies__,
     long_description='\n'+codecs.open('README.rst', encoding='utf-8').read(),
     platforms='any',
