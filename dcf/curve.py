@@ -15,7 +15,7 @@ from .interpolationscheme import dyn_scheme
 from .compounding import continuous_compounding, continuous_rate
 
 
-def DAY_COUNT(start, end):
+def act_36525(start, end):
     if hasattr(start, 'diff_in_days'):
         # duck typing businessdate.BusinessDate.diff_in_days
         d = start.diff_in_days(end)
@@ -105,13 +105,15 @@ class Curve(object):
 
 class DateCurve(Curve):
     _time_shift = '1d'
-    _day_count = DAY_COUNT
+    _default_day_count = act_36525
 
     def __init__(self, domain=(), data=(), interpolation=None, origin=None, day_count=None):
         self.origin = domain[0] if origin is None and domain else origin
-        self.day_count = self.__class__._day_count if day_count is None else day_count
-        super(DateCurve, self).__init__([self.day_count(self.origin, x) for x in domain], data, interpolation)
         self._domain = domain
+        day_count = act_36525 if day_count is None else day_count
+        domain = [day_count(self.origin, x) for x in domain]
+        super(DateCurve, self).__init__(domain, data, interpolation)
+        self._day_count = day_count
 
     @property
     def domain(self):
@@ -141,6 +143,9 @@ class DateCurve(Curve):
         new = super(DateCurve, self).__div__(other.shifted(self.origin - other.origin))
         new.origin = self.origin
         return new
+
+    def day_count(self, start, end):
+        return self._day_count(start, end)
 
     def to_curve(self, origin=None):
         origin = self.origin if origin is None else origin
