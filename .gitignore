@@ -14,3 +14,6 @@ coverage.xml
 doc/coverage/
 htmlcov/
 tool.py
+/pipeline_info.sh
+/freeze_requirements.txt
+.bin/
