@@ -14,12 +14,16 @@ from datetime import datetime
 
 __doc__ = 'A Python library for generating discounted cashflows.'
 __version__ = '0.3'
+__dev_status__ = '1 - Alpha'
 __date__ = datetime.today().strftime('%A %d %B %Y')
 __author__ = 'sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]'
 __email__ = 'sonntagsgesicht@icloud.com'
 __url__ = 'https://github.com/sonntagsgesicht/' + __name__
 __license__ = 'Apache License 2.0'
 __dependencies__ = ()
+__dependency_links__ = ()
+__data__ = ()
+__scripts__ = ()
 
 import logging
 logging.getLogger(__name__).addHandler(logging.NullHandler())

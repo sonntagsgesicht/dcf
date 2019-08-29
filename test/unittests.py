@@ -9,7 +9,8 @@
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
-
+import sys
+import os
 from sys import stdout
 from os import getcwd
 from datetime import datetime
@@ -19,6 +20,8 @@ import logging
 from math import exp, log, floor
 from businessdate import BusinessDate, BusinessRange
 from scipy.interpolate import interp1d
+
+sys.path.append('..')
 
 from dcf import flat, linear, no, zero, left, right, nearest, loglinearrate, logconstantrate, \
     loglinear, logconstant, constant
@@ -35,7 +38,15 @@ from dcf import CashFlowList, AmortizingCashFlowList, AnnuityCashFlowList, RateC
 from dcf import MultiCashFlowList, FixedLoan, FloatLoan, FixedFloatSwap
 from dcf import RatingClass
 
-logging.basicConfig()
+# logging.basicConfig()
+
+def _silent(func, *args, **kwargs):
+    _stout = sys.stdout
+    sys.stdout = open(os.devnull, 'w')
+    _res = func(*args, **kwargs)
+    sys.stdout.close()
+    sys.stdout = _stout
+    return _res
 
 
 class InterpolationUnitTests(TestCase):
@@ -174,14 +185,14 @@ class InterpolationUnitTests(TestCase):
                 self.assertFalse(s in f)
         y = [f(s) for s in reversed(self.s)]
         ff = no()
-        ff.update(self.s, y)
+        ff._update(self.s, y)
         for s in self.s:
             self.assertTrue(s in ff)
         for s, e in zip(ff.x_list[:1], ff.x_list[1:]):
             self.assertTrue(s < e)
         for s in self.s:
             self.assertTrue(s in ff)
-            ff.update([s])
+            ff._update([s])
             self.assertFalse(s in ff)
 
 

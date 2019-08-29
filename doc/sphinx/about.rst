@@ -1,6 +1,0 @@
-
------
-About
------
-
-.. include:: ..//..//README.rst

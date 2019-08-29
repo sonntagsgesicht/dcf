@@ -9,15 +9,14 @@
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
-
-import dcf as pkg
-
 import codecs
+
 try:
     from setuptools import setup, find_packages
 except ImportError:
     from distutils.core import setup
 
+pkg = __import__('dcf')
 
 setup(
     name=pkg.__name__,
@@ -27,12 +26,15 @@ setup(
     author_email=pkg.__email__,
     url=pkg.__url__,
     license=pkg.__license__,
-    packages=find_packages(),
+    packages=(pkg.__name__,),
+    package_data={pkg.__name__: list(pkg.__data__)},
+    scripts=pkg.__scripts__,
     install_requires=pkg.__dependencies__,
+    dependency_links=pkg.__dependency_links__,
     long_description='\n'+codecs.open('README.rst', encoding='utf-8').read(),
     platforms='any',
     classifiers=[
-        'Development Status :: 2 - Beta',
+        'Development Status :: ' + pkg.__dev_status__,
         'Intended Audience :: Developers',
         'Intended Audience :: Education',
         'Intended Audience :: Financial and Insurance Industry',

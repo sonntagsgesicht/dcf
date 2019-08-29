@@ -52,8 +52,10 @@ class interpolation_scheme(object):
         else:
             raise AttributeError
 
-        assert len(domain) == len(data)
-        assert len(domain) == len(set(domain))
+        if not len(domain) == len(data):
+            raise AssertionError()
+        if not len(domain) == len(set(domain)):
+            raise AssertionError()
 
         #: Interpolation:
         self._y_mid = y_mid(domain, data)

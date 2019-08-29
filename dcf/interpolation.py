@@ -22,7 +22,7 @@ class base_interpolation(object):
     def __init__(self, x_list=list(), y_list=list()):
         self.x_list = list()
         self.y_list = list()
-        self.update(x_list, y_list)
+        self._update(x_list, y_list)
 
     def __call__(self, x):
         raise NotImplementedError
@@ -30,9 +30,9 @@ class base_interpolation(object):
     def __contains__(self, item):
         return item in self.x_list
 
-    def update(self, x_list=list(), y_list=list()):
+    def _update(self, x_list=list(), y_list=list()):
         """
-        update interpolation data
+        _update interpolation data
         :param list(float) x_list: x values
         :param list(float) y_list: y values
         """

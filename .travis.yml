@@ -1,0 +1,19 @@
+language: python
+
+jobs:
+  include:
+    - python: 2.7
+    - python: 3.5
+    - python: 3.6
+    - python: 3.7
+
+before_install:
+  - python --version
+  - uname -a
+
+install:
+   - pip install -U git+https://github.com/sonntagsgesicht/auxilium
+   - auxilium setup
+
+script:
+   - auxilium simple

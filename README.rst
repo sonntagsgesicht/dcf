@@ -1,10 +1,13 @@
-=========================
-dcf (discounted cashflow)
-=========================
+
+Python library *dcf (discounted cashflows)*
+-------------------------------------------
 
 .. image:: https://img.shields.io/codeship/a10d1dd0-a1a0-0137-f00d-1a3bc2cae4aa/master.svg
    :target: https://codeship.com//projects/359976
    :alt: Codechip
+
+.. image:: https://travis-ci.org/sonntagsgesicht/dcf.svg?branch=master
+    :target: https://travis-ci.org/sonntagsgesicht/dcf
 
 .. image:: https://img.shields.io/readthedocs/dcf
    :target: http://dcf.readthedocs.io
@@ -21,6 +24,14 @@ dcf (discounted cashflow)
 .. image:: https://img.shields.io/codeclimate/coverage/sonntagsgesicht/dcf
    :target: https://codeclimate.com/github/sonntagsgesicht/dcf/test_coverage
    :alt: Code Climate Coverage
+
+.. image:: https://img.shields.io/lgtm/grade/python/g/sonntagsgesicht/dcf.svg
+   :target: https://lgtm.com/projects/g/sonntagsgesicht/dcf/context:python/
+   :alt: lgtm grade
+
+.. image:: https://img.shields.io/lgtm/alerts/g/sonntagsgesicht/dcf.svg
+   :target: https://lgtm.com/projects/g/sonntagsgesicht/dcf/alerts/
+   :alt: total lgtm alerts
 
 .. image:: https://img.shields.io/github/license/sonntagsgesicht/dcf
    :target: https://github.com/sonntagsgesicht/dcf/raw/master/LICENSE

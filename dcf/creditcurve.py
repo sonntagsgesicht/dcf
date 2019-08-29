@@ -67,9 +67,10 @@ class CreditCurve(RateCurve):
 
         previous = max(d for d in self.domain if d <= start)
         follow = min(d for d in self.domain if start < d)
-        assert previous <= start <= follow
-        assert previous < follow, list(map(str, (previous, start, follow)))
-
+        if not previous <= start <= follow:
+            raise AssertionError()
+        if not previous < follow:
+            raise AssertionError(list(map(str, (previous, start, follow))))
         return self.get_flat_intensity(previous, follow)
 
 
@@ -200,8 +201,10 @@ class MarginalSurvivalProbabilityCurve(CreditCurve):
 
         previous = max(d for d in self.domain if d <= start)
         follow = min(d for d in self.domain if start < d)
-        assert previous < follow, list(map(str, (previous, start, follow)))
-        assert previous <= start <= follow, list(map(str, (previous, start, follow)))
+        if not previous < follow:
+            raise AssertionError(list(map(str, (previous, start, follow))))
+        if not previous <= start <= follow:
+            raise AssertionError(list(map(str, (previous, start, follow))))
 
         return self.get_flat_intensity(previous, follow)
 

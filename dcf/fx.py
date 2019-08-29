@@ -38,27 +38,22 @@ class FxRate(Price):
 
 
 class FxCurve(DateCurve):
-    """fx rate curve for currency pair"""
-
     @classmethod
     def cast(cls, fx_spot, domestic_curve=None, foreign_curve=None):
-        """
-        creator method to build FxCurve
-
-        :param float fx_spot: fx spot rate
-        :param RateCurve domestic_curve: domestic discount curve
-        :param RateCurve foreign_curve: foreign discount curve
-        :return:
-        """
-        assert domestic_curve.origin == foreign_curve.origin
+        """ creator method to build FxCurve """
+        if not domestic_curve.origin == foreign_curve.origin:
+            raise AssertionError()
         return cls(fx_spot, domestic_curve=domestic_curve, foreign_curve=foreign_curve)
 
     def __init__(self, domain=1., data=None, interpolation=None, origin=None, day_count=None,
                  domestic_curve=None, foreign_curve=None):
+        """ fx rate curve for currency pair """
+
         self.domestic_curve = domestic_curve
         self.foreign_curve = foreign_curve
         if origin is None:
-            assert self.domestic_curve.origin == self.foreign_curve.origin
+            if not self.domestic_curve.origin == self.foreign_curve.origin:
+                raise AssertionError()
             origin = self.domestic_curve.origin
         if data is None:
             if isinstance(domain, float):
@@ -69,7 +64,8 @@ class FxCurve(DateCurve):
                 data = [domain.value]
                 domain = [domain.origin]
                 origin = None
-        assert len(domain) == len(data)
+        if not len(domain) == len(data):
+            raise AssertionError()
         super(FxCurve, self).__init__(domain, data, interpolation, origin, day_count)
 
     def __call__(self, x):
@@ -89,8 +85,7 @@ class FxCurve(DateCurve):
 
 
 class FxContainer(dict):
-    """
-    FxDict factory object
+    """ FxDict factory object
 
     using triangulation over self.currency defined as a global container of fx information (mainly vs base currency)
 
@@ -104,6 +99,7 @@ class FxContainer(dict):
         fx_curve = container['USD', 'EUR']  # fx_curve is FxCurve
         fx_dict = container['USD']  # fx_dict is dict of FxCurves containing fx_curve
         container['USD']['EUR'](today) == container['USD', 'EUR'](today)  # True
+
     """
 
     def __init__(self, currency, domestic_curve):
@@ -121,7 +117,8 @@ class FxContainer(dict):
         if item in self:
             return super(FxContainer, self).__getitem__(item)
         else:
-            assert isinstance(item, type(self.currency))
+            if not isinstance(item, type(self.currency)):
+                raise AssertionError()
             # build corresponding dict of FxCurves
             # return dict([(f, self[d, f]) for d, f in self if d == item])
             fd = dict()
@@ -133,14 +130,16 @@ class FxContainer(dict):
     def __setitem__(self, key, value):
         if isinstance(key, tuple) and len(key) == 2:
             d, f = key
-            assert isinstance(d, type(self.currency))
-            assert isinstance(f, type(self.currency))
-            assert isinstance(value, FxCurve)
+            if not (isinstance(d, type(self.currency))
+                    and isinstance(f, type(self.currency))
+                    and isinstance(value, FxCurve)):
+                raise AssertionError()
             super(FxContainer, self).__setitem__(key, value)
         else:
-            assert isinstance(key, type(self.currency))
-            assert isinstance(value, FxCurve)
-            assert value.domestic_curve == self.domestic_curve
+            if not (isinstance(key, type(self.currency))
+                    and  isinstance(value, FxCurve)
+                    and value.domestic_curve == self.domestic_curve):
+                raise AssertionError()
             self.add(key, value.foreign_curve, value.get_fx_rate(self.domestic_curve.origin))
 
     def add(self, foreign_currency, foreign_curve=None, fx_spot=1.0):
@@ -150,14 +149,15 @@ class FxContainer(dict):
         else spot should turn currency into self.currency by
         N in EUR * spot = N in USD for currency = EUR and self.currency = USD
         """
-        assert isinstance(foreign_currency, type(self.currency))
-        assert isinstance(foreign_curve, RateCurve)
-        assert isinstance(fx_spot, float)
+        if not (isinstance(foreign_currency, type(self.currency))
+                and isinstance(foreign_curve, RateCurve)
+                and isinstance(fx_spot, float)):
+            raise AssertionError()
 
         # create missing FxCurves
         self[self.currency, foreign_currency] = FxCurve.cast(fx_spot, self.domestic_curve, foreign_curve)
         self[foreign_currency, self.currency] = FxCurve.cast(1 / fx_spot, foreign_curve, self.domestic_curve)
-        # update relevant FxCurves
+        # _update relevant FxCurves
         f = foreign_currency
         new = dict()
         for d, s in self:

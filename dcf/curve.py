@@ -36,12 +36,11 @@ class Curve(object):
 
         :param list(float) domain: source values
         :param list(float) data: target values
-        :param function interpolation: interpolation function on x_list (optional),
-        default is taken from class member _interpolation
+        :param function interpolation: interpolation function on x_list (optional), default is taken from class member _interpolation
 
-        Curve object to build function :math:`f:R \rightarrow R, x \mapsto y`
-        from finite point vectors :math:`x` and :math:`y`
-        using piecewise various interpolation functions.
+            Curve object to build function :math:`f:R \rightarrow R, x \mapsto y`
+            from finite point vectors :math:`x` and :math:`y`
+            using piecewise various interpolation functions.
         """
         if interpolation is None:
             interpolation = self.__class__._interpolation
@@ -108,16 +107,22 @@ class DateCurve(Curve):
     _default_day_count = act_36525
 
     def __init__(self, domain=(), data=(), interpolation=None, origin=None, day_count=None):
-        self.origin = domain[0] if origin is None and domain else origin
-        self._domain = domain
+        self._origin = domain[0] if origin is None and domain else origin
         day_count = act_36525 if day_count is None else day_count
-        domain = [day_count(self.origin, x) for x in domain]
-        super(DateCurve, self).__init__(domain, data, interpolation)
+        flt_domain = [day_count(self._origin, x) for x in domain]
+        super(DateCurve, self).__init__(flt_domain, data, interpolation)
         self._day_count = day_count
+        self._domain = domain
 
     @property
     def domain(self):
+        """ domain of curve as list of dates where curve values are given """
         return self._domain
+
+    @property
+    def origin(self):
+        """ date of origin (date zero) """
+        return self._origin
 
     def __call__(self, x):
         if isinstance(x, (list, tuple)):

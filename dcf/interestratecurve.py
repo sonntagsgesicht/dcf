@@ -92,8 +92,10 @@ class InterestRateCurve(RateCurve):
 
         previous = max(d for d in self.domain if d <= start)
         follow = min(d for d in self.domain if start < d)
-        assert previous <= start <= follow
-        assert previous < follow, list(map(str, (previous, start, follow)))
+        if not previous <= start <= follow:
+            raise AssertionError()
+        if not previous < follow:
+            raise AssertionError(list(map(str, (previous, start, follow))))
 
         return self.get_zero_rate(previous, follow)
 
@@ -138,7 +140,8 @@ class InterestRateCurve(RateCurve):
     def get_cash_rate(self, start, stop=None, step=None):
 
         if stop and step:
-            assert start + step == stop, "if stop and step given, start+step must meet stop."
+            if not start + step == stop:
+                raise AssertionError("if stop and step given, start+step must meet stop.")
         if stop is None:
             stop = start + self.forward_tenor if step is None else start + step
 
@@ -239,7 +242,8 @@ class CashRateCurve(InterestRateCurve):
 
     def get_cash_rate(self, start, stop=None, step=None):
         if stop and step:
-            assert start + step == stop, "if stop and step given, start+step must meet stop."
+            if not start + step == stop:
+                raise AssertionError("if stop and step given, start+step must meet stop.")
         if stop is None:
             stop = start + self.forward_tenor if step is None else start + step
         if stop == start + self.forward_tenor:
