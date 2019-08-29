@@ -16,6 +16,12 @@ Release date was |today|
 
 # supporting third party (e.g.) interpolation
 
+# adding travis ci
+
+# update for auxilium tools
+
+# replaced `assert stmt` by `if not stmt: raise AssertionError()` (bandit recommendation)
+
 
 Release 0.2
 ===========
