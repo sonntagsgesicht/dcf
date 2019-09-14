@@ -1,7 +1,7 @@
 
 .. currentmodule:: dcf
 
-To start with |dcf| import it.
+To start with |dcf| import.
 
 .. doctest::
 
@@ -11,8 +11,14 @@ To start with |dcf| import it.
 Interest Rate Curve Objects
 ===========================
 
-There are four different types of Curves: |ZeroRateCurve|, |DiscountfactorCurve|, |CashRateCurve| and |ShortRateCurve|.
+Interest rate curves can be expressed in various  ways. Each for a different
 
+There are four different types of Curves:
+
+    |ZeroRateCurve|, |DiscountfactorCurve|, |CashRateCurve| and |ShortRateCurve|.
+
+
+They meet the
 
 Credit Curve Objects
 ====================

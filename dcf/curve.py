@@ -3,7 +3,7 @@
 # dcf
 # ---
 # A Python library for generating discounted cashflows.
-# 
+#
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
 # Version:  0.3, copyright Friday, 30 August 2019
 # Website:  https://github.com/sonntagsgesicht/dcf
@@ -131,17 +131,17 @@ class DateCurve(Curve):
 
     def __add__(self, other):
         new = super(DateCurve, self).__add__(other.shifted(self.origin - other.origin))
-        new.origin = self.origin
+        self.__class__(new.domain, new(new.domain), new.interpolation, self.origin, self._day_count)
         return new
 
     def __sub__(self, other):
         new = super(DateCurve, self).__sub__(other.shifted(self.origin - other.origin))
-        new.origin = self.origin
+        self.__class__(new.domain, new(new.domain), new.interpolation, self.origin, self._day_count)
         return new
 
     def __mul__(self, other):
         new = super(DateCurve, self).__mul__(other.shifted(self.origin - other.origin))
-        new.origin = self.origin
+        self.__class__(new.domain, new(new.domain), new.interpolation, self.origin, self._day_count)
         return new
 
     def __div__(self, other):
@@ -156,7 +156,7 @@ class DateCurve(Curve):
         origin = self.origin if origin is None else origin
         x_list = [self.day_count(origin, x) for x in self.domain]
         y_list = self(self.domain)
-        return Curve(x_list, y_list, (self._y_left, self._y_mid, self._y_right))
+        return Curve(x_list, y_list, self.interpolation)
 
     def integrate(self, start, stop):
         """ integrates curve and returns results as annualized rates """
@@ -183,11 +183,14 @@ class DateCurve(Curve):
         # todo use scipy.misc.derivative(self, start, self.__class__._time_shift)
         try:
             from scipy.misc import derivative
-            value = derivative(self, start, self.__class__._time_shift)
+            s = self.day_count(self.origin, start)
+            dx = self.day_count(start, start + self.__class__._time_shift)
+            f = super(DateCurve, self).__call__
+            result = derivative(f, s, dx)
         except ImportError:
             stop = start + self.__class__._time_shift
             value = self(stop) - self(start)
-        result = value / self.day_count(start, stop)
+            result = value / self.day_count(start, stop)
         return result
 
 
