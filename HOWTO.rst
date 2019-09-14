@@ -11,7 +11,8 @@ To start with |dcf| import.
 Interest Rate Curve Objects
 ===========================
 
-Interest rate curves can be expressed in various  ways. Each for a different
+Interest rate curves can be expressed in various  ways.
+Each for different type of storing rate information and purpose.
 
 There are four different types of Curves:
 
