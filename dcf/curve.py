@@ -42,6 +42,13 @@ class Curve(object):
             from finite point vectors :math:`x` and :math:`y`
             using piecewise various interpolation functions.
         """
+        # sort data by domain values
+        if not len(domain) == len(data):
+            raise ValueError('%s requires equal length input for domain and data' % self.__class__.__name__)
+
+        if domain:
+            domain, data = map(list,zip(*sorted(zip(*(domain, data)))))
+
         if interpolation is None:
             interpolation = self.__class__._interpolation
 
