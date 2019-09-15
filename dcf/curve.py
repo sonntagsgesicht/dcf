@@ -103,15 +103,26 @@ class Curve(object):
 
 
 class DateCurve(Curve):
+
+    @staticmethod
+    def _default_day_count(start, end):
+        if hasattr(start, 'diff_in_days'):
+            # duck typing businessdate.BusinessDate.diff_in_days
+            d = start.diff_in_days(end)
+        else:
+            d = end - start
+            if hasattr(d, 'days'):
+                # assume datetime.date or finance.BusinessDate (else days as float)
+                d = d.days
+        return float(d) / 365.25
+
     _time_shift = '1d'
-    _default_day_count = act_36525
 
     def __init__(self, domain=(), data=(), interpolation=None, origin=None, day_count=None):
         self._origin = domain[0] if origin is None and domain else origin
-        day_count = act_36525 if day_count is None else day_count
-        flt_domain = [day_count(self._origin, x) for x in domain]
+        self._day_count = self._default_day_count if day_count is None else day_count
+        flt_domain = [self._day_count(self._origin, x) for x in domain]
         super(DateCurve, self).__init__(flt_domain, data, interpolation)
-        self._day_count = day_count
         self._domain = domain
 
     @property
