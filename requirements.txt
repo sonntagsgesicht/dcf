@@ -1,3 +1,3 @@
 scipy
-businessdate
+git+https://github.com/sonntagsgesicht/businessdate
 auxilium
