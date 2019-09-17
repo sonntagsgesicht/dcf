@@ -1,13 +1,14 @@
 
-Python library *dcf (discounted cashflows)*
--------------------------------------------
+Python library *dcf*
+--------------------
 
 .. image:: https://img.shields.io/codeship/a10d1dd0-a1a0-0137-f00d-1a3bc2cae4aa/master.svg
    :target: https://codeship.com//projects/359976
-   :alt: Codechip
+   :alt: Codeship
 
 .. image:: https://travis-ci.org/sonntagsgesicht/dcf.svg?branch=master
-    :target: https://travis-ci.org/sonntagsgesicht/dcf
+   :target: https://travis-ci.org/sonntagsgesicht/dcf
+   :alt: Travis ci
 
 .. image:: https://img.shields.io/readthedocs/dcf
    :target: http://dcf.readthedocs.io
@@ -21,9 +22,9 @@ Python library *dcf (discounted cashflows)*
    :target: https://codeclimate.com/github/sonntagsgesicht/dcf/maintainability
    :alt: Code Climate maintainability
 
-.. image:: https://img.shields.io/codeclimate/coverage/sonntagsgesicht/dcf
-   :target: https://codeclimate.com/github/sonntagsgesicht/dcf/test_coverage
-   :alt: Code Climate Coverage
+.. image:: https://img.shields.io/codecov/c/github/sonntagsgesicht/dcf
+   :target: https://codecov.io/gh/sonntagsgesicht/dcf
+   :alt: Codecov
 
 .. image:: https://img.shields.io/lgtm/grade/python/g/sonntagsgesicht/dcf.svg
    :target: https://lgtm.com/projects/g/sonntagsgesicht/dcf/context:python/
@@ -53,7 +54,7 @@ Python library *dcf (discounted cashflows)*
    :target: https://pypi.org/project/dcf/
    :alt: PyPI Downloads
 
-A Python library for generating discounted cashflows.
+A Python library for generating discounted cashflows *(dcf)*.
 Typical banking business methods are provided like interpolation, compounding,
 discounting and fx.
 
