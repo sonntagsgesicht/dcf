@@ -33,9 +33,10 @@ Compounding
 Curves
 ======
 
-.. currentmodule:: dcf
-
 Basic Curves
+------------
+
+.. module:: dcf.curve
 
 .. autosummary::
     :nosignatures:
@@ -44,40 +45,7 @@ Basic Curves
     DateCurve
     RateCurve
 
-Interest Rate Curves
-
-.. autosummary::
-    :nosignatures:
-
-    InterestRateCurve
-    ZeroRateCurve
-    DiscountFactorCurve
-    CashRateCurve
-    ShortRateCurve
-
-Credit Curves
-
-.. autosummary::
-    :nosignatures:
-
-    CreditCurve
-    SurvivalProbabilityCurve
-    FlatIntensityCurve
-    HazardRateCurve
-    MarginalSurvivalProbabilityCurve
-    MarginalDefaultProbabilityCurve
-
-Fx Curves
-
-.. autosummary::
-    :nosignatures:
-
-    FxCurve
-
-Basic Curves
-------------
-
-.. inheritance-diagram:: curve
+.. inheritance-diagram:: dcf.curve
     :parts: 1
 
 .. autoclass:: Curve
@@ -88,10 +56,18 @@ Basic Curves
 Interest Rate Curves
 --------------------
 
+.. module:: dcf.interestratecurve
+
 .. autosummary::
     :nosignatures:
 
-.. inheritance-diagram:: interestratecurve
+    InterestRateCurve
+    ZeroRateCurve
+    DiscountFactorCurve
+    CashRateCurve
+    ShortRateCurve
+
+.. inheritance-diagram:: dcf.interestratecurve
     :parts: 1
     :top-classes: dcf.curve.RateCurve
 
@@ -105,10 +81,19 @@ Interest Rate Curves
 Credit Curves
 -------------
 
+.. module:: dcf.creditcurve
+
 .. autosummary::
     :nosignatures:
 
-.. inheritance-diagram:: creditcurve
+    CreditCurve
+    SurvivalProbabilityCurve
+    FlatIntensityCurve
+    HazardRateCurve
+    MarginalSurvivalProbabilityCurve
+    MarginalDefaultProbabilityCurve
+
+.. inheritance-diagram:: dcf.creditcurve
     :parts: 1
     :top-classes: dcf.curve.RateCurve
 
@@ -123,8 +108,12 @@ Credit Curves
 Fx Curve
 --------
 
+.. module:: dcf.fx
+
 .. autosummary::
     :nosignatures:
+
+    FxCurve
 
 .. inheritance-diagram:: dcf.fx.FxCurve
     :parts: 1
@@ -138,6 +127,8 @@ Fx Curve
 
 Cashflow Objects
 ================
+
+.. module:: dcf.cashflow
 
 .. autosummary::
     :nosignatures:

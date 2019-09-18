@@ -1,7 +1,7 @@
 
 .. currentmodule:: dcf
 
-To start with |dcf| import.
+To start with import the package.
 
 .. doctest::
 
