@@ -128,7 +128,7 @@ Fx Curve
 Cashflow Objects
 ================
 
-.. module:: dcf.cashflow
+.. py:currentmodule:: dcf.cashflow
 
 .. autosummary::
     :nosignatures:
