@@ -14,7 +14,7 @@ from datetime import datetime
 
 __doc__ = 'A Python library for generating discounted cashflows.'
 __version__ = '0.3'
-__dev_status__ = '1 - Alpha'
+__dev_status__ = '3 - Alpha'
 __date__ = 'Wednesday, 18 September 2019'
 __author__ = 'sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]'
 __email__ = 'sonntagsgesicht@icloud.com'
