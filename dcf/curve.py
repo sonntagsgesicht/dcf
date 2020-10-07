@@ -112,6 +112,7 @@ class Curve(object):
 
 
 class DateCurve(Curve):
+    _time_shift = '1d'
 
     @staticmethod
     def _default_day_count(start, end):
@@ -124,8 +125,6 @@ class DateCurve(Curve):
                 # assume datetime.date or finance.BusinessDate (else days as float)
                 d = d.days
         return float(d) / 365.25
-
-    _time_shift = '1d'
 
     def __init__(self, domain=(), data=(), interpolation=None, origin=None, day_count=None):
         self._origin = domain[0] if origin is None and domain else origin
