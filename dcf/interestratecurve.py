@@ -230,6 +230,7 @@ class ShortRateCurve(InterestRateCurve):
 
 
 class CashRateCurve(InterestRateCurve):
+
     @staticmethod
     def get_storage_type(curve, x):
         return curve.get_cash_rate(x)
@@ -240,10 +241,11 @@ class CashRateCurve(InterestRateCurve):
             if data:
                 raise TypeError("If first argument is %s, data argument must not be given." % domain.__class__.__name__)
             data = domain
+            origin = data.origin if origin is None else origin
             forward_tenor = data.forward_tenor if forward_tenor is None else forward_tenor
             new_domain = list(data.domain)
             for x in data.domain:
-                while self.origin < x:
+                while origin < x:
                     new_domain.append(x)
                     x -= forward_tenor
             domain = sorted(set(new_domain))

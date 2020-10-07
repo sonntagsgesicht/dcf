@@ -3,7 +3,7 @@
 # dcf
 # ---
 # A Python library for generating discounted cashflows.
-# 
+#
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
 # Version:  0.3, copyright Wednesday, 18 September 2019
 # Website:  https://github.com/sonntagsgesicht/dcf
@@ -392,8 +392,8 @@ class CastZeroRateCurveUnitTests(TestCase):
     def test_interpolation(self):
         curve = self.curve()
         for t in (DiscountFactorCurve, ZeroRateCurve, ShortRateCurve):
-            cast = curve.cast(t)
-            recast = cast.cast(self.cast_type)
+            cast = t(curve)
+            recast = self.cast_type(cast)
             self.assertEqual(self.cast_type._interpolation, curve.interpolation)
             self.assertEqual(t._interpolation, cast.interpolation)
             self.assertEqual(self.cast_type._interpolation, recast.interpolation)
@@ -401,35 +401,35 @@ class CastZeroRateCurveUnitTests(TestCase):
     def test_discount_cast(self):
         for p in self.periods:
             curve = self.curve(p)
-            cast = curve.cast(DiscountFactorCurve).cast(self.cast_type)
+            cast = self.cast_type(DiscountFactorCurve(curve))
             for d in curve.domain[1:]:
                 self.assertAlmostEqual(cast(d), curve(d), self.precision)
 
     def test_zero_cast(self):
         for p in self.periods:
             curve = self.curve(p)
-            cast = curve.cast(ZeroRateCurve).cast(self.cast_type)
+            cast = self.cast_type(ZeroRateCurve(curve))
             for d in curve.domain[1:]:
                 self.assertAlmostEqual(cast(d), curve(d), self.precision)
 
     def test_short_cast(self):
         for p in self.periods:
             curve = self.curve(p)
-            cast = curve.cast(ShortRateCurve).cast(self.cast_type)
+            cast = self.cast_type(ShortRateCurve(curve))
             for d in curve.domain[1:]:
                 self.assertAlmostEqual(cast(d), curve(d), self.precision)
 
     def test_cash1m_cast(self):
         for p in self.periods:
             curve = self.curve(p)
-            cast = curve.cast(CashRateCurve, forward_tenor='1M').cast(self.cast_type)
+            cast = self.cast_type(CashRateCurve(curve, forward_tenor='1M'))
             for d in curve.domain[1:]:
                 self.assertAlmostEqual(cast(d), curve(d), self.cash_precision)
 
     def test_cash3m_cast(self):
         for p in self.periods:
             curve = self.curve(p)
-            cast = curve.cast(CashRateCurve, forward_tenor='3M').cast(self.cast_type)
+            cast = self.cast_type(CashRateCurve(curve, forward_tenor='3M'))
             for d in curve.domain[1:]:
                 self.assertAlmostEqual(cast(d), curve(d), self.cash_precision)
 
@@ -566,8 +566,8 @@ class CastIntensityCurveUnitTests(TestCase):
     def test_interpolation(self):
         curve = self.curve()
         for t in (SurvivalProbabilityCurve, FlatIntensityCurve, HazardRateCurve):
-            cast = curve.cast(t)
-            recast = cast.cast(self.cast_type)
+            cast = t(curve)
+            recast = self.cast_type(cast)
             self.assertEqual(self.cast_type._interpolation, curve.interpolation)
             self.assertEqual(t._interpolation, cast.interpolation)
             self.assertEqual(self.cast_type._interpolation, recast.interpolation)
@@ -575,42 +575,42 @@ class CastIntensityCurveUnitTests(TestCase):
     def test_survival_cast(self):
         for p in self.periods:
             curve = self.curve(p)
-            cast = curve.cast(SurvivalProbabilityCurve).cast(self.cast_type)
+            cast = self.cast_type(SurvivalProbabilityCurve(curve))
             for d in curve.domain[1:]:
                 self.assertAlmostEqual(cast(d), curve(d), self.precision)
 
     def test_intensity_cast(self):
         for p in self.periods:
             curve = self.curve(p)
-            cast = curve.cast(FlatIntensityCurve).cast(self.cast_type)
+            cast = self.cast_type(FlatIntensityCurve(curve))
             for d in curve.domain[1:]:
                 self.assertAlmostEqual(cast(d), curve(d), self.precision)
 
     def test_hazard_cast(self):
         for p in self.periods:
             curve = self.curve(p)
-            cast = curve.cast(HazardRateCurve).cast(self.cast_type)
+            cast = self.cast_type(HazardRateCurve(curve))
             for d in curve.domain[1:]:
                 self.assertAlmostEqual(cast(d), curve(d), self.precision)
 
     def test_default_cast(self):
         for p in self.periods:
             curve = self.curve(p)
-            cast = curve.cast(DefaultProbabilityCurve).cast(self.cast_type)
+            cast = self.cast_type(DefaultProbabilityCurve(curve))
             for d in curve.domain[1:]:
                 self.assertAlmostEqual(cast(d), curve(d), self.precision)
 
     def test_marginal_survival_cast(self):
         for p in self.periods:
             curve = self.curve(p)
-            cast = curve.cast(MarginalSurvivalProbabilityCurve).cast(self.cast_type)
+            cast = self.cast_type(MarginalSurvivalProbabilityCurve(curve))
             for d in curve.domain[1:]:
                 self.assertAlmostEqual(cast(d), curve(d), self.marginal_precision)
 
     def test_marginal_default_cast(self):
         for p in self.periods:
             curve = self.curve(p)
-            cast = curve.cast(MarginalDefaultProbabilityCurve).cast(self.cast_type)
+            cast = self.cast_type(MarginalDefaultProbabilityCurve(curve))
             for d in curve.domain[1:]:
                 self.assertAlmostEqual(cast(d), curve(d), self.marginal_precision)
 

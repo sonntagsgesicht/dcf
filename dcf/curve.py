@@ -221,10 +221,14 @@ class RateCurve(DateCurve, ABC):
     def get_storage_type(curve, x):
         raise NotImplementedError
 
+    def _get_storage_value(self, curve, x):
+        return self.get_storage_type(curve, x)
+
     def cast(self, cast_type, **kwargs):
         # todo: make private
+        data = [cast_type.get_storage_type(self, x) for x in kwargs.get('domain', self.domain)]
         new = cast_type(kwargs.get('domain', self.domain),
-                        [cast_type.get_storage_type(self, x) for x in kwargs.get('domain', self.domain)],
+                        kwargs.get('data', data),
                         kwargs.get('interpolation', None),
                         kwargs.get('origin', self.origin),
                         kwargs.get('day_count', self.day_count),
@@ -254,9 +258,10 @@ class RateCurve(DateCurve, ABC):
             domain = other.domain if domain is None else domain
         if other:
             # get data as self.get_storage_type
-            data = [self.get_storage_type(other, x) for x in domain]
+            data = [self._get_storage_value(other, x) for x in domain]
             # use other properties if not give explicitly
-            interpolation = other.interpolation if interpolation is None else interpolation
+            # interpolation should default to class defaults
+            # interpolation = other.interpolation if interpolation is None else interpolation
             origin = other.origin if origin is None else origin
             day_count = other.day_count if day_count is None else day_count
             forward_tenor = other.forward_tenor if forward_tenor is None else forward_tenor

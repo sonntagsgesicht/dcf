@@ -129,6 +129,9 @@ class DefaultProbabilityCurve(SurvivalProbabilityCurve):
     def get_storage_type(curve, x):
         return 1. - curve.get_survival_prob(curve.origin, x)
 
+    def _get_storage_value(self, curve, x):
+        return curve.get_survival_prob(curve.origin, x)
+
     def __init__(self, domain=(), data=(), interpolation=None, origin=None, day_count=None, forward_tenor=None):
         if not isinstance(data, RateCurve):
             data = [1. - d for d in data]
@@ -229,6 +232,9 @@ class MarginalDefaultProbabilityCurve(MarginalSurvivalProbabilityCurve):
     @staticmethod
     def get_storage_type(curve, x):
         return 1. - curve.get_survival_prob(x, x + curve.forward_tenor)
+
+    def _get_storage_value(self, curve, x):
+        return curve.get_survival_prob(x, x + curve.forward_tenor)
 
     def __init__(self, domain=(), data=(), interpolation=None, origin=None, day_count=None, forward_tenor=None):
         if not isinstance(data, RateCurve):
