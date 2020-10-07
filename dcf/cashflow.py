@@ -3,7 +3,7 @@
 # dcf
 # ---
 # A Python library for generating discounted cashflows.
-# 
+#
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
 # Version:  0.3, copyright Wednesday, 18 September 2019
 # Website:  https://github.com/sonntagsgesicht/dcf
@@ -143,7 +143,7 @@ class MultiCashFlowList(CashFlowList):
         for l in legs:
             if not isinstance(l, CashFlowList):
                 raise AssertionError()
-        date_list = list(set().union([list(l.keys()) in legs]))
+        date_list = list(set().union([list(l.keys()) for l in legs]))
         super(MultiCashFlowList, self).__init__(list(zip(date_list, [None] * len(date_list))))
         self.legs = legs
 

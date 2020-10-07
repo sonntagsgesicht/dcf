@@ -3,13 +3,12 @@
 # dcf
 # ---
 # A Python library for generating discounted cashflows.
-# 
+#
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
 # Version:  0.3, copyright Wednesday, 18 September 2019
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
-
-
+from abc import ABC
 from sys import float_info
 
 from .curve import RateCurve
@@ -18,17 +17,17 @@ from .interpolation import constant, linear, logconstantrate, loglinearrate, neg
 from .interpolationscheme import dyn_scheme
 
 
-class CreditCurve(RateCurve):
+class CreditCurve(RateCurve, ABC):
     """ generic curve for default probabilities (under construction) """
     _forward_tenor = '1Y'
 
     def cast(self, cast_type, **kwargs):
         old_domain = kwargs.get('domain', self.domain)
 
-        if issubclass(cast_type, (SurvivalProbabilityCurve, DefaultProbabilityCurve,)):
+        if issubclass(cast_type, SurvivalProbabilityCurve):
             domain = kwargs.get('domain', self.domain)
             origin = kwargs.get('origin', self.origin)
-            new_domain = list(domain) + [origin + '1d']
+            new_domain = list(domain) + [origin + '1d', max(domain) + '1y']
             kwargs['domain'] = sorted(set(new_domain))
 
         if True:
@@ -48,6 +47,15 @@ class CreditCurve(RateCurve):
             kwargs['domain'] = sorted(set(new_domain))
 
         return super(CreditCurve, self).cast(cast_type, **kwargs)
+
+    def __init__(self, domain=(), data=(), interpolation=None, origin=None, day_count=None, forward_tenor=None):
+        if isinstance(domain, RateCurve):
+            # if argument is a curve add extra curve points to domain for better approximation
+            if data:
+                raise TypeError("If first argument is %s, data argument must not be given." % domain.__class__.__name__)
+            data = domain
+            domain = sorted(set(list(data.domain) + [max(data.domain) + '1y']))
+        super(CreditCurve, self).__init__(domain, data, interpolation, origin, day_count, forward_tenor)
 
     def get_survival_prob(self, start, stop=None):  # aka get_discount_factor
         if stop is None:
@@ -74,14 +82,26 @@ class CreditCurve(RateCurve):
         return self.get_flat_intensity(previous, follow)
 
 
-class SurvivalProbabilityCurve(CreditCurve):
-    _interpolation = dyn_scheme(logconstantrate, loglinearrate, logconstantrate)
+class ProbabilityCurve(CreditCurve, ABC):
 
     def __init__(self, domain=(), data=(), interpolation=None, origin=None, day_count=None, forward_tenor=None):
-        data = [max(float_info.min, min(d, 1. - float_info.min)) for d in data]
-        if not all(data):
-            raise ValueError('Found non positive survival probabilities.')
-        super(SurvivalProbabilityCurve, self).__init__(domain, data, interpolation, origin, day_count, forward_tenor)
+        # validate probabilities
+        if not isinstance(data, RateCurve):
+            data = [max(float_info.min, min(d, 1. - float_info.min)) for d in data]
+            if not all(data):
+                raise ValueError('Found non positive survival probabilities.')
+        # if argument is a curve add extra curve points to domain for better approximation
+        if isinstance(domain, RateCurve):
+            if data:
+                raise TypeError("If first argument is %s, data argument must not be given." % domain.__class__.__name__)
+            data = domain
+            origin = data.origin if origin is None else origin
+            domain = sorted(set(list(data.domain) + [origin + '1d', max(data.domain) + '1y']))
+        super(ProbabilityCurve, self).__init__(domain, data, interpolation, origin, day_count, forward_tenor)
+
+
+class SurvivalProbabilityCurve(ProbabilityCurve):
+    _interpolation = dyn_scheme(logconstantrate, loglinearrate, logconstantrate)
 
     @staticmethod
     def get_storage_type(curve, x):
@@ -110,7 +130,8 @@ class DefaultProbabilityCurve(SurvivalProbabilityCurve):
         return 1. - curve.get_survival_prob(curve.origin, x)
 
     def __init__(self, domain=(), data=(), interpolation=None, origin=None, day_count=None, forward_tenor=None):
-        data = [1. - d for d in data]
+        if not isinstance(data, RateCurve):
+            data = [1. - d for d in data]
         super(DefaultProbabilityCurve, self).__init__(domain, data, interpolation, origin, day_count, forward_tenor)
 
 
@@ -161,15 +182,8 @@ class HazardRateCurve(CreditCurve):
         return self(start)
 
 
-class MarginalSurvivalProbabilityCurve(CreditCurve):
+class MarginalSurvivalProbabilityCurve(ProbabilityCurve):
     _interpolation = dyn_scheme(neglogconstant, negloglinear, neglogconstant)
-
-    def __init__(self, domain=(), data=(), interpolation=None, origin=None, day_count=None, forward_tenor=None):
-        data = [max(float_info.min, min(d, 1. - float_info.min)) for d in data]
-        if not all(data):
-            raise ValueError('Found non positive survival probabilities.')
-        super(MarginalSurvivalProbabilityCurve, self).__init__(domain, data, interpolation, origin, day_count,
-                                                               forward_tenor)
 
     @staticmethod
     def get_storage_type(curve, x):
@@ -217,6 +231,7 @@ class MarginalDefaultProbabilityCurve(MarginalSurvivalProbabilityCurve):
         return 1. - curve.get_survival_prob(x, x + curve.forward_tenor)
 
     def __init__(self, domain=(), data=(), interpolation=None, origin=None, day_count=None, forward_tenor=None):
-        data = [1. - d for d in data]
-        super(MarginalDefaultProbabilityCurve, self).__init__(domain, data, interpolation, origin, day_count,
-                                                              forward_tenor)
+        if not isinstance(data, RateCurve):
+            data = [1. - d for d in data]
+        super(MarginalDefaultProbabilityCurve, self).__init__(
+            domain, data, interpolation, origin, day_count,forward_tenor)

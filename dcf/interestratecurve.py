@@ -3,12 +3,12 @@
 # dcf
 # ---
 # A Python library for generating discounted cashflows.
-# 
+#
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
 # Version:  0.3, copyright Wednesday, 18 September 2019
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
-
+from abc import ABC
 
 from .curve import RateCurve
 from .compounding import continuous_rate, simple_compounding, simple_rate
@@ -16,9 +16,10 @@ from .interpolation import constant, linear, loglinearrate, logconstantrate
 from .interpolationscheme import dyn_scheme
 
 
-class InterestRateCurve(RateCurve):
+class InterestRateCurve(RateCurve, ABC):
+
     def cast(self, cast_type, **kwargs):
-        old_domain = kwargs.get('domain', self.domain)
+        # old_domain = kwargs.get('domain', self.domain)
 
         if issubclass(cast_type, (DiscountFactorCurve,)):
             domain = kwargs.get('domain', self.domain)
@@ -59,8 +60,6 @@ class InterestRateCurve(RateCurve):
             constant interpolated short rate derived from zero rate
 
         :param BusinessDate start: point in time of short rate
-        :param BusinessDate previous: point in time of short rate grid before start
-        :param BusinessDate follow: point in time of short rate grid after start
         :return: short rate at given point in time
 
         Calculation assumes a zero rate derived from a interpolated short rate, i.e.
@@ -88,7 +87,7 @@ class InterestRateCurve(RateCurve):
         if start < min(self.domain):
             return self.get_short_rate(min(self.domain))
         if max(self.domain) <= start:
-            return self.get_short_rate(max(self.domain)-self.__class__._time_shift)
+            return self.get_short_rate(max(self.domain) - self.__class__._time_shift)
 
         previous = max(d for d in self.domain if d <= start)
         follow = min(d for d in self.domain if start < d)
@@ -160,6 +159,16 @@ class DiscountFactorCurve(InterestRateCurve):
     def get_storage_type(curve, x):
         return curve.get_discount_factor(curve.origin, x)
 
+    def __init__(self, domain=(), data=(), interpolation=None, origin=None, day_count=None, forward_tenor=None):
+        if isinstance(domain, RateCurve):
+            # if argument is a curve add extra curve points to domain for better approximation
+            if data:
+                raise TypeError("If first argument is %s, data argument must not be given." % domain.__class__.__name__)
+            data = domain
+            origin = data.origin if origin is None else origin
+            domain = sorted(set(list(data.domain) + [origin + '1d', max(data.domain) + '1d']))
+        super(DiscountFactorCurve, self).__init__(domain, data, interpolation, origin, day_count, forward_tenor)
+
     def _get_compounding_factor(self, start, stop):
         if start is self.origin:
             return self(stop)
@@ -167,7 +176,7 @@ class DiscountFactorCurve(InterestRateCurve):
 
     def _get_compounding_rate(self, start, stop):
         if start == stop == self.origin:
-            # zero rate proxi at origin
+            # zero rate proxy at origin
             stop = min(d for d in self.domain if self.origin < d)
             # todo: calc left extrapolation (for linear zero rate interpolation)
         return super(DiscountFactorCurve, self)._get_compounding_rate(start, stop)
@@ -224,6 +233,21 @@ class CashRateCurve(InterestRateCurve):
     @staticmethod
     def get_storage_type(curve, x):
         return curve.get_cash_rate(x)
+
+    def __init__(self, domain=(), data=(), interpolation=None, origin=None, day_count=None, forward_tenor=None):
+        if isinstance(domain, RateCurve):
+            # if argument is a curve add extra curve points to domain for better approximation
+            if data:
+                raise TypeError("If first argument is %s, data argument must not be given." % domain.__class__.__name__)
+            data = domain
+            forward_tenor = data.forward_tenor if forward_tenor is None else forward_tenor
+            new_domain = list(data.domain)
+            for x in data.domain:
+                while self.origin < x:
+                    new_domain.append(x)
+                    x -= forward_tenor
+            domain = sorted(set(new_domain))
+        super(CashRateCurve, self).__init__(domain, data, interpolation, origin, day_count, forward_tenor)
 
     def _get_compounding_rate(self, start, stop):
         if start == stop:

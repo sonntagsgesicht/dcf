@@ -3,7 +3,7 @@
 # dcf
 # ---
 # A Python library for generating discounted cashflows.
-# 
+#
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
 # Version:  0.3, copyright Wednesday, 18 September 2019
 # Website:  https://github.com/sonntagsgesicht/dcf
@@ -75,6 +75,7 @@ class interpolation_scheme(object):
             # interpolate in the middle
             y = self._y_mid(x)
         return y
+
 
 def dyn_scheme(left, mid, right):
     name = left.__name__ + '_' + mid.__name__ + '_' + right.__name__

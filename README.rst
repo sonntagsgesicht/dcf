@@ -54,6 +54,10 @@ Python library *dcf*
    :target: https://pypi.org/project/dcf/
    :alt: PyPI Downloads
 
+.. image:: https://pepy.tech/badge/dcf
+   :target: https://pypi.org/project/dcf/
+   :alt: PyPI Downloads
+
 A Python library for generating discounted cashflows *(dcf)*.
 Typical banking business methods are provided like interpolation, compounding,
 discounting and fx.

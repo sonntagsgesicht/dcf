@@ -3,12 +3,12 @@
 # dcf
 # ---
 # A Python library for generating discounted cashflows.
-# 
+#
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
 # Version:  0.3, copyright Wednesday, 18 September 2019
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
-
+from abc import ABC
 
 from .interpolation import constant, linear
 from .interpolationscheme import dyn_scheme
@@ -36,7 +36,8 @@ class Curve(object):
 
         :param list(float) domain: source values
         :param list(float) data: target values
-        :param function interpolation: interpolation function on x_list (optional), default is taken from class member _interpolation
+        :param function interpolation: interpolation function on x_list (optional),
+               default is taken from class member _interpolation
 
             Curve object to build function :math:`f:R \rightarrow R, x \mapsto y`
             from finite point vectors :math:`x` and :math:`y`
@@ -47,7 +48,7 @@ class Curve(object):
             raise ValueError('%s requires equal length input for domain and data' % self.__class__.__name__)
 
         if domain:
-            domain, data = map(list,zip(*sorted(zip(*(domain, data)))))
+            domain, data = map(list, zip(*sorted(zip(*(domain, data)))))
 
         if interpolation is None:
             interpolation = self.__class__._interpolation
@@ -181,11 +182,11 @@ class DateCurve(Curve):
         # try use result, error = scipy.integrate(self, start, stop)
         try:
             from scipy.integrate import quad
-            #raise ImportError()
+            # raise ImportError()
             s = self.day_count(self.origin, start)
             e = self.day_count(self.origin, stop)
             f = super(DateCurve, self).__call__
-            value, error = quad(f, s, e)
+            value, error, *_ = quad(f, s, e)
         except ImportError:
             value = 0.0
             step = self.__class__._time_shift
@@ -212,7 +213,7 @@ class DateCurve(Curve):
         return result
 
 
-class RateCurve(DateCurve):
+class RateCurve(DateCurve, ABC):
     _time_shift = '1D'
     _forward_tenor = '3M'
 
@@ -221,6 +222,7 @@ class RateCurve(DateCurve):
         raise NotImplementedError
 
     def cast(self, cast_type, **kwargs):
+        # todo: make private
         new = cast_type(kwargs.get('domain', self.domain),
                         [cast_type.get_storage_type(self, x) for x in kwargs.get('domain', self.domain)],
                         kwargs.get('interpolation', None),
@@ -230,30 +232,55 @@ class RateCurve(DateCurve):
         return new
 
     def __init__(self, domain=(), data=(), interpolation=None, origin=None, day_count=None, forward_tenor=None):
+        """
+            abstract base class for InterestRateCurve and CreditCurve
+        :param domain: either curve points or a RateCurve
+        :param data: either curve values or a RateCurve
+        :param interpolation: (optional) interpolation scheme
+        :param origin: (optional) curve points origin
+        :param day_count: (optional) day count convention
+        :param forward_tenor: (optional) forward rate tenor
+        """
+
+        other = None
+        # either domain or data can be RateCurve too. if given extract arguments for casting
+        if isinstance(domain, RateCurve):
+            if data:
+                raise TypeError("If first argument is %s, data argument must not be given." % domain.__class__.__name__)
+            other = domain
+            domain = other.domain
+        if isinstance(data, RateCurve):
+            other = data
+            domain = other.domain if domain is None else domain
+        if other:
+            # get data as self.get_storage_type
+            data = [self.get_storage_type(other, x) for x in domain]
+            # use other properties if not give explicitly
+            interpolation = other.interpolation if interpolation is None else interpolation
+            origin = other.origin if origin is None else origin
+            day_count = other.day_count if day_count is None else day_count
+            forward_tenor = other.forward_tenor if forward_tenor is None else forward_tenor
+
         super(RateCurve, self).__init__(domain, data, interpolation, origin, day_count)
         self.forward_tenor = self.__class__._forward_tenor if forward_tenor is None else forward_tenor
 
     def __add__(self, other):
-        casted = other.cast(self.__class__)
-        new = super(RateCurve, self).__add__(casted)
+        new = super(RateCurve, self).__add__(self.__class__(other))
         new.forward_tenor = self.forward_tenor
         return new
 
     def __sub__(self, other):
-        casted = other.cast(self.__class__)
-        new = super(RateCurve, self).__sub__(casted)
+        new = super(RateCurve, self).__sub__(self.__class__(other))
         new.forward_tenor = self.forward_tenor
         return new
 
     def __mul__(self, other):
-        casted = other.cast(self.__class__)
-        new = super(RateCurve, self).__mul__(casted)
+        new = super(RateCurve, self).__mul__(self.__class__(other))
         new.forward_tenor = self.forward_tenor
         return new
 
     def __div__(self, other):
-        casted = other.cast(self.__class__)
-        new = super(RateCurve, self).__div__(casted)
+        new = super(RateCurve, self).__div__(self.__class__(other))
         new.forward_tenor = self.forward_tenor
         return new
 
