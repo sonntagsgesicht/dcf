@@ -18,33 +18,6 @@ from .interpolationscheme import dyn_scheme
 
 class InterestRateCurve(RateCurve, ABC):
 
-    def cast(self, cast_type, **kwargs):
-        # old_domain = kwargs.get('domain', self.domain)
-
-        if issubclass(cast_type, (DiscountFactorCurve,)):
-            domain = kwargs.get('domain', self.domain)
-            origin = kwargs.get('origin', self.origin)
-            new_domain = list(domain) + [origin + '1d']
-            kwargs['domain'] = sorted(set(new_domain))
-
-        if issubclass(cast_type, (DiscountFactorCurve,)):
-            domain = kwargs.get('domain', self.domain)
-            new_domain = list(domain) + [max(domain) + '1d']
-            kwargs['domain'] = sorted(set(new_domain))
-
-        if issubclass(cast_type, (CashRateCurve,)):
-            domain = kwargs.get('domain', self.domain)
-            forward_tenor = kwargs.get('forward_tenor', self.forward_tenor)
-            new_domain = list(domain)
-            for x in domain:
-                # new_domain.extend(businessdate.BusinessRange(self.origin, x, forward_tenor, x))
-                while self.origin < x:
-                    new_domain.append(x)
-                    x -= forward_tenor
-            kwargs['domain'] = sorted(set(new_domain))
-
-        return super(InterestRateCurve, self).cast(cast_type, **kwargs)
-
     def get_discount_factor(self, start, stop=None):
         if stop is None:
             return self.get_discount_factor(self.origin, start)
@@ -156,7 +129,7 @@ class DiscountFactorCurve(InterestRateCurve):
     _interpolation = dyn_scheme(logconstantrate, loglinearrate, logconstantrate)
 
     @staticmethod
-    def get_storage_type(curve, x):
+    def _get_storage_value(curve, x):
         return curve.get_discount_factor(curve.origin, x)
 
     def __init__(self, domain=(), data=(), interpolation=None, origin=None, day_count=None, forward_tenor=None):
@@ -186,7 +159,7 @@ class ZeroRateCurve(InterestRateCurve):
     _interpolation = dyn_scheme(constant, linear, constant)
 
     @staticmethod
-    def get_storage_type(curve, x):
+    def _get_storage_value(curve, x):
         return curve.get_zero_rate(curve.origin, x)
 
     def _get_compounding_rate(self, start, stop):
@@ -207,7 +180,7 @@ class ShortRateCurve(InterestRateCurve):
     _interpolation = dyn_scheme(constant, constant, constant)
 
     @staticmethod
-    def get_storage_type(curve, x):
+    def _get_storage_value(curve, x):
         return curve.get_short_rate(x)
 
     def _get_compounding_rate(self, start, stop):
@@ -232,7 +205,7 @@ class ShortRateCurve(InterestRateCurve):
 class CashRateCurve(InterestRateCurve):
 
     @staticmethod
-    def get_storage_type(curve, x):
+    def _get_storage_value(curve, x):
         return curve.get_cash_rate(x)
 
     def __init__(self, domain=(), data=(), interpolation=None, origin=None, day_count=None, forward_tenor=None):

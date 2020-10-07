@@ -3,12 +3,12 @@
 # dcf
 # ---
 # A Python library for generating discounted cashflows.
-# 
+#
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
 # Version:  0.3, copyright Wednesday, 18 September 2019
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
-
+from abc import ABC
 
 import logging
 from math import sqrt
@@ -20,34 +20,10 @@ from .interpolationscheme import dyn_scheme
 _logger = logging.getLogger('dcf')
 
 
-class VolatilityCurve(RateCurve):
+class VolatilityCurve(RateCurve, ABC):
     """ generic curve for default probabilities (under construction) """
     _time_shift = '1d'
     _interpolation = dyn_scheme(zero, linear, constant)
-
-    def cast(self, cast_type, **kwargs):
-        old_domain = kwargs.get('domain', self.domain)
-
-        if issubclass(cast_type, (TerminalVolatilityCurve)):
-            domain = kwargs.get('domain', self.domain)
-            origin = kwargs.get('origin', self.origin)
-            new_domain = list(domain) + [origin + '1d'] + [max(domain) + '10y']
-            kwargs['domain'] = sorted(set(new_domain))
-
-        if False:
-            domain = kwargs.get('domain', self.domain)
-            new_domain = list(domain) + [max(domain) + '1y']
-            kwargs['domain'] = sorted(set(new_domain))
-
-        if issubclass(cast_type, (InstantaneousVolatilityCurve)):
-            domain = kwargs.get('domain', self.domain)
-            origin = kwargs.get('origin', self.origin)
-            new_domain = list()
-            for d in domain + [origin]:
-                new_domain.extend([d - cast_type._time_shift, d, d + cast_type._time_shift])
-            kwargs['domain'] = sorted(set(new_domain))
-
-        return super(VolatilityCurve, self).cast(cast_type, **kwargs)
 
     def get_instantaneous_vol(self, start):
         raise NotImplementedError
@@ -59,8 +35,22 @@ class VolatilityCurve(RateCurve):
 class InstantaneousVolatilityCurve(VolatilityCurve):
 
     @staticmethod
-    def get_storage_type(curve, x):
+    def _get_storage_value(curve, x):
         return curve.get_instantaneous_vol(x)
+
+    def __init__(self, domain=(), data=(), interpolation=None, origin=None, day_count=None, forward_tenor=None):
+        # if argument is a curve add extra curve points to domain for better approximation
+        if isinstance(domain, RateCurve):
+            if data:
+                raise TypeError("If first argument is %s, data argument must not be given." % domain.__class__.__name__)
+            data = domain
+            origin = data.origin if origin is None else origin
+            new_domain = list()
+            for d in data.domain + [origin]:
+                new_domain.extend([d - self._time_shift, d, d + self._time_shift])
+            domain = sorted(set(new_domain))
+        super(InstantaneousVolatilityCurve, self).__init__(
+            domain, data, interpolation, origin, day_count, forward_tenor)
 
     def get_instantaneous_vol(self, start):
         return self(start)
@@ -80,8 +70,18 @@ class TerminalVolatilityCurve(VolatilityCurve):
     FLOOR = None
 
     @staticmethod
-    def get_storage_type(curve, x):
+    def _get_storage_value(curve, x):
         return curve.get_terminal_vol(x)
+
+    def __init__(self, domain=(), data=(), interpolation=None, origin=None, day_count=None, forward_tenor=None):
+        # if argument is a curve add extra curve points to domain for better approximation
+        if isinstance(domain, RateCurve):
+            if data:
+                raise TypeError("If first argument is %s, data argument must not be given." % domain.__class__.__name__)
+            data = domain
+            origin = data.origin if origin is None else origin
+            domain = sorted(set(list(data.domain) + [origin + '1d', max(data.domain) + '10y']))
+        super(TerminalVolatilityCurve, self).__init__(domain, data, interpolation, origin, day_count, forward_tenor)
 
     def get_instantaneous_vol(self, start):
         return self.get_terminal_vol(start, start + self.__class__._time_shift)

@@ -42,6 +42,7 @@ from dcf import RatingClass
 
 # logging.basicConfig()
 
+
 def _silent(func, *args, **kwargs):
     _stout = sys.stdout
     sys.stdout = open(os.devnull, 'w')
@@ -393,6 +394,7 @@ class CastZeroRateCurveUnitTests(TestCase):
         curve = self.curve()
         for t in (DiscountFactorCurve, ZeroRateCurve, ShortRateCurve):
             cast = t(curve)
+            curve.cast(t)
             recast = self.cast_type(cast)
             self.assertEqual(self.cast_type._interpolation, curve.interpolation)
             self.assertEqual(t._interpolation, cast.interpolation)
@@ -682,7 +684,7 @@ class VolCurveUnitTests(TestCase):
         domain = [self.today, self.today + '2y', self.today + '3y', self.today + '4y']
         data = [0.15, 0.2, 0.2, 0.19]
         term_curve = TerminalVolatilityCurve(domain, data)
-        inst_curve = term_curve.cast(InstantaneousVolatilityCurve)
+        inst_curve = InstantaneousVolatilityCurve(term_curve)
         for t in self.domain:
             for p in self.periods:
                 x = t + p
@@ -703,7 +705,7 @@ class VolCurveUnitTests(TestCase):
         domain = [self.today, self.today + '2y', self.today + '3y', self.today + '4y']
         data = [0.15, 0.2, 0.2, 0.19]
         inst_curve = InstantaneousVolatilityCurve(domain, data)
-        term_curve = inst_curve.cast(TerminalVolatilityCurve)
+        term_curve = TerminalVolatilityCurve(inst_curve)
         for t in self.domain:
             for p in self.periods:
                 x = t + p

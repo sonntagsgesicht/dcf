@@ -9,6 +9,7 @@
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 from abc import ABC
+from warnings import warn
 
 from .interpolation import constant, linear
 from .interpolationscheme import dyn_scheme
@@ -218,22 +219,22 @@ class RateCurve(DateCurve, ABC):
     _forward_tenor = '3M'
 
     @staticmethod
-    def get_storage_type(curve, x):
+    def _get_storage_value(curve, x):
         raise NotImplementedError
 
-    def _get_storage_value(self, curve, x):
-        return self.get_storage_type(curve, x)
-
     def cast(self, cast_type, **kwargs):
-        # todo: make private
-        data = [cast_type.get_storage_type(self, x) for x in kwargs.get('domain', self.domain)]
-        new = cast_type(kwargs.get('domain', self.domain),
-                        kwargs.get('data', data),
-                        kwargs.get('interpolation', None),
-                        kwargs.get('origin', self.origin),
-                        kwargs.get('day_count', self.day_count),
-                        kwargs.get('forward_tenor', self.forward_tenor))
-        return new
+        cls = self.__class__.__name__
+        msg = "\n%s().cast(cast_type, **kwargs) is deprecated.\n" \
+              "Please use for casting an object `curve` of type %s\n" \
+              " cast_type(curve, **kwargs)\n" \
+              "instead." % (cls, cls)
+        warn(msg)
+
+        if 'domain' in kwargs:
+            kwargs['data'] = self
+        else:
+            kwargs['domain'] = self
+        return cast_type(**kwargs)
 
     def __init__(self, domain=(), data=(), interpolation=None, origin=None, day_count=None, forward_tenor=None):
         """
@@ -257,7 +258,7 @@ class RateCurve(DateCurve, ABC):
             other = data
             domain = other.domain if domain is None else domain
         if other:
-            # get data as self.get_storage_type
+            # get data as self._get_storage_value
             data = [self._get_storage_value(other, x) for x in domain]
             # use other properties if not give explicitly
             # interpolation should default to class defaults

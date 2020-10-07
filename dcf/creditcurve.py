@@ -21,33 +21,6 @@ class CreditCurve(RateCurve, ABC):
     """ generic curve for default probabilities (under construction) """
     _forward_tenor = '1Y'
 
-    def cast(self, cast_type, **kwargs):
-        old_domain = kwargs.get('domain', self.domain)
-
-        if issubclass(cast_type, SurvivalProbabilityCurve):
-            domain = kwargs.get('domain', self.domain)
-            origin = kwargs.get('origin', self.origin)
-            new_domain = list(domain) + [origin + '1d', max(domain) + '1y']
-            kwargs['domain'] = sorted(set(new_domain))
-
-        if True:
-            domain = kwargs.get('domain', self.domain)
-            new_domain = list(domain) + [max(domain) + '1y']
-            kwargs['domain'] = sorted(set(new_domain))
-
-        if issubclass(cast_type, ()):
-            domain = kwargs.get('domain', self.domain)
-            forward_tenor = kwargs.get('forward_tenor', self.forward_tenor)
-            new_domain = list(domain)
-            for x in domain:
-                s = self.origin
-                while s <= x:
-                    s += forward_tenor
-                    new_domain.append(s)
-            kwargs['domain'] = sorted(set(new_domain))
-
-        return super(CreditCurve, self).cast(cast_type, **kwargs)
-
     def __init__(self, domain=(), data=(), interpolation=None, origin=None, day_count=None, forward_tenor=None):
         if isinstance(domain, RateCurve):
             # if argument is a curve add extra curve points to domain for better approximation
@@ -104,7 +77,7 @@ class SurvivalProbabilityCurve(ProbabilityCurve):
     _interpolation = dyn_scheme(logconstantrate, loglinearrate, logconstantrate)
 
     @staticmethod
-    def get_storage_type(curve, x):
+    def _get_storage_value(curve, x):
         return curve.get_survival_prob(curve.origin, x)
 
     def _get_compounding_factor(self, start, stop):
@@ -126,10 +99,7 @@ class DefaultProbabilityCurve(SurvivalProbabilityCurve):
     """ wrapper of SurvivalProbabilityCurve """
 
     @staticmethod
-    def get_storage_type(curve, x):
-        return 1. - curve.get_survival_prob(curve.origin, x)
-
-    def _get_storage_value(self, curve, x):
+    def _get_storage_value(curve, x):
         return curve.get_survival_prob(curve.origin, x)
 
     def __init__(self, domain=(), data=(), interpolation=None, origin=None, day_count=None, forward_tenor=None):
@@ -142,7 +112,7 @@ class FlatIntensityCurve(CreditCurve):
     _interpolation = dyn_scheme(constant, linear, constant)
 
     @staticmethod
-    def get_storage_type(curve, x):
+    def _get_storage_value(curve, x):
         return curve.get_flat_intensity(curve.origin, x)
 
     def _get_compounding_rate(self, start, stop):
@@ -163,7 +133,7 @@ class HazardRateCurve(CreditCurve):
     _interpolation = dyn_scheme(constant, constant, constant)
 
     @staticmethod
-    def get_storage_type(curve, x):
+    def _get_storage_value(curve, x):
         return curve.get_hazard_rate(x)
 
     def _get_compounding_rate(self, start, stop):
@@ -189,7 +159,7 @@ class MarginalSurvivalProbabilityCurve(ProbabilityCurve):
     _interpolation = dyn_scheme(neglogconstant, negloglinear, neglogconstant)
 
     @staticmethod
-    def get_storage_type(curve, x):
+    def _get_storage_value(curve, x):
         return curve.get_survival_prob(x, x + curve.forward_tenor)
 
     def _get_compounding_factor(self, start, stop):
@@ -230,14 +200,11 @@ class MarginalDefaultProbabilityCurve(MarginalSurvivalProbabilityCurve):
     """ wrapper of SurvivalProbabilityCurve """
 
     @staticmethod
-    def get_storage_type(curve, x):
-        return 1. - curve.get_survival_prob(x, x + curve.forward_tenor)
-
-    def _get_storage_value(self, curve, x):
+    def _get_storage_value(curve, x):
         return curve.get_survival_prob(x, x + curve.forward_tenor)
 
     def __init__(self, domain=(), data=(), interpolation=None, origin=None, day_count=None, forward_tenor=None):
         if not isinstance(data, RateCurve):
             data = [1. - d for d in data]
         super(MarginalDefaultProbabilityCurve, self).__init__(
-            domain, data, interpolation, origin, day_count,forward_tenor)
+            domain, data, interpolation, origin, day_count, forward_tenor)
