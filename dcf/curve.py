@@ -150,6 +150,7 @@ class DateCurve(Curve):
         flt_domain = [self._day_count(self._origin, x) for x in domain]
         super(DateCurve, self).__init__(flt_domain, data, interpolation)
         self._domain = domain
+        self.fixings = dict()
 
     @property
     def domain(self):
@@ -164,6 +165,8 @@ class DateCurve(Curve):
     def __call__(self, x):
         if isinstance(x, (list, tuple)):
             return [self(xx) for xx in x]
+        if x in self.fixings:
+            return self.fixings[x]
         return super(DateCurve, self).__call__(self.day_count(self.origin, x))
 
     def __add__(self, other):

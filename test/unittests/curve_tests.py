@@ -126,3 +126,15 @@ class DateCurveUnitTests(TestCase):
         Curve2 = DateCurve(self.dates, self.values, origin=origin2)
         for d in self.dates:
             self.assertAlmostEqual(Curve1(d), Curve2(d))
+
+    def test_fixings(self):
+        curve = DateCurve(self.dates, self.values)
+        date = BusinessDate() + '1y3m4d'
+        value = curve(date)
+        previous = curve(date - '1d')
+        next = curve(date + '1d')
+        curve.fixings[date] = value * 2
+        self.assertAlmostEqual(curve.fixings[date], curve(date))
+        self.assertAlmostEqual(value * 2, curve(date))
+        self.assertAlmostEqual(previous, curve(date - '1d'))
+        self.assertAlmostEqual(next, curve(date + '1d'))
