@@ -32,7 +32,7 @@ class InterestRateCurve(RateCurve, ABC):
         r"""
             constant interpolated short rate derived from zero rate
 
-        :param BusinessDate start: point in time of short rate
+        :param date start: point in time of short rate
         :return: short rate at given point in time
 
         Calculation assumes a zero rate derived from a interpolated short rate, i.e.
@@ -75,9 +75,9 @@ class InterestRateCurve(RateCurve, ABC):
         r"""
             linear interpolated short rate derived from zero rate
 
-        :param BusinessDate start: point in time of short rate
-        :param BusinessDate previous: point in time of short rate grid before start
-        :param BusinessDate follow: point in time of short rate grid after start
+        :param date start: point in time of short rate
+        :param date previous: point in time of short rate grid before start
+        :param date follow: point in time of short rate grid after start
         :return: short rate at given point in time
 
         Calculation assumes a zero rate derived from a linear interpolated short rate, i.e.

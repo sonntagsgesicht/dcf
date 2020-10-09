@@ -97,10 +97,25 @@ class Curve(object):
         return self.__class__(x_list, y_list, self.interpolation)
 
     def __str__(self):
-        return str([z for z in zip(self.domain, self(self.domain))])
+        s, e = self.domain[0], self.domain[-1]
+        t = s, e, self(s), self(e)
+        s = self.__class__.__name__ + '([%s ... %s], [%s ... %s]' % tuple(map(repr, t)) + self._args(', ') + ')'
+        return s
 
     def __repr__(self):
-        return self.__class__.__name__ + '(' + self.__str__() + ')'
+        start = self.__class__.__name__ + '('
+        fill = ' ' * len(start)
+        s = start + str(self.domain) + ',\n' + fill + str(self(self.domain)) + self._args(',\n' + fill) + ')'
+        return s
+
+    def _args(self, sep=''):
+        s = ''
+        for name in 'interpolation', 'origin', 'day_count', 'forward_tenor':
+            if hasattr(self, name):
+                attr = getattr(self, name)
+                attr = attr.__name__ if hasattr(attr, '__name__') else repr(attr)
+                s += sep + name + '=' + attr
+        return s
 
     def shifted(self, delta=0.0):
         if delta:

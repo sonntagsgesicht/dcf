@@ -8,250 +8,131 @@
 # Version:  0.3, copyright Wednesday, 18 September 2019
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
+from abc import ABC
+
+from .curve import DateCurve
+from .interpolation import zero
+from .interpolationscheme import dyn_scheme
+from .plans import DEFAULT_AMOUNT, flat
 
 
-try:
-    from collections import OrderedDict
-except ImportError:
-    OrderedDict = dict
+class CashFlowList(object):
 
-from dcf import ZeroRateCurve
+    @property
+    def domain(self):
+        raise NotImplementedError
 
+    @property
+    def origin(self):
+        raise NotImplementedError
 
-def _frange(start, stop=None, step=None):
-    """
-    _frange range like function for float inputs
-    :param start:
-    :type start:
-    :param stop:
-    :type stop:
-    :param step:
-    :type step:
-    :return:
-    :rtype:
-    """
-    if stop is None:
-        stop = start
-        start = 0.0
-    if step is None:
-        step = 1.0
-    r = start
-    while r < stop:
-        yield r
-        r += step
+    def __getitem__(self, item):
+        raise NotImplementedError
 
 
-class CashFlowList(OrderedDict):
+class FixedCashFlowList(DateCurve, CashFlowList):
     """
     CashFlowList
     """
+    _interpolation = dyn_scheme(zero, zero, zero)
 
-    def __init__(self, pay_date_list, amount_list=None):
-        if amount_list is None:
-            amount_list = [1e6] * len(pay_date_list)
-        if not len(amount_list) == len(pay_date_list):
-            raise AssertionError()
-        super(CashFlowList, self).__init__(list(zip(pay_date_list, amount_list)))
+    def __init__(self, payment_date_list, amount_list=DEFAULT_AMOUNT):
+        if isinstance(amount_list, (int, float)):
+            amount_list = flat(len(payment_date_list), amount_list)
+        if not len(amount_list) == len(payment_date_list):
+            cls = self.__class__.__name__
+            raise ValueError("%s arguments `payment_date_list` and `amount_list` must have same length." % cls)
+        # keep flows in dict for safety reasons due to numerical errors
+        self._flows = dict(zip(payment_date_list, amount_list))
+        super(FixedCashFlowList, self).__init__(payment_date_list, amount_list)
 
     def __getitem__(self, item):
         if isinstance(item, (tuple, list)):
-            return [self[i] for i in item]
+            return tuple(self[i] for i in item)
         else:
-            return super(CashFlowList, self).__getitem__(item)
-
-    def get_value(self, discount_curve, valuation_date=None):
-
-        valuation_date = discount_curve.origin if valuation_date is None else valuation_date
-        pd = [d for d in self if valuation_date < d]
-
-        if isinstance(self[pd], float):  # todo: check valuation ...
-            return self[pd] * discount_curve.get_swap_annuity(pd)
-        else:
-            return sum([discount_curve.get_discount_factor(discount_curve.origin, t) * r for t, r in zip(pd, self[pd])])
-
-    def yield_to_maturity(self, valuation_date):
-        # todo bracketing on yield
-        last = None
-        ytm = None
-        for ytm in _frange(-0.1, 0.1, 0.001):
-            value = self.get_value(ZeroRateCurve([ytm], [valuation_date]))
-            if last is None or abs(last) >= abs(value):
-                last = value
-        return ytm
+            return self._flows.get(item, 0.)
 
 
-class AmortizingCashFlowList(CashFlowList):
-    """
-    AmortizingCashFlowList
-    """
-    # todo AmortizingCashFlowList
-    pass
+class RateCashFlowList(DateCurve, CashFlowList):
+    """ list of cashflows by interest rate payments """
+    _interpolation = dyn_scheme(zero, zero, zero)
 
+    def __init__(self, payment_date_list, amount_list=DEFAULT_AMOUNT,
+                 day_count=None, start_date=None, fixed_rate=0., forward_curve=None):
+        """
 
-class AnnuityCashFlowList(CashFlowList):
-    """
-    AnnuityCashFlowList
-    """
-    # todo  AnnuityCashFlowList
-    pass
+        :param payment_date_list: pay dates, assuming that pay dates agree with end dates of interest accrued period
+        :param amount_list: notional amounts
+        :param start_date: start date of first interest accrued period
+        :param day_count: day count convention
+        :param fixed_rate: agreed fixed rate
+        :param forward_curve:
+        """
 
+        if isinstance(amount_list, (int, float)):
+            amount_list = flat(len(payment_date_list), amount_list)
+        if not len(amount_list) == len(payment_date_list):
+            cls = self.__class__.__name__
+            raise ValueError("%s arguments `payment_date_list` and `amount_list` must have same length." % cls)
 
-class RateCashFlowList(CashFlowList):
-    """
-    RateCashFlowList
-    """
-
-    def __init__(self, date_list, day_count, fixed_rate=0.0, forward_curve=None, notional_list=None):
-        if notional_list is None:
-            notional_list = [1e6] * len(date_list[1:])
-
+        # keep flows in dict for safety reasons due to numerical errors
+        self._flows = dict(zip(payment_date_list, amount_list))
         self.fixed_rate = fixed_rate
         self.forward_curve = forward_curve
-        self.day_count = day_count
 
-        amount_list = list()
-        for s, e, n in zip(date_list[:-1], date_list[1:], notional_list):
-            amount_list.append(n * day_count(s, e))
-
-        super(RateCashFlowList, self).__init__(date_list[1:], notional_list)
+        super(RateCashFlowList, self).__init__(payment_date_list, amount_list, day_count=day_count, origin=start_date)
 
     def __getitem__(self, item):
-        """
-            getitem does re-calc float cash flows and does not use store notional values
-        """
-        amount = super(RateCashFlowList, self).__getitem__(item)
-        if self.forward_curve is None:
-            return self.fixed_rate * amount
+        """ getitem does re-calc float cash flows and does not use store notional values """
+        if isinstance(item, (tuple, list)):
+            return tuple(self[i] for i in item)
         else:
-            return (self.fixed_rate + self.forward_curve(item)) * amount
+            amount = self._flows.get(item, 0.)
+            previous = list(d for d in self.domain if d < item)
+            if previous:
+                start = previous[-1]
+            else:
+                start = self.origin
 
-    def interest_accrued(self, valuation_date):
-        # todo RateCashFlowList.interest_accrued()
-        # get next cf
-        # get yf until pay_date
-        # calc interest_accrued
-        next_pay_date = [d for d in self if valuation_date <= d][0]
-        return self[next_pay_date] / (1 - self.day_count(valuation_date, next_pay_date))
+            if self.forward_curve is None:
+                return self.fixed_rate * amount * self.day_count(start, item)
+            else:
+                return (self.fixed_rate + self.forward_curve.get_cash_rate(item)) * amount * self.day_count(start, item)
 
 
-class MultiCashFlowList(CashFlowList):
+class CashFlowLegList(CashFlowList):
     """
     MultiCashFlowList
     """
 
-    def __init__(self, legs):
-        for l in legs:
-            if not isinstance(l, CashFlowList):
-                raise AssertionError()
-        date_list = list(set().union([list(l.keys()) for l in legs]))
-        super(MultiCashFlowList, self).__init__(list(zip(date_list, [None] * len(date_list))))
-        self.legs = legs
+    @property
+    def domain(self):
+        if self._domain:
+            return self._domain
+        else:
+            domains = tuple(tuple(leg.domain) for leg in self._legs)
+            self._domain = list(sorted(set().union(*domains)))
+            return self._domain
+
+    @property
+    def legs(self):
+        return list(self._legs)
+
+    @property
+    def origin(self):
+        return min(leg.origin for leg in self._legs)
+
+    def __init__(self, legs, start_date=None):
+        for leg in legs:
+            if not isinstance(leg, (CashFlowList, RateCashFlowList)):
+                cls = self.__class__.__name__, leg.__class__.__name__
+                raise ValueError("Legs %s of con be either `CashFlowList` or `RateCashFlowList` but not %s." % cls)
+        self._domain = None
+        self._legs = legs
 
     def __getitem__(self, item):
-        """
-            getitem does re-calc float cash flows and does not use store notional values
-        """
-        super(MultiCashFlowList, self).__getitem__(item)
-        return sum([l[item] for l in self.legs if item in l])
-
-    def __str__(self):
-        return ', '.join([str(l) for l in self.legs])
-
-    def interest_accrued(self, valuation_date):
-        """
-        interest_accrued
-        :param valuation_date:
-        :type valuation_date:
-        :return:
-        :rtype:
-        """
-        return sum([l.interest_accrued(valuation_date) for l in self.legs if hasattr(l, 'interest_accrued')])
-
-
-class FixedLoan(MultiCashFlowList):
-    """
-    FixedLoan
-    """
-    pass
-
-
-class FloatLoan(MultiCashFlowList):
-    """
-    FloatLoan
-    """
-    pass
-
-
-class FixedFloatSwap(MultiCashFlowList):
-    """
-    ir swap that pays fixed and receives float.
-    """
-
-    def __init__(self, date_list, fixed_rate, forward_curve, notional_list=None, day_count=None):
-
-        # if args are tuples turn them into lists else build dupe lists
-        if isinstance(fixed_rate, tuple):
-            fixed_rate = list(fixed_rate)
+        """ getitem does re-calc float cash flows and does not use store notional values """
+        if isinstance(item, (tuple, list)):
+            return tuple(self[i] for i in item)
         else:
-            fixed_rate = [fixed_rate, 0.0]
-
-        if isinstance(forward_curve, tuple):
-            forward_curve = list(forward_curve)
-        else:
-            forward_curve = [None, forward_curve]
-
-        if isinstance(notional_list, tuple):
-            notional_list = list(notional_list)
-        else:
-            if notional_list is None:
-                notional_list = [1e6] * len(date_list[1:])
-            notional_list = [notional_list, notional_list]
-
-        if isinstance(day_count, tuple):
-            day_count = list(day_count)
-        else:
-            day_count = [day_count, day_count]
-            for i in (0, 1):
-                if forward_curve[i] is not None:
-                    day_count[i] = forward_curve[i].day_count
-
-        if isinstance(date_list, tuple):
-            date_list = list(date_list)
-        else:
-            date_list = [date_list, date_list]
-            # gather details from forward_curve tenor
-            for i in (0, 1):
-                if forward_curve[i] is not None:
-                    leg_date_list, leg_notional_list = self.gather_float_dates(date_list[i], notional_list[i],
-                                                                               forward_curve[i].forward_tenor)
-                    # if lists do not meet required length, we'll have to replace them
-                    if not len(leg_date_list) == len(date_list[i]):
-                        date_list[i] = leg_date_list
-                    if not len(leg_notional_list) == len(notional_list[i]):
-                        notional_list[i] = leg_notional_list
-
-        # build legs
-        notional_list[0] *= -1  # swap pay sign
-        self.pay = RateCashFlowList(date_list[0], day_count[0], fixed_rate[0], forward_curve[0], notional_list[0])
-        self.rec = RateCashFlowList(date_list[1], day_count[1], fixed_rate[1], forward_curve[1], notional_list[1])
-        super(FixedFloatSwap, self).__init__([self.pay, self.rec])
-
-    @staticmethod
-    def gather_float_dates(date_list, notional_list, forward_tenor):
-        flt_date_list = list()
-        flt_notional_list = list()
-        cd = date_list[0]
-        for ed, nl in zip(date_list[1:], notional_list):
-            while cd < ed:
-                flt_date_list.append(cd)
-                flt_notional_list.append(nl)
-                cd += forward_tenor
-        return flt_date_list, flt_notional_list
-
-    def get_par_rate(self, discount_curve, leg_int=0, err=1e-8):
-        x = self.legs[leg_int].fixed_rate
-        pv = self.get_value(discount_curve)
-        while abs(pv) > err:
-            # todo implement bracketing
-            break
-        return x
+            return sum(leg[item] for leg in self._legs if item in leg.domain)

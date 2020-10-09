@@ -3,14 +3,12 @@
 # dcf
 # ---
 # A Python library for generating discounted cashflows.
-# 
+#
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
 # Version:  0.3, copyright Wednesday, 18 September 2019
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
-
-from datetime import datetime
 
 __doc__ = 'A Python library for generating discounted cashflows.'
 __version__ = '0.3'
@@ -28,12 +26,12 @@ __scripts__ = ()
 import logging
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 
-from .interpolation import *
-from .compounding import *
+# from .interpolation import *
+# from .compounding import *
+# from .ratingclass import *
 from .curve import *
 from .interestratecurve import *
-from .fx import *
 from .creditcurve import *
-from .ratingclass import *
-from .cashflow import *
 from .volatilitycurve import *
+from .fx import *
+from .cashflow import *
