@@ -97,9 +97,12 @@ class Curve(object):
         return self.__class__(x_list, y_list, self.interpolation)
 
     def __str__(self):
-        s, e = self.domain[0], self.domain[-1]
-        t = s, e, self(s), self(e)
-        s = self.__class__.__name__ + '([%s ... %s], [%s ... %s]' % tuple(map(repr, t)) + self._args(', ') + ')'
+        inner = ''
+        if self.domain:
+            s, e = self.domain[0], self.domain[-1]
+            t = s, e, self(s), self(e)
+            inner = '[%s ... %s], [%s ... %s]' % tuple(map(repr, t)) + self._args(', ')
+        s = self.__class__.__name__ + '(' + inner + ')'
         return s
 
     def __repr__(self):

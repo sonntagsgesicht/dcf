@@ -61,9 +61,9 @@ class CurveUnitTests(TestCase):
             self.assertAlmostEqual(new(x), self.curve(x) / 0.1)
 
     def test_init(self):
-        self.assertEqual(str(Curve()), str(list()))
-        self.assertEqual(str(DateCurve()), str(list()))
-        self.assertEqual(str(RateCurve()), str(list()))
+        self.assertEqual(str(Curve()), 'Curve()')
+        self.assertEqual(str(DateCurve()), 'DateCurve()')
+        self.assertEqual(str(RateCurve()), 'RateCurve()')
 
     def test_interpolation(self):
         # test default interpolation scheme
