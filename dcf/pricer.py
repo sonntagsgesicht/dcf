@@ -1,4 +1,17 @@
+# -*- coding: utf-8 -*-
+
+# dcf
+# ---
+# A Python library for generating discounted cashflows.
+#
+# Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
+# Version:  0.3, copyright Saturday, 10 October 2020
+# Website:  https://github.com/sonntagsgesicht/dcf
+# License:  Apache License 2.0 (see LICENSE file)
+
+
 from .interestratecurve import ZeroRateCurve
+from .cashflow import CashFlowLegList
 
 
 def simple_bracketing(func, a, b, precision=1e-13):
@@ -19,9 +32,10 @@ def simple_bracketing(func, a, b, precision=1e-13):
     else:
         f = func
 
-    msg = "simple_bracketing function must be loc monotone between %0.4f and %0.4f \n" % (a, b)
-    msg += "and simple_bracketing 0. between  %0.4f and %0.4f." % (fa, fb)
-    assert fa <= 0. <= fb, msg
+    if not fa <= 0. <= fb:
+        msg = "simple_bracketing function must be loc monotone between %0.4f and %0.4f \n" % (a, b)
+        msg += "and simple_bracketing 0. between  %0.4f and %0.4f." % (fa, fb)
+        raise AssertionError(msg)
 
     m = a + (b - a) * 0.5
     if abs(b - a) < precision and abs(fb - fa) < precision:
@@ -61,6 +75,8 @@ def get_yield_to_maturity(cashflow_list, valuation_date=None, present_value=0.):
 
 def get_interest_accrued(cashflow_list, valuation_date):
     if cashflow_list.domain[0] < valuation_date < cashflow_list.domain[-1]:
+        if isinstance(cashflow_list, CashFlowLegList):
+            return sum(get_interest_accrued(leg, valuation_date) for leg in cashflow_list.legs)
         last_payment_date = list(d for d in cashflow_list.domain if valuation_date > d)[0]
         next_payment_date = list(d for d in cashflow_list.domain if valuation_date <= d)[0]
         remaining = cashflow_list.day_count(valuation_date, next_payment_date)

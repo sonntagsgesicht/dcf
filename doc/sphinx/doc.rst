@@ -11,17 +11,7 @@ API Documentation
 Interpolation
 =============
 
-
-Interpolation Types
--------------------
-
 .. automodule:: dcf.interpolation
-
-
-Interpolation Scheme
---------------------
-
-.. automodule:: dcf.interpolationscheme
 
 
 Compounding

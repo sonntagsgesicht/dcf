@@ -5,9 +5,11 @@
 # A Python library for generating discounted cashflows.
 #
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
-# Version:  0.3, copyright Wednesday, 18 September 2019
+# Version:  0.3, copyright Saturday, 10 October 2020
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
+
+
 import sys
 import os
 
@@ -17,10 +19,9 @@ from math import floor
 from businessdate import BusinessDate, BusinessRange
 from scipy.interpolate import interp1d
 
-from dcf.interpolationscheme import dyn_scheme
 from dcf.interpolation import linear, constant
 
-from dcf import Curve, DateCurve, RateCurve
+from dcf import Curve, DateCurve, RateCurve, dyn_scheme
 
 
 def _silent(func, *args, **kwargs):

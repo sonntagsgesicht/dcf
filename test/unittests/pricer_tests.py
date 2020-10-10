@@ -1,9 +1,21 @@
+# -*- coding: utf-8 -*-
+
+# dcf
+# ---
+# A Python library for generating discounted cashflows.
+#
+# Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
+# Version:  0.3, copyright Saturday, 10 October 2020
+# Website:  https://github.com/sonntagsgesicht/dcf
+# License:  Apache License 2.0 (see LICENSE file)
+
+
 from unittest.case import TestCase
 
 from businessdate import BusinessDate, BusinessSchedule
 
 from dcf import DiscountFactorCurve, CashRateCurve, ZeroRateCurve
-from dcf.interpolationscheme import interpolation_scheme
+from dcf.interpolation import interpolation_scheme
 from dcf import FixedCashFlowList, RateCashFlowList, CashFlowLegList
 from dcf.pricer import get_present_value, get_yield_to_maturity, get_par_rate, get_interest_accrued
 

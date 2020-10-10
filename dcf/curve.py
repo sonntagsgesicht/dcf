@@ -5,14 +5,15 @@
 # A Python library for generating discounted cashflows.
 #
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
-# Version:  0.3, copyright Wednesday, 18 September 2019
+# Version:  0.3, copyright Saturday, 10 October 2020
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
+
+
 from abc import ABC
 from warnings import warn
 
-from .interpolation import constant, linear
-from .interpolationscheme import dyn_scheme
+from .interpolation import constant, linear, dyn_scheme
 from .compounding import continuous_compounding, continuous_rate
 
 
@@ -207,7 +208,7 @@ class DateCurve(Curve):
             s = self.day_count(self.origin, start)
             e = self.day_count(self.origin, stop)
             f = super(DateCurve, self).__call__
-            value, error, *_ = quad(f, s, e)
+            value, *_ = quad(f, s, e)
         except ImportError:
             value = 0.0
             step = self.__class__._time_shift
@@ -259,12 +260,14 @@ class RateCurve(DateCurve, ABC):
     def __init__(self, domain=(), data=(), interpolation=None, origin=None, day_count=None, forward_tenor=None):
         """
             abstract base class for InterestRateCurve and CreditCurve
+
         :param domain: either curve points or a RateCurve
         :param data: either curve values or a RateCurve
         :param interpolation: (optional) interpolation scheme
         :param origin: (optional) curve points origin
         :param day_count: (optional) day count convention
         :param forward_tenor: (optional) forward rate tenor
+
         """
 
         other = None

@@ -1,8 +1,20 @@
+# -*- coding: utf-8 -*-
+
+# dcf
+# ---
+# A Python library for generating discounted cashflows.
+#
+# Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
+# Version:  0.3, copyright Saturday, 10 October 2020
+# Website:  https://github.com/sonntagsgesicht/dcf
+# License:  Apache License 2.0 (see LICENSE file)
+
+
 from unittest.case import TestCase
 
 from businessdate import BusinessDate, BusinessSchedule
 
-from dcf.plans import DEFAULT_AMOUNT, FIXED_RATE, flat, bullet, amortize, annuity, consumer
+from dcf.plans import DEFAULT_AMOUNT, FIXED_RATE, same, bullet, amortize, annuity, consumer
 from dcf import ZeroRateCurve
 
 
@@ -10,7 +22,7 @@ class AmortizationUnitTests(TestCase):
 
     def test_flat(self):
         n = 20
-        cfs = flat(n)
+        cfs = same(n)
         self.assertEqual(n, len(cfs))
         for cf in cfs:
             self.assertAlmostEqual(DEFAULT_AMOUNT, cf)
