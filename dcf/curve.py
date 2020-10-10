@@ -41,6 +41,8 @@ class Curve(object):
         :param function interpolation: interpolation function on x_list (optional),
                default is taken from class member _interpolation
 
+               Interpolation functions can be constructed piecewise using via |interpolation_scheme|.
+
             Curve object to build function :math:`f:R \rightarrow R, x \mapsto y`
             from finite point vectors :math:`x` and :math:`y`
             using piecewise various interpolation functions.

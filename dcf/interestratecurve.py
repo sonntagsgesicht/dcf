@@ -40,7 +40,7 @@ class InterestRateCurve(RateCurve, ABC):
         Calculation assumes a zero rate derived from a interpolated short rate, i.e.
 
         let :math:`r_t` be the short rate on given time grid :math:`t_0, t_1, \dots, t_n` and
-        let :math:`z_{T,t}` be the zero rate from :math:`t` to :math:`T` with :math:`t,T \in |{t_0, t_1, \dots, t_n\}`.
+        let :math:`z_{T,t}` be the zero rate from :math:`t` to :math:`T` with :math:`t,T \in \{t_0, t_1, \dots, t_n\}`.
 
         Hence, we assume :math:`z_{T,t} (T-t) = \int_t^T r(\tau) d\tau`. Since
 
