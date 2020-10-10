@@ -66,13 +66,7 @@ discounting and fx.
 Example Usage
 -------------
 
-.. testsetup::
-
-    from datetime import date
-    from businessdate import BusinessDate, BusinessSchedule
-    from dcf import *
-
-.. doctest::
+.. code-block:: python
 
     >>> from datetime import date
     >>> from dcf import ZeroRateCurve
@@ -92,7 +86,7 @@ The framework works fine with native `datetime <https://docs.python.org/3/librar
 but we recommend `businessdate <https://pypi.org/project/businessdate/>`_ package
 for more convenient functionality to roll out date schedules.
 
-.. doctest::
+.. code-block:: python
 
     >>> from businessdate import BusinessDate, BusinessSchedule
 
@@ -105,7 +99,7 @@ for more convenient functionality to roll out date schedules.
 To build payment plans for, e.g. annuity loans, pick a plan function
 and generate an redemption amount list for paying back the loan notional amount.
 
-.. doctest::
+.. code-block:: python
 
     >>> from dcf import annuity, outstanding
 
@@ -130,10 +124,10 @@ and generate an redemption amount list for paying back the loan notional amount.
     [136.50979913376267, 136.50979913376267, 136.50979913376267, 136.50979913376267, 136.50979913376267, 136.50979913376267, 136.50979913376267, 136.50979913376267]
 
 
-Putting all together and feeding the plan into a |FixedCashFlowList|
-and the list of outstanding into a |RateCashflowList| gives the legs of a loan.
+Putting all together and feeding the plan into a `FixedCashFlowList`
+and the list of outstanding into a `RateCashflowList` gives the legs of a loan.
 
-.. doctest::
+.. code-block:: python
 
     >>> from businessdate import BusinessDate, BusinessSchedule
     >>> from dcf import amortize, outstanding
@@ -141,7 +135,7 @@ and the list of outstanding into a |RateCashflowList| gives the legs of a loan.
 
 Again, build a date schedule.
 
-.. doctest::
+.. code-block:: python
 
     >>> today = BusinessDate(20201031)
 
@@ -151,7 +145,7 @@ Again, build a date schedule.
 
 Fixing the properties of the product and rolling out the payment plan and list of notional outstanding.
 
-.. doctest::
+.. code-block:: python
 
     >>> number_of_payments = 8
     >>> interest_rate = 0.01
@@ -160,9 +154,9 @@ Fixing the properties of the product and rolling out the payment plan and list o
     >>> plan = amortize(number_of_payments, amount=notional)
     >>> out = outstanding(plan, amount=notional)
 
-Finally, create for each leg a |CashFlowList|.
+Finally, create for each leg a `CashFlowList`.
 
-.. doctest::
+.. code-block:: python
 
     >>> principal = FixedCashFlowList([start_date], [-notional], origin=start_date)
     >>> print(principal)
@@ -176,9 +170,9 @@ Finally, create for each leg a |CashFlowList|.
     >>> print(interest)
     RateCashFlowList([BusinessDate(20210131) ... BusinessDate(20221031)], [1000.0 ... 125.0], origin=BusinessDate(20201031), day_count=day_count)
 
-Add those legs to |CashFlowLegList| provides a smart container for valuation (|get_present_value()|).
+Add those legs to `CashFlowLegList` provides a smart container for valuation (`get_present_value()`).
 
-.. doctest::
+.. code-block:: python
 
     >>> from dcf import CashFlowLegList, ZeroRateCurve, get_present_value
 
