@@ -3,7 +3,7 @@
 # dcf
 # ---
 # A Python library for generating discounted cashflows.
-#
+# 
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
 # Version:  0.3, copyright Saturday, 10 October 2020
 # Website:  https://github.com/sonntagsgesicht/dcf
@@ -47,6 +47,16 @@ class Curve(object):
             from finite point vectors :math:`x` and :math:`y`
             using piecewise various interpolation functions.
         """
+        # cast/extract inputs from RateCurve if given as argument
+        if isinstance(domain, DateCurve):
+            interpolation = domain.interpolation if interpolation is None else interpolation
+            data = domain(domain.domain)
+            domain = [domain.day_count(domain.origin, x) for x in domain.domain]
+        elif isinstance(data, DateCurve):
+            interpolation = data.interpolation if interpolation is None else interpolation
+            data = data(domain)  # assuming data is a list of dates !
+            domain = [data.day_count(data.origin, x) for x in domain]
+
         # sort data by domain values
         if not len(domain) == len(data):
             raise ValueError('%s requires equal length input for domain and data' % self.__class__.__name__)
@@ -195,11 +205,8 @@ class DateCurve(Curve):
     def day_count(self, start, end):
         return self._day_count(start, end)
 
-    def to_curve(self, origin=None):
-        origin = self.origin if origin is None else origin
-        x_list = [self.day_count(origin, x) for x in self.domain]
-        y_list = self(self.domain)
-        return Curve(x_list, y_list, self.interpolation)
+    def to_curve(self):
+        return Curve(self)
 
     def integrate(self, start, stop):
         """ integrates curve and returns results as annualized rates """

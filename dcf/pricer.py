@@ -3,7 +3,7 @@
 # dcf
 # ---
 # A Python library for generating discounted cashflows.
-#
+# 
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
 # Version:  0.3, copyright Saturday, 10 October 2020
 # Website:  https://github.com/sonntagsgesicht/dcf
@@ -14,8 +14,8 @@ from .interestratecurve import ZeroRateCurve
 from .cashflow import CashFlowLegList
 
 
-def simple_bracketing(func, a, b, precision=1e-13):
-    """ find root by simple_bracketing an interval
+def _simple_bracketing(func, a, b, precision=1e-13):
+    """ find root by _simple_bracketing an interval
 
     :param callable func: function to find root
     :param float a: lower interval boundary
@@ -33,8 +33,8 @@ def simple_bracketing(func, a, b, precision=1e-13):
         f = func
 
     if not fa <= 0. <= fb:
-        msg = "simple_bracketing function must be loc monotone between %0.4f and %0.4f \n" % (a, b)
-        msg += "and simple_bracketing 0. between  %0.4f and %0.4f." % (fa, fb)
+        msg = "_simple_bracketing function must be loc monotone between %0.4f and %0.4f \n" % (a, b)
+        msg += "and _simple_bracketing 0. between  %0.4f and %0.4f." % (fa, fb)
         raise AssertionError(msg)
 
     m = a + (b - a) * 0.5
@@ -42,7 +42,7 @@ def simple_bracketing(func, a, b, precision=1e-13):
         return a, m, b
 
     a, b = (m, b) if f(m) < 0 else (a, m)
-    return simple_bracketing(f, a, b, precision)
+    return _simple_bracketing(f, a, b, precision)
 
 
 def get_present_value(cashflow_list, discount_curve, valuation_date=None, include_value_date=True):
@@ -69,7 +69,7 @@ def get_yield_to_maturity(cashflow_list, valuation_date=None, present_value=0.):
         return get_present_value(cashflow_list, discount_curve, valuation_date) - present_value
 
     # run bracketing
-    _, ytm, _ = simple_bracketing(err, -0.1, .2, 1e-2)
+    _, ytm, _ = _simple_bracketing(err, -0.1, .2, 1e-2)
     return ytm
 
 
@@ -95,7 +95,7 @@ def get_par_rate(cashflow_list, discount_curve, valuation_date=None, present_val
         return get_present_value(cashflow_list, discount_curve, valuation_date) - present_value
 
     # run bracketing
-    _, par, _ = simple_bracketing(err, -0.1, .2, 1e-7)
+    _, par, _ = _simple_bracketing(err, -0.1, .2, 1e-7)
 
     # restore fixed rate
     cashflow_list.fixed_rate = fixed_rate

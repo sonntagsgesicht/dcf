@@ -3,7 +3,7 @@
 # dcf
 # ---
 # A Python library for generating discounted cashflows.
-#
+# 
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
 # Version:  0.3, copyright Saturday, 10 October 2020
 # Website:  https://github.com/sonntagsgesicht/dcf
@@ -63,7 +63,7 @@ class RateCashflowListUnitTests(CashflowListUnitTests):
 
     def test_init(self):
         rate = 0.1
-        cf = self.cls(self.schedule, day_count=get_30_360, fixed_rate=rate, start_date=self.today-'1m')
+        cf = self.cls(self.schedule, day_count=get_30_360, fixed_rate=rate, origin=self.today-'1m')
 
         for d in cf.domain:
             self.assertIn(d, cf.domain)

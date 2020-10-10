@@ -3,7 +3,7 @@
 # dcf
 # ---
 # A Python library for generating discounted cashflows.
-#
+# 
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
 # Version:  0.3, copyright Saturday, 10 October 2020
 # Website:  https://github.com/sonntagsgesicht/dcf
@@ -70,14 +70,14 @@ class CashFlowList(object):
 class FixedCashFlowList(CashFlowList):
     _interpolation = dyn_scheme(zero, zero, zero)
 
-    def __init__(self, payment_date_list, amount_list=DEFAULT_AMOUNT, day_count=None):
+    def __init__(self, payment_date_list, amount_list=DEFAULT_AMOUNT, origin=None, day_count=None):
         if isinstance(amount_list, (int, float)):
             amount_list = same(len(payment_date_list), amount_list)
         if not len(amount_list) == len(payment_date_list):
             cls = self.__class__.__name__
             raise ValueError("%s arguments `payment_date_list` and `amount_list` must have same length." % cls)
         # keep flows in dict for safety reasons due to numerical errors
-        super().__init__(payment_date_list, amount_list)
+        super().__init__(payment_date_list, amount_list, origin=origin, day_count=day_count)
 
 
 class RateCashFlowList(CashFlowList):
@@ -85,7 +85,7 @@ class RateCashFlowList(CashFlowList):
     _interpolation = dyn_scheme(zero, zero, zero)
 
     def __init__(self, payment_date_list, amount_list=DEFAULT_AMOUNT,
-                 day_count=None, start_date=None, fixed_rate=0., forward_curve=None):
+                 day_count=None, origin=None, fixed_rate=0., forward_curve=None):
         """
 
         :param payment_date_list: pay dates, assuming that pay dates agree with end dates of interest accrued period
@@ -107,7 +107,7 @@ class RateCashFlowList(CashFlowList):
         self.fixed_rate = fixed_rate
         self.forward_curve = forward_curve
 
-        super().__init__(payment_date_list, amount_list, origin=start_date, day_count=day_count)
+        super().__init__(payment_date_list, amount_list, origin=origin, day_count=day_count)
 
     def __getitem__(self, item):
         """ getitem does re-calc float cash flows and does not use store notional values """

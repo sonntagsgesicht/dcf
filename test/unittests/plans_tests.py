@@ -3,7 +3,7 @@
 # dcf
 # ---
 # A Python library for generating discounted cashflows.
-#
+# 
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
 # Version:  0.3, copyright Saturday, 10 October 2020
 # Website:  https://github.com/sonntagsgesicht/dcf
@@ -14,7 +14,7 @@ from unittest.case import TestCase
 
 from businessdate import BusinessDate, BusinessSchedule
 
-from dcf.plans import DEFAULT_AMOUNT, FIXED_RATE, same, bullet, amortize, annuity, consumer
+from dcf.plans import DEFAULT_AMOUNT, FIXED_RATE, same, bullet, amortize, annuity, consumer, outstanding
 from dcf import ZeroRateCurve
 
 
@@ -41,7 +41,7 @@ class AmortizationUnitTests(TestCase):
         n = 20
         cfs = amortize(n)
         self.assertEqual(n, len(cfs))
-        self.assertEqual(DEFAULT_AMOUNT, sum(cfs))
+        self.assertAlmostEqual(DEFAULT_AMOUNT, sum(cfs))
         for cf in cfs:
             self.assertAlmostEqual(DEFAULT_AMOUNT/n, cf)
 
@@ -49,7 +49,7 @@ class AmortizationUnitTests(TestCase):
         n = 20
         cfs = annuity(n)
         self.assertEqual(n, len(cfs))
-        self.assertEqual(DEFAULT_AMOUNT, sum(cfs))
+        self.assertAlmostEqual(DEFAULT_AMOUNT, sum(cfs))
         a = cfs[0]
         b = cfs[-1] * (1 + FIXED_RATE)
         total = DEFAULT_AMOUNT
@@ -59,4 +59,14 @@ class AmortizationUnitTests(TestCase):
             interest = total * FIXED_RATE
             self.assertAlmostEqual(b, cf + interest)
             total -= cf
+
+    def test_outstanding(self):
+        total = 1000.
+        plan = amortize(10, total)
+        out = outstanding(plan, total)
+        self.assertEqual(len(plan), len(out))
+        current = total
+        for o, p in zip(out, plan):
+            self.assertEqual(current, o)
+            current -= p
 

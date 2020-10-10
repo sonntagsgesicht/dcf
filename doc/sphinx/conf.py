@@ -27,7 +27,7 @@ from auxilium import replacements_from_pkg, replacements, replacements_str
 
 replacements = replacements_from_pkg(replacements, pkg)
 rst_prolog = replacements_str(replacements)
-#print(rst_prolog)
+print(rst_prolog)
 
 # -- General configuration ------------------------------------------------
 

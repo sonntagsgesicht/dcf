@@ -3,14 +3,14 @@
 # dcf
 # ---
 # A Python library for generating discounted cashflows.
-#
+# 
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
 # Version:  0.3, copyright Saturday, 10 October 2020
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
 
-DEFAULT_AMOUNT = 1e6
+DEFAULT_AMOUNT = 1.
 FIXED_RATE = 0.01
 
 
@@ -37,3 +37,10 @@ def consumer(num, amount=DEFAULT_AMOUNT, fixed_rate=FIXED_RATE):
     return [total / num] * int(num)
 
 
+def outstanding(plan, amount=DEFAULT_AMOUNT, sign=False):
+    sgn = 1 if sign else -1
+    out = [amount]
+    for p in plan[:-1]:
+        amount += sgn * p
+        out.append(amount)
+    return out

@@ -35,3 +35,6 @@ from .creditcurve import *
 from .volatilitycurve import *
 from .fx import *
 from .cashflow import *
+from .ratingclass import *
+from .plans import *
+from .pricer import *

@@ -7,21 +7,8 @@ API Documentation
 
 .. toctree::
 
-
-Interpolation
+Curve Objects
 =============
-
-.. automodule:: dcf.interpolation
-
-
-Compounding
-===========
-
-.. automodule:: dcf.compounding
-
-
-Curves
-======
 
 Basic Curves
 ------------
@@ -89,6 +76,7 @@ Credit Curves
 
 .. autoclass:: CreditCurve
 .. autoclass:: SurvivalProbabilityCurve
+.. autoclass:: DefaultProbabilityCurve
 .. autoclass:: FlatIntensityCurve
 .. autoclass:: HazardRateCurve
 .. autoclass:: MarginalSurvivalProbabilityCurve
@@ -118,6 +106,16 @@ Fx Curve
 Cashflow Objects
 ================
 
+Build Functions
+---------------
+
+.. automodule:: dcf.plans
+
+
+Cashflow Objects
+----------------
+
+
 .. py:currentmodule:: dcf.cashflow
 
 .. autosummary::
@@ -129,4 +127,48 @@ Cashflow Objects
 .. automodule:: dcf.cashflow
     :members:
 
+
+Valuation Routines
+==================
+
+Present Value
+-------------
+
+.. autofunction:: dcf.pricer.get_present_value
+
+Yield To Maturity
+-----------------
+
+.. autofunction:: dcf.pricer.get_yield_to_maturity
+
+Par Rate
+--------
+
+.. autofunction:: dcf.pricer.get_par_rate
+
+Interest Accrued
+----------------
+
+.. autofunction:: dcf.pricer.get_interest_accrued
+
+
+Fundamentals
+============
+
+Interpolation
+-------------
+
+.. automodule:: dcf.interpolation
+
+
+Compounding
+-----------
+
+.. automodule:: dcf.compounding
+
+
+Rating Classes
+--------------
+
+.. automodule:: dcf.ratingclass
 

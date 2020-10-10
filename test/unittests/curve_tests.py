@@ -3,7 +3,7 @@
 # dcf
 # ---
 # A Python library for generating discounted cashflows.
-#
+# 
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
 # Version:  0.3, copyright Saturday, 10 October 2020
 # Website:  https://github.com/sonntagsgesicht/dcf
@@ -139,3 +139,9 @@ class DateCurveUnitTests(TestCase):
         self.assertAlmostEqual(value * 2, curve(date))
         self.assertAlmostEqual(previous, curve(date - '1d'))
         self.assertAlmostEqual(next, curve(date + '1d'))
+
+    def test_cast(self):
+        date_curve = DateCurve(self.dates, self.values)
+        curve = Curve(date_curve)
+        for x, d in zip(curve.domain, date_curve.domain):
+            self.assertAlmostEqual(curve(x), date_curve(d))
