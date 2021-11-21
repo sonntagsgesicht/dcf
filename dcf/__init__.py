@@ -3,7 +3,7 @@
 # dcf
 # ---
 # A Python library for generating discounted cashflows.
-# 
+#
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
 # Version:  0.4, copyright Saturday, 10 October 2020
 # Website:  https://github.com/sonntagsgesicht/dcf
@@ -11,7 +11,7 @@
 
 
 __doc__ = 'A Python library for generating discounted cashflows.'
-__version__ = '0.4'
+__version__ = '0.5dev'
 __dev_status__ = '3 - Alpha'
 __date__ = 'Saturday, 10 October 2020'
 __author__ = 'sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]'

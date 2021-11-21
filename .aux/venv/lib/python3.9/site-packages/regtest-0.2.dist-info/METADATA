@@ -1,0 +1,81 @@
+Metadata-Version: 2.1
+Name: regtest
+Version: 0.2
+Summary: regression test enhancement for the Python unittest framework.
+Home-page: https://github.com/sonntagsgesicht/regtest
+Author: sonntagsgesicht
+Author-email: sonntagsgesicht@icloud.com
+License: Apache License 2.0
+Platform: any
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Education
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Topic :: Education
+Classifier: Topic :: Software Development
+Description-Content-Type: text/x-rst
+License-File: LICENSE
+
+
+
+Regression test enhancement for the Python *unittest* framework
+
+.. image:: https://img.shields.io/codeship/a5a60730-ba8a-0137-8179-0660bd8c08b8/master.svg
+   :target: https://codeship.com//projects/364831
+   :alt: Codeship
+
+.. image:: https://img.shields.io/readthedocs/regtest
+   :target: http://regtest.readthedocs.io
+   :alt: Read the Docs
+
+.. image:: https://img.shields.io/github/license/sonntagsgesicht/regtest
+   :target: https://github.com/sonntagsgesicht/regtest/raw/master/LICENSE
+   :alt: GitHub
+
+.. image:: https://img.shields.io/github/release/sonntagsgesicht/regtest?label=github
+   :target: https://github.com/sonntagsgesicht/regtest/releases
+   :alt: GitHub release
+
+.. image:: https://img.shields.io/pypi/v/regtest
+   :target: https://pypi.org/project/regtest/
+   :alt: PyPI Version
+
+.. image:: https://img.shields.io/pypi/pyversions/regtest
+   :target: https://pypi.org/project/regtest/
+   :alt: PyPI - Python Version
+
+.. image:: https://pepy.tech/badge/regtest
+   :target: https://pypi.org/project/regtest/
+   :alt: PyPI Downloads
+
+
+Writing tests is important
+(see `here <https://auxilium.readthedocs.io/en/latest/intro.html>`_).
+And when it comes to an existing and running application even more.
+Existing results must at any chance be reproduced (*like-for-like* tests).
+
+An easy way to add many test cases
+is by invoking the application and its subroutines many times.
+But taking notes (and hardcoding) of all results is annoying.
+
+Here **regtest** might help.
+
+Simply, write routines that invoke our application.
+The initial run will collect and store return values in files.
+The next time (and at any time these routines run) the return values
+will be checked against the stored ones.
+
+To reset a routine simply remove the corresponding file
+(named accordingly) of stored reference data.
+The next time the reference data will be rebuild.
+
+
+

@@ -3,12 +3,11 @@
 # dcf
 # ---
 # A Python library for generating discounted cashflows.
-# 
+#
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
 # Version:  0.4, copyright Saturday, 10 October 2020
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
-
 
 from .interestratecurve import ZeroRateCurve
 from .cashflow import CashFlowLegList
@@ -45,7 +44,8 @@ def _simple_bracketing(func, a, b, precision=1e-13):
     return _simple_bracketing(f, a, b, precision)
 
 
-def get_present_value(cashflow_list, discount_curve, valuation_date=None, include_value_date=True):
+def get_present_value(cashflow_list, discount_curve,
+                      valuation_date=None, include_value_date=True):
     valuation_date = discount_curve.origin if valuation_date is None else valuation_date
 
     # filter flows
@@ -60,7 +60,8 @@ def get_present_value(cashflow_list, discount_curve, valuation_date=None, includ
     return sum(values)
 
 
-def get_yield_to_maturity(cashflow_list, valuation_date=None, present_value=0.):
+def get_yield_to_maturity(cashflow_list,
+                          valuation_date=None, present_value=0.):
     valuation_date = cashflow_list.origin if valuation_date is None else valuation_date
 
     # set error function
@@ -85,7 +86,8 @@ def get_interest_accrued(cashflow_list, valuation_date):
     return 0.
 
 
-def get_par_rate(cashflow_list, discount_curve, valuation_date=None, present_value=0.):
+def get_par_rate(cashflow_list, discount_curve,
+                 valuation_date=None, present_value=0.):
     valuation_date = cashflow_list.origin if valuation_date is None else valuation_date
     fixed_rate = cashflow_list.fixed_rate
 
@@ -100,3 +102,32 @@ def get_par_rate(cashflow_list, discount_curve, valuation_date=None, present_val
     # restore fixed rate
     cashflow_list.fixed_rate = fixed_rate
     return par
+
+
+def get_basis_point_value(cashflow_list, discount_curve,
+                          delta_curve=None, valuation_date=None):
+    if isinstance(cashflow_list, CashFlowLegList):
+        return sum(get_basis_point_value(
+            leg, discount_curve, delta_curve, valuation_date)
+                   for leg in cashflow_list.legs)
+    pv = get_present_value(cashflow_list, discount_curve, valuation_date)
+
+    delta_curve = discount_curve if delta_curve is None else delta_curve
+    # todo: shift explicit
+    basis_point_curve = ZeroRateCurve([delta_curve.domain], [0.0001] *
+                                      len(delta_curve.domain))
+    shifted_curve = delta_curve + basis_point_curve
+
+    if delta_curve == discount_curve:
+        discount_curve = shifted_curve
+
+    fwd_curve = getattr(cashflow_list, 'forward_curve', None)
+    if fwd_curve == delta_curve:
+        # replace delta_curve by shifted_curve
+        cashflow_list.forward_curve = shifted_curve
+    sh = get_present_value(cashflow_list, discount_curve, valuation_date)
+    if fwd_curve == delta_curve:
+        # restore delta_curve by shifted_curve
+        cashflow_list.forward_curve = shifted_curve
+
+    return sh - pv

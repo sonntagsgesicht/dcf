@@ -3,17 +3,14 @@
 # dcf
 # ---
 # A Python library for generating discounted cashflows.
-# 
+#
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
 # Version:  0.4, copyright Saturday, 10 October 2020
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
 
-from abc import ABC
-
 from .curve import DateCurve
-from .interpolation import zero, dyn_scheme
 from .plans import DEFAULT_AMOUNT, same
 
 
@@ -31,8 +28,20 @@ class CashFlowList(object):
         return self._day_count(start, end)
 
     def __init__(self, domain=(), data=(), origin=None, day_count=None):
+        if isinstance(data, (int, float)):
+            data = same(len(domain), data)
+
+        if not len(data) == len(domain):
+            cls = self.__class__.__name__
+            msg = "%s arguments `data` and `domain` must have same length." % \
+                  cls
+            raise ValueError(msg)
+
+        if day_count is None:
+            day_count = DateCurve().day_count
+
         self._origin = domain[0] if origin is None and domain else origin
-        self._day_count = DateCurve().day_count if day_count is None else day_count
+        self._day_count = day_count
         self._domain = domain
         self._flows = dict(zip(domain, data))
 
@@ -68,24 +77,19 @@ class CashFlowList(object):
 
 
 class FixedCashFlowList(CashFlowList):
-    _interpolation = dyn_scheme(zero, zero, zero)
 
-    def __init__(self, payment_date_list, amount_list=DEFAULT_AMOUNT, origin=None, day_count=None):
-        if isinstance(amount_list, (int, float)):
-            amount_list = same(len(payment_date_list), amount_list)
-        if not len(amount_list) == len(payment_date_list):
-            cls = self.__class__.__name__
-            raise ValueError("%s arguments `payment_date_list` and `amount_list` must have same length." % cls)
-        # keep flows in dict for safety reasons due to numerical errors
-        super().__init__(payment_date_list, amount_list, origin=origin, day_count=day_count)
+    def __init__(self, payment_date_list, amount_list=DEFAULT_AMOUNT,
+                 origin=None, day_count=None):
+        super().__init__(payment_date_list, amount_list,
+                         origin=origin, day_count=day_count)
 
 
 class RateCashFlowList(CashFlowList):
     """ list of cashflows by interest rate payments """
-    _interpolation = dyn_scheme(zero, zero, zero)
 
     def __init__(self, payment_date_list, amount_list=DEFAULT_AMOUNT,
-                 day_count=None, origin=None, fixed_rate=0., forward_curve=None):
+                 day_count=None, origin=None,
+                 fixed_rate=0., forward_curve=None):
         """
 
         :param payment_date_list: pay dates, assuming that pay dates agree with end dates of interest accrued period
@@ -96,21 +100,14 @@ class RateCashFlowList(CashFlowList):
         :param forward_curve:
         """
 
-        if isinstance(amount_list, (int, float)):
-            amount_list = same(len(payment_date_list), amount_list)
-        if not len(amount_list) == len(payment_date_list):
-            cls = self.__class__.__name__
-            raise ValueError("%s arguments `payment_date_list` and `amount_list` must have same length." % cls)
-
-        # keep flows in dict for safety reasons due to numerical errors
-        self._flows = dict(zip(payment_date_list, amount_list))
         self.fixed_rate = fixed_rate
         self.forward_curve = forward_curve
 
-        super().__init__(payment_date_list, amount_list, origin=origin, day_count=day_count)
+        super().__init__(payment_date_list, amount_list,
+                         origin=origin, day_count=day_count)
 
     def __getitem__(self, item):
-        """ getitem does re-calc float cash flows and does not use store notional values """
+        """ getitem does re-calc float cashflows """
         if isinstance(item, (tuple, list)):
             return tuple(self[i] for i in item)
         else:
@@ -121,10 +118,114 @@ class RateCashFlowList(CashFlowList):
             else:
                 start = self.origin
 
-            if self.forward_curve is None:
-                return self.fixed_rate * amount * self.day_count(start, item)
+            rate = self.fixed_rate
+            if self.forward_curve is not None:
+                rate += self.forward_curve.get_cash_rate(item)
+            return rate * amount * self.day_count(start, item)
+
+
+class ContingentRateCashFlowList(CashFlowList):
+    """ list of cashflows by contingent interest rate payments """
+
+    def __init__(self, payment_date_list, amount_list=DEFAULT_AMOUNT,
+                 day_count=None, origin=None,
+                 payoff=None, payoff_model=None):
+        """
+
+        :param payment_date_list: pay dates, assuming that pay dates
+            agree with end dates of interest accrued period
+        :param amount_list: notional amounts
+        :param start_date: start date of first interest accrued period
+        :param day_count: day count convention
+        :param payoff: agreed payoff
+        :param payoff_model: payoff model to derive the expected payoff
+        """
+
+        self.payoff = payoff
+        self.payoff_model = payoff_model
+
+        super().__init__(payment_date_list, amount_list, origin=origin,
+                         day_count=day_count)
+
+    def __getitem__(self, item):
+        """ getitem does re-calc float cashflows """
+        if isinstance(item, (tuple, list)):
+            return tuple(self[i] for i in item)
+        else:
+            amount = self._flows.get(item, 0.)
+            previous = list(d for d in self.domain if d < item)
+            if previous:
+                start = previous[-1]
             else:
-                return (self.fixed_rate + self.forward_curve.get_cash_rate(item)) * amount * self.day_count(start, item)
+                start = self.origin
+
+            rate = 0.0
+            if self.payoff is not None:
+                rate = self.payoff(item)
+            if self.payoff_model is not None:
+                rate = self.payoff_model(item, self.payoff)
+            return rate * amount * self.day_count(start, item)
+
+
+class RateCashFlowPayOff(object):
+
+    def __init__(self, fixed_rate=0.0):
+        self.fixed_rate = fixed_rate
+
+    def __call__(self, date):
+        return self.fixed_rate
+
+
+class RateCashFlowPayOffModel(object):
+
+    def __init__(self, forward_curve=None):
+        self.forward_curve = forward_curve
+
+    def __call__(self, date, payoff=None):
+        rate = payoff(date)
+        if self.forward_curve is not None:
+            rate += self.forward_curve.get_cash_rate(date)
+        return rate
+
+
+class RateCashFlowList(ContingentRateCashFlowList):
+    """ list of cashflows by interest rate payments """
+
+    def __init__(self, payment_date_list, amount_list=DEFAULT_AMOUNT,
+                 day_count=None, origin=None,
+                 fixed_rate=0., forward_curve=None):
+        """
+
+        :param payment_date_list: pay dates, assuming that pay dates agree with end dates of interest accrued period
+        :param amount_list: notional amounts
+        :param start_date: start date of first interest accrued period
+        :param day_count: day count convention
+        :param fixed_rate: agreed fixed rate
+        :param forward_curve:
+        """
+
+        payoff = RateCashFlowPayOff(fixed_rate)
+        model = RateCashFlowPayOffModel(forward_curve)
+
+        super().__init__(payment_date_list, amount_list,
+                         origin=origin, day_count=day_count,
+                         payoff=payoff, payoff_model=model)
+
+    @property
+    def fixed_rate(self):
+        return self.payoff.fixed_rate
+
+    @fixed_rate.setter
+    def fixed_rate(self, value):
+        self.payoff.fixed_rate = value
+
+    @property
+    def forward_curve(self):
+        return self.payoff_model.forward_curve
+
+    @forward_curve.setter
+    def forward_curve(self, value):
+        self.payoff_model.forward_curve = value
 
 
 class CashFlowLegList(CashFlowList):

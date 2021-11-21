@@ -1,0 +1,3 @@
+[sphinx.html_themes]
+karma_sphinx_theme = karma_sphinx_theme
+
