@@ -47,7 +47,6 @@ extensions = [
 # Extend extensions by project theme
 if pkg.__theme__ and pkg.__theme__.replace('-', '_') not in extensions:
     extensions.append(pkg.__theme__.replace('-', '_'))
-html_logo = 'logo.png'
 
 # The master toctree document.
 master_doc = 'index'
@@ -94,7 +93,7 @@ add_module_names = True
 
 if pkg.__theme__:
     html_theme = pkg.__theme__.replace('-', '_')
-# html_logo = 'logo.png'
+html_logo = 'logo.png'
 # html_theme_options = {}
 # html_static_path = ['_static']
 
@@ -140,7 +139,7 @@ autodoc_default_options = {
     'member-order': 'bysource',
     'members': True,  # 'var1, var2',
     'undoc-members': True,
-    'private-members': False,
+    # 'private-members': False,
     'inherited-members': False,
     'imported-members': False,
     # 'special-members': '__call__',
