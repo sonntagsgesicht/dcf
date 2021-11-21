@@ -24,7 +24,7 @@ There are four different types of interest rate curves:
 They meet all the same interface, i.e. have the same properties and methods.
 They differ only in data which can be given for constructing the curves.
 This sets how rates are stored and interpolated.
-Moreover an large list of interpolation methods are provided |interpolation|.
+Moreover an large list of interpolation methods are provided.
 
 As the names indicate, these curves take either
 
@@ -140,7 +140,7 @@ Already use was the domain property |Curve().domain| or |DateCurve().domain|
 which reveals the *x*-values of the curve.
 
 As we have to measure distances by a day counting method (aka. year fraction) |DateCurve().day_count()|,
-which is mainly turning days into |float|.
+which is mainly turning days into :code:`float`.
 
 See `wikipedia <https://en.wikipedia.org/wiki/Day_count_convention>`_ for details and
 also `businessdate <https://businessdate.readthedocs.io/en/latest/doc.html#module-businessdate.daycount>`_
@@ -234,11 +234,11 @@ Finally, create for each leg a |CashFlowList|.
 
     >>> principal = FixedCashFlowList([start_date], [-notional], origin=start_date)
     >>> print(principal)
-    FixedCashFlowList([BusinessDate(20201031) ... BusinessDate(20201031)], [-1000.0 ... -1000.0], origin=BusinessDate(20201031), day_count=day_count)
+    FixedCashFlowList([BusinessDate(20201031) ... BusinessDate(20201031)], [-1000.0 ... -1000.0], origin=BusinessDate(20201031))
 
     >>> redemption = FixedCashFlowList(payment_dates, plan, origin=start_date)
     >>> print(redemption)
-    FixedCashFlowList([BusinessDate(20210131) ... BusinessDate(20221031)], [125.0 ... 125.0], origin=BusinessDate(20201031), day_count=day_count)
+    FixedCashFlowList([BusinessDate(20210131) ... BusinessDate(20221031)], [125.0 ... 125.0], origin=BusinessDate(20201031))
 
     >>> interest = RateCashFlowList(payment_dates, out, origin=start_date, fixed_rate=interest_rate)
     >>> print(interest)

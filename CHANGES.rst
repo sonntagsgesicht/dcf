@@ -10,9 +10,9 @@ Release date was |today|
 
 # new casting concept for curves, old `curve_instance.cast(TypeToCastTo)` is replaced by `TypeToCastTo(curve_instance)`
 
-# restructuring cashflow lists, see |cashflow|
+# restructuring cashflow lists, see |dcf.cashflow|
 
-# adding payment plans, see |plans|
+# adding payment plans, see |dcf.plans|
 
 # adding pricing functions, e.g. |get_present_value()|, |get_yield_to_maturity()|, |get_par_rate()|, ...
 

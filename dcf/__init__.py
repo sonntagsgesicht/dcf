@@ -22,6 +22,7 @@ __dependencies__ = ()
 __dependency_links__ = ()
 __data__ = ()
 __scripts__ = ()
+__theme__ = 'sphinx_rtd_theme'
 
 import logging
 logging.getLogger(__name__).addHandler(logging.NullHandler())

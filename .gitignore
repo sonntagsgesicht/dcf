@@ -21,3 +21,8 @@ setenv
 .aux/
 */__pycache__/
 *.egg-info/
+__pycache__/
+.vs/
+*.json
+*.zip
+
