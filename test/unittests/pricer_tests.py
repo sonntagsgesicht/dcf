@@ -3,7 +3,7 @@
 # dcf
 # ---
 # A Python library for generating discounted cashflows.
-# 
+#
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
 # Version:  0.4, copyright Saturday, 10 October 2020
 # Website:  https://github.com/sonntagsgesicht/dcf
@@ -104,8 +104,18 @@ class InterestAccruedUnitTests(TestCase):
         self.df = DiscountFactorCurve(ZeroRateCurve([self.today], [self.rate]))
         self.curve = CashRateCurve([self.today], [.1])
 
-    def test_ir_acc(self):
+    def test_ir_acc_fixed(self):
         cfs = FixedCashFlowList(self.schedule, 1.)
-        amount = cfs[cfs.domain[0]]
         ac = get_interest_accrued(cfs, self.today + '2w2d')
-        self.assertAlmostEqual(amount * 0.5161290322580645, ac)
+        self.assertAlmostEqual(0.0, ac)
+
+    def test_ir_acc_rate(self):
+        cfs = RateCashFlowList(self.schedule[1:], 1.,
+                               origin=self.today, fixed_rate=0.01)
+        ac = get_interest_accrued(cfs, self.today + '2w2d')
+        self.assertAlmostEqual(0.0004380561259411362, ac)
+
+        cfs = RateCashFlowList(self.schedule, 1.,
+                               origin=self.today-'1m', fixed_rate=0.01)
+        ac = get_interest_accrued(cfs, self.today + '2w2d')
+        self.assertAlmostEqual(0.0004380561259411362, ac)

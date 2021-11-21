@@ -1,6 +1,7 @@
 .DS_Store
 build/
 dist/
+/*.egg-info
 *.egg-info
 *.pyc
 .idea/
@@ -17,5 +18,6 @@ doc/coverage/
 /freeze_requirements.txt
 .bin/
 setenv
-
+.aux/
 */__pycache__/
+*.egg-info/

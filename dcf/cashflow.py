@@ -5,7 +5,7 @@
 # A Python library for generating discounted cashflows.
 #
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
-# Version:  0.4, copyright Saturday, 10 October 2020
+# Version:  0.5, copyright Sunday, 21 November 2021
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -24,10 +24,7 @@ class CashFlowList(object):
     def origin(self):
         return self._origin
 
-    def day_count(self, start, end):
-        return self._day_count(start, end)
-
-    def __init__(self, domain=(), data=(), origin=None, day_count=None):
+    def __init__(self, domain=(), data=(), origin=None):
         if isinstance(data, (int, float)):
             data = same(len(domain), data)
 
@@ -37,11 +34,7 @@ class CashFlowList(object):
                   cls
             raise ValueError(msg)
 
-        if day_count is None:
-            day_count = DateCurve().day_count
-
         self._origin = domain[0] if origin is None and domain else origin
-        self._day_count = day_count
         self._domain = domain
         self._flows = dict(zip(domain, data))
 
@@ -68,7 +61,7 @@ class CashFlowList(object):
 
     def _args(self, sep=''):
         s = ''
-        for name in 'interpolation', 'origin', 'day_count', 'forward_tenor':
+        for name in 'origin', 'day_count':
             if hasattr(self, name):
                 attr = getattr(self, name)
                 attr = attr.__name__ if hasattr(attr, '__name__') else repr(attr)
@@ -79,32 +72,35 @@ class CashFlowList(object):
 class FixedCashFlowList(CashFlowList):
 
     def __init__(self, payment_date_list, amount_list=DEFAULT_AMOUNT,
-                 origin=None, day_count=None):
-        super().__init__(payment_date_list, amount_list,
-                         origin=origin, day_count=day_count)
+                 origin=None):
+        super().__init__(payment_date_list, amount_list, origin=origin)
 
 
 class RateCashFlowList(CashFlowList):
     """ list of cashflows by interest rate payments """
 
     def __init__(self, payment_date_list, amount_list=DEFAULT_AMOUNT,
-                 day_count=None, origin=None,
+                 origin=None, day_count=None,
                  fixed_rate=0., forward_curve=None):
         """
 
-        :param payment_date_list: pay dates, assuming that pay dates agree with end dates of interest accrued period
+        :param payment_date_list: pay dates, assuming that pay dates agree
+            with end dates of interest accrued period
         :param amount_list: notional amounts
-        :param start_date: start date of first interest accrued period
+        :param origin: start date of first interest accrued period
         :param day_count: day count convention
         :param fixed_rate: agreed fixed rate
         :param forward_curve:
         """
 
+        if day_count is None:
+            day_count = DateCurve().day_count
+        self.day_count = day_count
+
         self.fixed_rate = fixed_rate
         self.forward_curve = forward_curve
 
-        super().__init__(payment_date_list, amount_list,
-                         origin=origin, day_count=day_count)
+        super().__init__(payment_date_list, amount_list, origin=origin)
 
     def __getitem__(self, item):
         """ getitem does re-calc float cashflows """
@@ -113,119 +109,12 @@ class RateCashFlowList(CashFlowList):
         else:
             amount = self._flows.get(item, 0.)
             previous = list(d for d in self.domain if d < item)
-            if previous:
-                start = previous[-1]
-            else:
-                start = self.origin
+            start = previous[-1] if previous else self.origin
 
             rate = self.fixed_rate
             if self.forward_curve is not None:
-                rate += self.forward_curve.get_cash_rate(item)
+                rate += self.forward_curve.get_cash_rate(start)
             return rate * amount * self.day_count(start, item)
-
-
-class ContingentRateCashFlowList(CashFlowList):
-    """ list of cashflows by contingent interest rate payments """
-
-    def __init__(self, payment_date_list, amount_list=DEFAULT_AMOUNT,
-                 day_count=None, origin=None,
-                 payoff=None, payoff_model=None):
-        """
-
-        :param payment_date_list: pay dates, assuming that pay dates
-            agree with end dates of interest accrued period
-        :param amount_list: notional amounts
-        :param start_date: start date of first interest accrued period
-        :param day_count: day count convention
-        :param payoff: agreed payoff
-        :param payoff_model: payoff model to derive the expected payoff
-        """
-
-        self.payoff = payoff
-        self.payoff_model = payoff_model
-
-        super().__init__(payment_date_list, amount_list, origin=origin,
-                         day_count=day_count)
-
-    def __getitem__(self, item):
-        """ getitem does re-calc float cashflows """
-        if isinstance(item, (tuple, list)):
-            return tuple(self[i] for i in item)
-        else:
-            amount = self._flows.get(item, 0.)
-            previous = list(d for d in self.domain if d < item)
-            if previous:
-                start = previous[-1]
-            else:
-                start = self.origin
-
-            rate = 0.0
-            if self.payoff is not None:
-                rate = self.payoff(item)
-            if self.payoff_model is not None:
-                rate = self.payoff_model(item, self.payoff)
-            return rate * amount * self.day_count(start, item)
-
-
-class RateCashFlowPayOff(object):
-
-    def __init__(self, fixed_rate=0.0):
-        self.fixed_rate = fixed_rate
-
-    def __call__(self, date):
-        return self.fixed_rate
-
-
-class RateCashFlowPayOffModel(object):
-
-    def __init__(self, forward_curve=None):
-        self.forward_curve = forward_curve
-
-    def __call__(self, date, payoff=None):
-        rate = payoff(date)
-        if self.forward_curve is not None:
-            rate += self.forward_curve.get_cash_rate(date)
-        return rate
-
-
-class RateCashFlowList(ContingentRateCashFlowList):
-    """ list of cashflows by interest rate payments """
-
-    def __init__(self, payment_date_list, amount_list=DEFAULT_AMOUNT,
-                 day_count=None, origin=None,
-                 fixed_rate=0., forward_curve=None):
-        """
-
-        :param payment_date_list: pay dates, assuming that pay dates agree with end dates of interest accrued period
-        :param amount_list: notional amounts
-        :param start_date: start date of first interest accrued period
-        :param day_count: day count convention
-        :param fixed_rate: agreed fixed rate
-        :param forward_curve:
-        """
-
-        payoff = RateCashFlowPayOff(fixed_rate)
-        model = RateCashFlowPayOffModel(forward_curve)
-
-        super().__init__(payment_date_list, amount_list,
-                         origin=origin, day_count=day_count,
-                         payoff=payoff, payoff_model=model)
-
-    @property
-    def fixed_rate(self):
-        return self.payoff.fixed_rate
-
-    @fixed_rate.setter
-    def fixed_rate(self, value):
-        self.payoff.fixed_rate = value
-
-    @property
-    def forward_curve(self):
-        return self.payoff_model.forward_curve
-
-    @forward_curve.setter
-    def forward_curve(self, value):
-        self.payoff_model.forward_curve = value
 
 
 class CashFlowLegList(CashFlowList):
