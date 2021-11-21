@@ -1,3 +1,4 @@
 scipy
 businessdate
 auxilium
+sphinx==4.3.0

@@ -139,7 +139,7 @@ autodoc_default_options = {
     'member-order': 'bysource',
     'members': True,  # 'var1, var2',
     'undoc-members': True,
-    # 'private-members': False,
+    'private-members': False,
     'inherited-members': False,
     'imported-members': False,
     # 'special-members': '__call__',
