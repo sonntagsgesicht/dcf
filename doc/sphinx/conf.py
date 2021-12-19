@@ -153,13 +153,13 @@ autodoc_default_options = {
 # "class" Only the class’ docstring is inserted.
 # "init" Only the __init__ method’s docstring is inserted.
 # "both" Both the class’ and the __init__ method’s docstring are inserted.
-autoclass_content = 'both'
+autoclass_content = 'init'
 
 # This value selects how the signature will be displayed for the class defined
 # by autoclass directive. (autodoc)
 # "mixed" Display the signature with the class name.
 # "separated" Display the signature as a method.
-autodoc_class_signature = "separated"
+autodoc_class_signature = "mixed"
 
 # -- Config for math-dollar extension (mathjax) ----------------------------
 
@@ -177,3 +177,4 @@ pytype_buildins = False  # not implemented in v0.1
 pytype_short_ref = True  # drop module from reference (if it does not conflict)
 pytype_match_pattern = ''  # regex to filter entities to ref to
 pytype_exclude_pattern = ''  # regex to exclude entities to ref to
+pytype_show = False

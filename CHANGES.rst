@@ -6,7 +6,7 @@ Release 0.6
 
 Release date was |today|
 
-* added |CashFlowList().table|
+* added |FixedCashFlowList().table| and |RateCashFlowList().table|
 
 * added new module |dcf.day_count| and updated |day_count()|
     to default to year fractions in case of simple float inputs

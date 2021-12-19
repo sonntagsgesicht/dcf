@@ -141,9 +141,10 @@ Yield To Maturity
 
 .. autofunction:: dcf.pricer.get_yield_to_maturity
 
-Par Rate
---------
+Fair/Par Rate
+-------------
 
+.. autofunction:: dcf.pricer.get_fair_rate
 .. autofunction:: dcf.pricer.get_par_rate
 
 Interest Accrued

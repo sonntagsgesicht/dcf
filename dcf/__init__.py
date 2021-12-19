@@ -13,7 +13,7 @@
 __doc__ = 'A Python library for generating discounted cashflows.'
 __version__ = '0.6'
 __dev_status__ = '4 - Beta'
-__date__ = 'Sunday, 19 December 2021'
+__date__ = 'Monday, 20 December 2021'
 __author__ = 'sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]'
 __email__ = 'sonntagsgesicht@icloud.com'
 __url__ = 'https://github.com/sonntagsgesicht/' + __name__

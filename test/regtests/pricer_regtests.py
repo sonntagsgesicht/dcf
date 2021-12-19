@@ -76,7 +76,7 @@ class FirstRegTests(RegressionTestCase):
             zero_pv = get_present_value(redemption_flows, zero_curve, start)
             par_rate = get_par_rate(rate_flows, zero_curve, start, notional - zero_pv)
             rate_flows.fixed_rate = par_rate
-            bond = CashFlowLegList([rate_flows, redemption_flows], start)
+            bond = CashFlowLegList([rate_flows, redemption_flows])
 
             self.assertAlmostRegressiveEqual(par_rate)
             self.assertAlmostEqual(notional, get_present_value(bond, zero_curve, start))
@@ -92,7 +92,7 @@ class FirstRegTests(RegressionTestCase):
             fixed_leg = RateCashFlowList(schedule, -notional, fixed_rate=0.01)
             par_rate = get_par_rate(fixed_leg, zero_curve, start, -float_pv)
             fixed_leg.fixed_rate = par_rate
-            swap = CashFlowLegList([float_leg, fixed_leg], start)
+            swap = CashFlowLegList([float_leg, fixed_leg])
 
             self.assertAlmostRegressiveEqual(par_rate)
             self.assertAlmostEqual(0.0, get_present_value(swap, zero_curve, start))

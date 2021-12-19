@@ -5,7 +5,7 @@
 # A Python library for generating discounted cashflows.
 #
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
-# Version:  0.5, copyright Sunday, 19 December 2021
+# Version:  0.6, copyright Sunday, 19 December 2021
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -49,6 +49,30 @@ def _simple_bracketing(func, a, b, precision=1e-13):
 
 def get_present_value(cashflow_list, discount_curve,
                       valuation_date=None, include_value_date=True):
+    r""" calculates the present value by discounting cashflows
+
+    :param cashflow_list: list of cashflows
+    :param discount_curve: discount factors are obtained from this curve
+    :param valuation_date: date to discount to
+    :param include_value_date: (bool) to decide if cashflows
+        at **valuation_date** are included,
+        (optional with default *True*)
+    :return: `float` - as the sum of all discounted future cashflows
+
+    Let $cf_1 \dots cf_n$ be the list of cashflows
+    with payment dates $t_1, \dots, t_n$.
+
+    Moreover, let $t$ be the valuation date
+    and $T=\{t_i \mid t \leq t_i \}$ if **include_value_date** is *True*
+    else $T=\{t_i \mid t < t_i \}$.
+
+    Then the present value is given as
+
+    $$v(t) = \sum_{t_i \in T} df(t, t_i) \cdot cf_i$$
+
+    with $df(t, t_i)$, the discount factor discounting form $t_i$ to $t$.
+
+    """
     if valuation_date is None:
         valuation_date = cashflow_list.origin
 
@@ -68,6 +92,30 @@ def get_present_value(cashflow_list, discount_curve,
 
 def get_yield_to_maturity(cashflow_list,
                           valuation_date=None, present_value=0., **kwargs):
+    r""" yield-to-maturity or effective interest rate
+
+    :param cashflow_list: list of cashflows
+    :param valuation_date: date to discount to
+    :param present_value: price to meet by discounting
+    :param kwargs: additional keyword used for constructing |ZeroRateCurve()|
+    :return: `float` - as flat interest rate to discount all future cashflows
+        in order to meet given **present_value**
+
+    Let $cf_1 \dots cf_n$ be the list of cashflows
+    with payment dates $t_1, \dots, t_n$.
+
+    Moreover, let $t$ be the valuation date
+    and $T=\{t_i \mid t \leq t_i \}$.
+
+    Then the yield-to-maturity is the interest rate $y$ such that
+    the **present_value** $\hat{v}$ is given as
+
+    $$\hat{v} = \sum_{t_i \in T} df(t, t_i) \cdot cf_i$$
+
+    with $df(t, t_i) = \exp(-y \cdot (t_i-t))$,
+    the discount factor discounting form $t_i$ to $t$.
+
+    """
     if valuation_date is None:
         valuation_date = cashflow_list.origin
 
@@ -83,22 +131,42 @@ def get_yield_to_maturity(cashflow_list,
 
 
 def get_interest_accrued(cashflow_list, valuation_date):
-    """ calculates interest accrued for rate cashflows
+    r""" calculates interest accrued for rate cashflows
 
     :param cashflow_list: requires a `day_count` property
     :param valuation_date: calculation date
-    :return:
+    :return: `float` - proportion of interest in current interest period
+
+    Let $t$ be the valuation date
+    and $s, e$ start resp. end date of current rate period,
+    i.e. $s \leq t < e$.
+
+    Let $\tau$ be the day count function to calculate year fractions.
+
+    Finally, let $cf$ be the next interest rate cashflow.
+
+    The accrued interest until $t$ is given as
+    $$cf_{accrued} =  cf \cdot \frac{\tau(s, t)}{\tau(s, e)}.$$
+
     """
     if cashflow_list.origin < valuation_date < cashflow_list.domain[-1]:
         if isinstance(cashflow_list, CashFlowLegList):
             return sum(get_interest_accrued(leg, valuation_date)
                        for leg in cashflow_list.legs)
-        last = max((d for d in cashflow_list.domain if valuation_date > d),
-                   default=cashflow_list.origin)
-
-        next = list(d for d in cashflow_list.domain if valuation_date <= d)[0]
         # only interest cash flows entitle to accrued interest
         if hasattr(cashflow_list, 'day_count'):
+            last = max((d for d in cashflow_list.domain if valuation_date > d),
+                       default=cashflow_list.origin)
+            next = list(d for d in cashflow_list.domain
+                        if valuation_date <= d)[0]
+
+            # use start and end rather than pay dates
+            if cashflow_list.pay_offset:
+                if not last == cashflow_list.origin:
+                    last -= cashflow_list.pay_offset
+                next -= cashflow_list.pay_offset
+
+            # calculate remaining rate period proportion
             remaining = cashflow_list.day_count(valuation_date, next)
             total = cashflow_list.day_count(last, next)
             return cashflow_list[next] * (1. - remaining / total)
@@ -107,6 +175,30 @@ def get_interest_accrued(cashflow_list, valuation_date):
 
 def get_fair_rate(cashflow_list, discount_curve,
                   valuation_date=None, present_value=0.):
+    r""" coupon rate to meet given value
+
+    :param cashflow_list: list of cashflows
+    :param discount_curve: discount factors are obtained from this curve
+    :param valuation_date: date to discount to
+    :param present_value: price to meet by discounting
+    :return: `float` - the fair coupon rate as
+        **fixed_rate** of a |RateCashFlowList()|
+
+    Let $cf_i(c) = N_i \cdot \tau(s_i,e_i) \cdot c \cdot f(d_i)$
+    be the $i$-th cashflow in the **cashflow_list**.
+
+    Here, the fair rate is the fixed_rate $c=\hat{c}$ such that
+    the **present_value** $\hat{v}$ is given as
+
+    $$\hat{v} = \sum_{t_i \in T} df(t, t_i) \cdot cf_i(\hat{c})$$
+
+    with $df(t, t_i)$, the discount factor discounting form $t_i$ to $t$.
+
+    Note, **get_fair_rate** requires the **cashflow_list**
+    to have an attribute **fixed_rate**
+    which is perturbed to find the solution for $\hat{c}$.
+
+    """
     if valuation_date is None:
         valuation_date = cashflow_list.origin
 
@@ -129,24 +221,124 @@ def get_fair_rate(cashflow_list, discount_curve,
 
 def get_par_rate(cashflow_list, discount_curve,
                  valuation_date=None, present_value=0.):
+    """ same as |get_fair_rate()| """
     return get_fair_rate(cashflow_list, discount_curve, valuation_date,
                          present_value)
 
 
-def get_basis_point_value(cashflow_list, discount_curve,
-                          delta_curve=None, valuation_date=None, shift=.0001):
+def get_basis_point_value(cashflow_list, discount_curve, valuation_date=None,
+                          delta_curve=None, shift=.0001):
+    r""" basis point value (bpv),
+    i.e. value change by one interest rate shifted one basis point
+
+    :param cashflow_list: list of cashflows
+    :param discount_curve: discount factors are obtained from this curve
+    :param valuation_date: date to discount to
+    :param delta_curve: curve which will be shifted
+    :param shift: shift size to derive bpv
+    :return: `float` - basis point value (bpv)
+
+    Let $v(t, r)$ be the present value of the given **cashflow_list**
+    depending on interest rate curve $r$
+    which can be used as forward curve to estimate float rates
+    or as zero rate curve to derive discount factors (or both).
+
+    Then, with **shift_size** $s$, the bpv is given as
+
+    $$\Delta(t) = 0.0001 \cdot \frac{v(t, r + s) - v(t, r)}{s}$$
+
+    """
     if isinstance(cashflow_list, CashFlowLegList):
         return sum(get_basis_point_value(
             leg, discount_curve, delta_curve, valuation_date, shift)
                    for leg in cashflow_list.legs)
-    buckets = get_bucketed_delta(cashflow_list, discount_curve, delta_curve,
-                                 None, valuation_date, shift)
+    buckets = get_bucketed_delta(cashflow_list, discount_curve, valuation_date,
+                                 delta_curve, None, shift)
     return sum(buckets)
 
 
-def get_bucketed_delta(cashflow_list, discount_curve,
+def get_bucketed_delta(cashflow_list, discount_curve, valuation_date=None,
                        delta_curve=None, delta_grid=None,
-                       valuation_date=None, shift=.0001):
+                       shift=.0001):
+    r""" list of bpv delta for partly shifted interest rate curve
+
+    :param cashflow_list: list of cashflows
+    :param discount_curve: discount factors are obtained from this curve
+    :param valuation_date: date to discount to
+    :param delta_curve: curve which will be shifted
+    :param delta_grid: grid dates to build partly shifts
+    :param shift: shift size to derive bpv
+    :return: `list(float)` - basis point value for each **delta_grid** point
+
+    Let $v(t, r)$ be the present value of the given **cashflow_list**
+    depending on interest rate curve $r$
+    which can be used as forward curve to estimate float rates
+    or as zero rate curve to derive discount factors (or both).
+
+    Then, with **shift_size** $s$ and shifting $s_j$,
+
+    $$\Delta_j(t) = 0.0001 \cdot \frac{v(t, r + s_j) - v(t, r)}{s}$$
+
+    and the full bucketed delta vector is
+    $\big(\Delta_1(t), \Delta_2(t), \dots, \Delta_{m-1}(t) \Delta_m(t)\big)$.
+
+    Overall the shifting $s_1, \dots s_n$ is a partition of the unity,
+    i.e. $\sum_{j=1}^m s_j = s$.
+
+    Each $s_j$ for $i=2, \dots, m-1$ is a function of the form of an triangle,
+    i.e. for a **delta_grid** $t_1, \dots, t_m$
+
+    .. math::
+        :nowrap:
+
+        \[
+        s_j(t) =
+        \left\{
+        \begin{array}{cl}
+            0 & \text{ for } t < t_{j-1} \\
+            s \cdot \frac{t-t_{j-1}}{t_j-t_{j-1}}
+                & \text{ for } t_{j-1} \leq t < t_j \\
+            s \cdot \frac{t_{j+1}-t}{t_{j+1}-t_j}
+                & \text{ for } t_j \leq t < t_{j+1} \\
+            0 & \text{ for } t_{j+1} \leq t \\
+        \end{array}
+        \right.
+        \]
+
+    while
+
+    .. math::
+        :nowrap:
+
+        \[
+        s_1(t) =
+        \left\{
+        \begin{array}{cl}
+            s & \text{ for } t < t_1 \\
+            s \cdot \frac{t_2-t}{t_2-t_1} & \text{ for } t_1 \leq t < t_2 \\
+            0 & \text{ for } t_2 \leq t \\
+        \end{array}
+        \right.
+        \]
+
+    and
+
+    .. math::
+        :nowrap:
+
+        \[
+        s_m(t) =
+        \left\{
+        \begin{array}{cl}
+            0 & \text{ for } t < t_{m-1} \\
+            s \cdot \frac{t-t_{m-1}}{t_m-t_{m-1}}
+                & \text{ for } t_{m-1} \leq t < t_m \\
+            s & \text{ for } t_m \leq t \\
+        \end{array}
+        \right.
+        \]
+
+    """
     if isinstance(cashflow_list, CashFlowLegList):
         buckets = zip(get_bucketed_delta(
             leg, discount_curve, delta_curve, delta_grid, valuation_date, shift
@@ -168,7 +360,7 @@ def get_bucketed_delta(cashflow_list, discount_curve,
 
         grid = (first,) + mids + (last,)
         shifts = tuple(
-            [shift, 0.],) + ([0., shift, 0.],) * len(mids) + ([0., shift],)
+            [shift, 0.], ) + ([0., shift, 0.],) * len(mids) + ([0., shift],)
     else:
         grid = ([delta_curve.origin],)
         shifts = ([shift],)
