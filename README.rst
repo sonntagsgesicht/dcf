@@ -6,33 +6,9 @@ Python library *dcf*
    :target: https://codeship.com//projects/359976
    :alt: Codeship
 
-.. image:: https://travis-ci.org/sonntagsgesicht/dcf.svg?branch=master
-   :target: https://travis-ci.org/sonntagsgesicht/dcf
-   :alt: Travis ci
-
 .. image:: https://img.shields.io/readthedocs/dcf
    :target: http://dcf.readthedocs.io
    :alt: Read the Docs
-
-.. image:: https://img.shields.io/codefactor/grade/github/sonntagsgesicht/dcf/master
-   :target: https://www.codefactor.io/repository/github/sonntagsgesicht/dcf
-   :alt: CodeFactor Grade
-
-.. image:: https://img.shields.io/codeclimate/maintainability/sonntagsgesicht/dcf
-   :target: https://codeclimate.com/github/sonntagsgesicht/dcf/maintainability
-   :alt: Code Climate maintainability
-
-.. image:: https://img.shields.io/codecov/c/github/sonntagsgesicht/dcf
-   :target: https://codecov.io/gh/sonntagsgesicht/dcf
-   :alt: Codecov
-
-.. image:: https://img.shields.io/lgtm/grade/python/g/sonntagsgesicht/dcf.svg
-   :target: https://lgtm.com/projects/g/sonntagsgesicht/dcf/context:python/
-   :alt: lgtm grade
-
-.. image:: https://img.shields.io/lgtm/alerts/g/sonntagsgesicht/dcf.svg
-   :target: https://lgtm.com/projects/g/sonntagsgesicht/dcf/alerts/
-   :alt: total lgtm alerts
 
 .. image:: https://img.shields.io/github/license/sonntagsgesicht/dcf
    :target: https://github.com/sonntagsgesicht/dcf/raw/master/LICENSE
@@ -49,10 +25,6 @@ Python library *dcf*
 .. image:: https://img.shields.io/pypi/pyversions/dcf
    :target: https://pypi.org/project/dcf/
    :alt: PyPI - Python Version
-
-.. image:: https://img.shields.io/pypi/dm/dcf
-   :target: https://pypi.org/project/dcf/
-   :alt: PyPI Downloads
 
 .. image:: https://pepy.tech/badge/dcf
    :target: https://pypi.org/project/dcf/
