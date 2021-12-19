@@ -5,7 +5,7 @@
 # A Python library for generating discounted cashflows.
 #
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
-# Version:  0.5, copyright Saturday, 18 December 2021
+# Version:  0.6, copyright Sunday, 19 December 2021
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -13,20 +13,9 @@
 from abc import ABC
 from warnings import warn
 
-from .interpolation import constant, linear, dyn_scheme
 from .compounding import continuous_compounding, continuous_rate
-
-
-def act_36525(start, end):
-    if hasattr(start, 'diff_in_days'):
-        # duck typing businessdate.BusinessDate.diff_in_days
-        d = start.diff_in_days(end)
-    else:
-        d = end - start
-        if hasattr(d, 'days'):
-            # assume datetime.date or finance.BusinessDate (else days as float)
-            d = d.days
-    return float(d) / 365.25
+from .interpolation import constant, linear, dyn_scheme
+from .day_count import day_count as _default_day_count
 
 
 class Curve(object):
@@ -155,26 +144,14 @@ class Curve(object):
 
 class DateCurve(Curve):
     _time_shift = '1d'
-
-    @staticmethod
-    def _default_day_count(start, end):
-        if hasattr(start, 'diff_in_days'):
-            # duck typing businessdate.BusinessDate.diff_in_days
-            d = start.diff_in_days(end)
-        else:
-            d = end - start
-            if hasattr(d, 'days'):
-                # assume datetime.date or finance.BusinessDate
-                # (else days as float)
-                d = d.days
-        return float(d) / 365.25
+    DAY_COUNT = _default_day_count
 
     def __init__(self, domain=(), data=(), interpolation=None,
                  origin=None, day_count=None):
         self._origin = domain[0] if origin is None and domain else origin
-        self._day_count = self._default_day_count \
+        self._day_count = self.__class__.DAY_COUNT \
             if day_count is None else day_count
-        flt_domain = [self._day_count(self._origin, x) for x in domain]
+        flt_domain = [self.day_count(self._origin, x) for x in domain]
         super(DateCurve, self).__init__(flt_domain, data, interpolation)
         self._domain = domain
         self.fixings = dict()

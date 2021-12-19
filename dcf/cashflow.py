@@ -5,11 +5,12 @@
 # A Python library for generating discounted cashflows.
 #
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
-# Version:  0.5, copyright Saturday, 18 December 2021
+# Version:  0.6, copyright Sunday, 19 December 2021
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
 
+from .day_count import day_count as _default_day_count
 from .plans import DEFAULT_AMOUNT, same
 
 
@@ -93,6 +94,7 @@ class FixedCashFlowList(CashFlowList):
 
 class RateCashFlowList(CashFlowList):
     """ list of cashflows by interest rate payments """
+    DAY_COUNT = _default_day_count
 
     @staticmethod
     def _default_day_count(start, end):
@@ -134,9 +136,8 @@ class RateCashFlowList(CashFlowList):
         :param forward_curve:
         """
 
-        if day_count is None:
-            day_count = self._default_day_count
-        self.day_count = day_count
+        self.day_count = self.__class__.DAY_COUNT \
+            if day_count is None else day_count
 
         self.fixed_rate = fixed_rate
         self.forward_curve = forward_curve
