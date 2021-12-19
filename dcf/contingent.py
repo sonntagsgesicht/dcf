@@ -5,20 +5,20 @@
 # A Python library for generating discounted cashflows.
 #
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
-# Version:  0.5, copyright Sunday, 21 November 2021
+# Version:  0.6, copyright Sunday, 19 December 2021
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
 
-from .cashflow import CashFlowList
-from .curve import DateCurve
+from .cashflow import CashFlowList as _CashFlowList, \
+    RateCashFlowList as _RateCashFlowList
 from .plans import DEFAULT_AMOUNT
 
 
 DEFAULT_PAYOFF = DEFAULT_PAYOFF_MODEL = (lambda *_: 0.)
 
 
-class ContingentCashFlowList(CashFlowList):
+class ContingentCashFlowList(_CashFlowList):
     """ list of contingent cashflows """
 
     def __init__(self, payment_date_list, payoff_list=DEFAULT_PAYOFF,
@@ -53,7 +53,7 @@ class ContingentRateCashFlowList(ContingentCashFlowList):
             self.start = start
             self.end = end
             if day_count is None:
-                day_count = DateCurve().day_count
+                day_count = _RateCashFlowList.DAY_COUNT
             self.day_count = day_count
             self.amount = amount
             self.fixed_rate = fixed_rate
@@ -91,7 +91,7 @@ class ContingentRateCashFlowList(ContingentCashFlowList):
         """
 
         if day_count is None:
-            day_count = DateCurve().day_count
+            day_count = _RateCashFlowList.DAY_COUNT
         self.day_count = day_count
 
         payoff_list = list()

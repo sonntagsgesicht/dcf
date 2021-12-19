@@ -41,6 +41,8 @@ from .volatilitycurve import VolatilityCurve, TerminalVolatilityCurve, \
 from .fx import FxCurve, FxContainer, Price, FxRate  # noqa E401 E402
 from .cashflow import CashFlowList, FixedCashFlowList, RateCashFlowList, \
     CashFlowLegList  # noqa E401 E402
+from .contingent import ContingentCashFlowList, \
+    ContingentRateCashFlowList  # noqa E401 E402
 from .ratingclass import RatingClass  # noqa E401 E402
 from .plans import same, bullet, amortize, annuity, consumer, \
     outstanding, DEFAULT_AMOUNT  # noqa E401 E402

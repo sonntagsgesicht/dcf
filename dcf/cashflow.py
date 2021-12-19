@@ -11,27 +11,25 @@
 
 
 from .day_count import day_count as _default_day_count
-from .plans import DEFAULT_AMOUNT, same
+from .plans import DEFAULT_AMOUNT, same as _same
 
 
 class CashFlowList(object):
 
     @property
     def domain(self):
+        """ pay date list """
         return self._domain
 
     @property
     def origin(self):
+        """ cashflow start date """
         return self._origin
 
     @property
-    def cashflow_table(self):
-        """ cashflow details
-
-        :return: list(tuple()) cashflow details
-
-        use :code:`print(tabulate(cf.cashflow_table))` for pretty print
-
+    def table(self):
+        """ cashflow details,
+        use :code:`print(tabulate(cf.table))` for pretty print
         """
         header = [('cashflow', 'pay_date')]
         table = list((self[d], d, ) for d in self.domain)
@@ -39,7 +37,7 @@ class CashFlowList(object):
 
     def __init__(self, domain=(), data=(), origin=None):
         if isinstance(data, (int, float)):
-            data = same(len(domain), data)
+            data = _same(len(domain), data)
 
         if not len(data) == len(domain):
             cls = self.__class__.__name__
@@ -94,24 +92,21 @@ class FixedCashFlowList(CashFlowList):
 
 class RateCashFlowList(CashFlowList):
     """ list of cashflows by interest rate payments """
-    DAY_COUNT = _default_day_count
 
-    @staticmethod
-    def _default_day_count(start, end):
-        if hasattr(start, 'diff_in_days'):
-            # duck typing businessdate.BusinessDate.diff_in_days
-            d = start.diff_in_days(end)
-        else:
-            d = end - start
-            if hasattr(d, 'days'):
-                # assume datetime.date or finance.BusinessDate
-                d = d.days
-            else:
-                d *= 365.25  # assume start and end are given in year fraction
-        return float(d) / 365.25
+    DAY_COUNT = _default_day_count
+    """ default day count function for rate period calculation
+
+        :param start: period start date
+        :param end: period end date
+        :returns: year fraction for **start** to **end** as a float
+
+    """
 
     @property
-    def cashflow_table(self):
+    def table(self):
+        """ cashflow details,
+        use :code:`print(tabulate(cf.table))` for pretty print
+        """
         header = [('cashflow', 'pay_date', 'fixing',
                    'fixed_rate', 'forward_rate',
                    'year_fraction', 'notional_amount')]
@@ -138,9 +133,12 @@ class RateCashFlowList(CashFlowList):
 
         self.day_count = self.__class__.DAY_COUNT \
             if day_count is None else day_count
+        """ day count function for rate period calculation """
 
         self.fixed_rate = fixed_rate
+        """ cashflow fixed rate """
         self.forward_curve = forward_curve
+        """ cashflow forward curve to derive float rates """
 
         super().__init__(payment_date_list, amount_list, origin=origin)
 

@@ -152,6 +152,18 @@ Interest Accrued
 .. autofunction:: dcf.pricer.get_interest_accrued
 
 
+Basis Point Value (BPV)
+-----------------------
+
+.. autofunction:: dcf.pricer.get_basis_point_value
+
+
+Bucketed Delta
+--------------
+
+.. autofunction:: dcf.pricer.get_bucketed_delta
+
+
 Fundamentals
 ============
 
@@ -165,6 +177,12 @@ Compounding
 -----------
 
 .. automodule:: dcf.compounding
+
+
+DayCount
+--------
+
+.. automodule:: dcf.day_count
 
 
 Rating Classes

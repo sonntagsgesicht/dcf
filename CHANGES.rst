@@ -1,24 +1,45 @@
 
 These changes are listed in decreasing version number order.
 
-Release 0.4
+Release 0.6
 ===========
 
 Release date was |today|
 
-# dropping support for python 2 incl. 2.7
+* added |CashFlowList().table|
 
-# new casting concept for curves, old `curve_instance.cast(TypeToCastTo)` is replaced by `TypeToCastTo(curve_instance)`
+* added new module |dcf.day_count| and updated |day_count()|
+    to default to year fractions in case of simple float inputs
 
-# restructuring cashflow lists, see |dcf.cashflow|
+* added |get_bucketed_delta()|
 
-# adding payment plans, see |dcf.plans|
 
-# adding pricing functions, e.g. |get_present_value()|, |get_yield_to_maturity()|, |get_par_rate()|, ...
+Release 0.5
+===========
 
-# more docs
+Release date was November 22, 2021
 
-# more tests
+* added |get_basis_point_value()|
+
+
+Release 0.4
+===========
+
+Release date was October 11, 2020
+
+* dropping support for python 2 incl. 2.7
+
+* new casting concept for curves, old `curve_instance.cast(TypeToCastTo)` is replaced by `TypeToCastTo(curve_instance)`
+
+* restructuring cashflow lists, see |dcf.cashflow|
+
+* adding payment plans, see |dcf.plans|
+
+* adding pricing functions, e.g. |get_present_value()|, |get_yield_to_maturity()|, |get_par_rate()|, ...
+
+* more docs
+
+* more tests
 
 
 Release 0.3
