@@ -5,7 +5,7 @@
 # A Python library for generating discounted cashflows.
 #
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
-# Version:  0.5, copyright Sunday, 21 November 2021
+# Version:  0.5, copyright Saturday, 18 December 2021
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -22,7 +22,8 @@ def _simple_bracketing(func, a, b, precision=1e-13):
     :param float b: upper interval boundary
     :param float precision: max accepted error
     :rtype: tuple
-    :return: :code:`(a, m, b)` of last recursion step with :code:`m = a + (b-a) *.5`
+    :return: :code:`(a, m, b)` of last recursion step
+        with :code:`m = a + (b-a) *.5`
 
     """
     fa, fb = func(a), func(b)
@@ -33,7 +34,8 @@ def _simple_bracketing(func, a, b, precision=1e-13):
         f = func
 
     if not fa <= 0. <= fb:
-        msg = "_simple_bracketing function must be loc monotone between %0.4f and %0.4f \n" % (a, b)
+        msg = "_simple_bracketing function must be loc monotone " \
+              "between %0.4f and %0.4f \n" % (a, b)
         msg += "and _simple_bracketing 0. between  %0.4f and %0.4f." % (fa, fb)
         raise AssertionError(msg)
 
@@ -52,13 +54,15 @@ def get_present_value(cashflow_list, discount_curve,
 
     # filter flows
     if include_value_date:
-        pay_dates = list(d for d in cashflow_list.domain if valuation_date <= d)
+        pay_dates = \
+            list(d for d in cashflow_list.domain if valuation_date <= d)
     else:
         pay_dates = list(d for d in cashflow_list.domain if valuation_date < d)
 
     # discount flows
     value_flows = zip(pay_dates, cashflow_list[pay_dates])
-    values = (discount_curve.get_discount_factor(valuation_date, t) * a for t, a in value_flows)
+    values = (discount_curve.get_discount_factor(valuation_date, t) * a
+              for t, a in value_flows)
     return sum(values)
 
 
@@ -93,6 +97,7 @@ def get_interest_accrued(cashflow_list, valuation_date):
                    default=cashflow_list.origin)
 
         next = list(d for d in cashflow_list.domain if valuation_date <= d)[0]
+        # only interest cash flows entitle to accrued interest
         if hasattr(cashflow_list, 'day_count'):
             remaining = cashflow_list.day_count(valuation_date, next)
             total = cashflow_list.day_count(last, next)

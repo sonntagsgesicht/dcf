@@ -5,7 +5,7 @@
 # A Python library for generating discounted cashflows.
 #
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
-# Version:  0.5, copyright Sunday, 21 November 2021
+# Version:  0.5, copyright Saturday, 18 December 2021
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -30,7 +30,8 @@ class Price(object):
         return float(self.value)
 
     def __str__(self):
-        return '%s(%f; %s)' % (self.__class__.__name__, self.value, str(self.origin))
+        return '%s(%f; %s)' % \
+               (self.__class__.__name__, self.value, str(self.origin))
 
 
 class FxRate(Price):
@@ -43,9 +44,11 @@ class FxCurve(DateCurve):
         """ creator method to build FxCurve """
         if not domestic_curve.origin == foreign_curve.origin:
             raise AssertionError()
-        return cls(fx_spot, domestic_curve=domestic_curve, foreign_curve=foreign_curve)
+        return cls(fx_spot, domestic_curve=domestic_curve,
+                   foreign_curve=foreign_curve)
 
-    def __init__(self, domain=1., data=None, interpolation=None, origin=None, day_count=None,
+    def __init__(self, domain=1., data=None, interpolation=None, origin=None,
+                 day_count=None,
                  domestic_curve=None, foreign_curve=None):
         """ fx rate curve for currency pair """
 
@@ -66,7 +69,8 @@ class FxCurve(DateCurve):
                 origin = None
         if not len(domain) == len(data):
             raise AssertionError()
-        super(FxCurve, self).__init__(domain, data, interpolation, origin, day_count)
+        super(FxCurve, self).__init__(domain, data, interpolation, origin,
+                                      day_count)
 
     def __call__(self, x):
         if isinstance(x, (list, tuple)):
@@ -80,14 +84,16 @@ class FxCurve(DateCurve):
             return super(FxCurve, self).__call__(value_date)
         else:
             y = super(FxCurve, self).__call__(last_date)
-            return y * self.foreign_curve.get_discount_factor(last_date, value_date) / \
-                   self.domestic_curve.get_discount_factor(last_date, value_date)
+            d = self.foreign_curve.get_discount_factor(last_date, value_date)
+            d /= self.domestic_curve.get_discount_factor(last_date, value_date)
+            return y * d
 
 
 class FxContainer(dict):
     """ FxDict factory object
 
-    using triangulation over self.currency defined as a global container of fx information (mainly vs base currency)
+    using triangulation over self.currency defined as a global container
+    of fx information (mainly vs base currency)
 
     .. code-block:: python
 
@@ -97,8 +103,10 @@ class FxContainer(dict):
         foreign = ZeroRateCurve([today], [.01])
         container.add('EUR', foreign, 1.2)
         fx_curve = container['USD', 'EUR']  # fx_curve is FxCurve
-        fx_dict = container['USD']  # fx_dict is dict of FxCurves containing fx_curve
-        container['USD']['EUR'](today) == container['USD', 'EUR'](today)  # True
+        fx_dict = container['USD']  # dict of FxCurves containing fx_curve
+        # returns True
+        container['USD']['EUR'](today) == container['USD', 'EUR'](today)
+
     """
 
     # todo: First, searching for exact matching pair.
@@ -109,7 +117,8 @@ class FxContainer(dict):
     def __init__(self, currency, domestic_curve):
         """
         :param currency: base currency of FxContainer
-        :param RateCurve domestic_curve: base curve of FxContainer for discounting
+        :param RateCurve domestic_curve:
+            base curve of FxContainer for discounting
         """
 
         super(FxContainer, self).__init__()
@@ -141,15 +150,17 @@ class FxContainer(dict):
             super(FxContainer, self).__setitem__(key, value)
         else:
             if not (isinstance(key, type(self.currency))
-                    and  isinstance(value, FxCurve)
+                    and isinstance(value, FxCurve)
                     and value.domestic_curve == self.domestic_curve):
                 raise AssertionError()
-            self.add(key, value.foreign_curve, value.get_fx_rate(self.domestic_curve.origin))
+            self.add(key, value.foreign_curve,
+                     value.get_fx_rate(self.domestic_curve.origin))
 
     def add(self, foreign_currency, foreign_curve=None, fx_spot=1.0):
         """
         adds contents to FxShelf.
-        If curve is FxCurve or FxDict, spot should turn curve.currency into self.currency,
+        If curve is FxCurve or FxDict,
+        spot should turn curve.currency into self.currency,
         else spot should turn currency into self.currency by
         N in EUR * spot = N in USD for currency = EUR and self.currency = USD
         """
@@ -159,8 +170,10 @@ class FxContainer(dict):
             raise AssertionError()
 
         # create missing FxCurves
-        self[self.currency, foreign_currency] = FxCurve.cast(fx_spot, self.domestic_curve, foreign_curve)
-        self[foreign_currency, self.currency] = FxCurve.cast(1 / fx_spot, foreign_curve, self.domestic_curve)
+        self[self.currency, foreign_currency] = \
+            FxCurve.cast(fx_spot, self.domestic_curve, foreign_curve)
+        self[foreign_currency, self.currency] = \
+            FxCurve.cast(1 / fx_spot, foreign_curve, self.domestic_curve)
         # _update relevant FxCurves
         f = foreign_currency
         new = dict()
@@ -173,12 +186,17 @@ class FxContainer(dict):
                     self[f, d].domestic_curve = foreign_curve
                     self[f, d].fx_spot = 1 / triangulated
                 else:
-                    new[d, f] = FxCurve.cast(triangulated, self[d, s].domestic_curve, foreign_curve)
-                    new[f, d] = FxCurve.cast(1 / triangulated, foreign_curve, self[d, s].domestic_curve)
+                    new[d, f] = FxCurve.cast(triangulated,
+                                             self[d, s].domestic_curve,
+                                             foreign_curve)
+                    new[f, d] = FxCurve.cast(1 / triangulated, foreign_curve,
+                                             self[d, s].domestic_curve)
         self.update(new)
 
     def get_fx_rate(self, domestic_currency, foreign_currency, value_date):
-        return self[domestic_currency, foreign_currency].get_fx_rate(value_date)
+        return self[domestic_currency, foreign_currency].get_fx_rate(
+            value_date)
 
     def get_forward(self, domestic_currency, foreign_currency, value_date):
-        return self.get_fx_rate(domestic_currency, foreign_currency, value_date)
+        return self.get_fx_rate(domestic_currency, foreign_currency,
+                                value_date)

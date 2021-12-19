@@ -5,7 +5,7 @@
 # A Python library for generating discounted cashflows.
 #
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
-# Version:  0.5, copyright Sunday, 21 November 2021
+# Version:  0.5, copyright Saturday, 18 December 2021
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -32,11 +32,13 @@ def continuous_rate(df, period_fraction):
 
 
 def periodic_compounding(rate_value, maturity_value, period_value):
-    return math.pow(1.0 + float(rate_value) / period_value, -period_value * maturity_value)
+    return math.pow(1.0 + float(rate_value) / period_value,
+                    -period_value * maturity_value)
 
 
 def periodic_rate(df, period_fraction, frequency):
-    return (math.pow(df, -1.0 / (period_fraction * frequency)) - 1.0) * frequency
+    return (math.pow(df, -1.0 / (period_fraction * frequency)) - 1.0) * \
+           frequency
 
 
 def annually_compounding(rate_value, maturity_value):

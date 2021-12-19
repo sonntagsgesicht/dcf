@@ -3,7 +3,7 @@
 # dcf
 # ---
 # A Python library for generating discounted cashflows.
-# 
+#
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
 # Version:  0.4, copyright Saturday, 10 October 2020
 # Website:  https://github.com/sonntagsgesicht/dcf
@@ -13,8 +13,8 @@
 from math import log, exp
 from unittest.case import TestCase
 
-from dcf import linear, zero, loglinearrate, constant, logconstantrate
-from dcf.interpolation import flat, no, left, right, loglinear, logconstant, nearest
+from dcf.interpolation import flat, no, left, right, loglinear, logconstant, \
+    nearest, linear, zero, loglinearrate, constant, logconstantrate
 
 
 class InterpolationUnitTests(TestCase):

@@ -3,7 +3,7 @@
 # dcf
 # ---
 # A Python library for generating discounted cashflows.
-# 
+#
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
 # Version:  0.4, copyright Saturday, 10 October 2020
 # Website:  https://github.com/sonntagsgesicht/dcf
@@ -12,8 +12,8 @@
 
 from unittest.case import TestCase
 
-from dcf import continuous_compounding, continuous_rate, simple_compounding, simple_rate
-from dcf.compounding import periodic_compounding, periodic_rate
+from dcf.compounding import periodic_compounding, periodic_rate, \
+    continuous_compounding, continuous_rate, simple_compounding, simple_rate
 
 
 class CompoundingUnitTests(TestCase):

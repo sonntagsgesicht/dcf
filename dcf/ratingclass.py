@@ -5,7 +5,7 @@
 # A Python library for generating discounted cashflows.
 #
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
-# Version:  0.5, copyright Sunday, 21 November 2021
+# Version:  0.5, copyright Saturday, 18 December 2021
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -15,11 +15,11 @@ import logging
 
 _logger = logging.getLogger('dcf')
 
-
-LONG_MASTER_SCALE = ('AAA+', 'AAA', 'AAA-', 'AA+', 'AA', 'AA-', 'A+', 'A', 'A-',
-                     'BBB+', 'BBB', 'BBB-', 'BB+', 'BB', 'BB-', 'B+', 'B', 'B-',
-                     'CCC+', 'CCC', 'CCC-', 'CC+', 'CC', 'CC-', 'C+', 'C', 'C-',
-                     'D')
+LONG_MASTER_SCALE = (
+    'AAA+', 'AAA', 'AAA-', 'AA+', 'AA', 'AA-', 'A+', 'A', 'A-',
+    'BBB+', 'BBB', 'BBB-', 'BB+', 'BB', 'BB-', 'B+', 'B', 'B-',
+    'CCC+', 'CCC', 'CCC-', 'CC+', 'CC', 'CC-', 'C+', 'C', 'C-',
+    'D')
 MASTER_SCALE = ('AAA', 'AA', 'A',
                 'BBB', 'BB', 'B',
                 'CCC', 'CC', 'C',
@@ -37,9 +37,12 @@ class RatingClass(object):
         @classmethod
         def fromkeys(cls, iterable, value=None):
             iterable = tuple(iterable)
-            value = exp(-(len(iterable) - 1) * log(10)) if value is None else value
-            ms = (lambda x, n: list(map(exp, (log(x) - log(x) * i / (n - 1) for i in range(n)))))
-            return RatingClass.master_scale(list(zip(iterable, ms(value, len(iterable)))))
+            value = exp(
+                -(len(iterable) - 1) * log(10)) if value is None else value
+            ms = (lambda x, n: list(
+                map(exp, (log(x) - log(x) * i / (n - 1) for i in range(n)))))
+            return RatingClass.master_scale(
+                list(zip(iterable, ms(value, len(iterable)))))
 
         def rating_classes(self):
             return list(RatingClass(f, self) for f in list(self.values()))
@@ -52,7 +55,8 @@ class RatingClass(object):
 
         def items(self):
             i = list(super(RatingClass.master_scale, self).items())
-            return list((k, float(v)) for k, v in sorted(i, key=lambda x: x[1]))
+            return list(
+                (k, float(v)) for k, v in sorted(i, key=lambda x: x[1]))
 
         def get(self, k, d=None):
             return RatingClass(self[k], self) if k in self else d
@@ -83,21 +87,25 @@ class RatingClass(object):
         if not isinstance(masterscale, RatingClass.master_scale):
             if isinstance(masterscale, dict):
                 masterscale = self.__class__.master_scale(masterscale)
-            elif isinstance(masterscale, (tuple, list)) or hasattr(masterscale, '__iter__'):
+            elif isinstance(masterscale, (tuple, list)) or \
+                    hasattr(masterscale, '__iter__'):
                 masterscale = self.__class__.master_scale.fromkeys(masterscale)
 
         if masterscale:
             value = masterscale[value] if value in masterscale else value
 
         if not isinstance(value, float):
-            raise TypeError('value argument must be key in masterscale or have type float not %s' % value.__class__)
+            raise TypeError(
+                'value argument must be key '
+                'in masterscale or have type float not %s' % value.__class__)
 
         self._value = value
         self._masterscale = masterscale
 
     def __repr__(self):
         if self.masterscale:
-            return "[%s]-%s(%0.7f)" % (str(self), self.__class__.__name__, float(self))
+            return "[%s]-%s(%0.7f)" % \
+                   (str(self), self.__class__.__name__, float(self))
         else:
             return str(self)
 
@@ -105,7 +113,8 @@ class RatingClass(object):
         if self.masterscale:
             # check for base class item
             for k in self.masterscale:
-                if round(float(self), 7) == round(float(self.masterscale[k]), 7):
+                if round(float(self), 7) == round(float(self.masterscale[k]),
+                                                  7):
                     return k
             # build linear combination of base classes
             pairs = list(zip(list(self.masterscale.keys()), list(self)))
@@ -123,7 +132,8 @@ class RatingClass(object):
             value_list = [round(x, 7) for x in list(self.masterscale.values())]
 
             if not min(value_list) <= value <= max(value_list):
-                msg = 'masterscale does not embrace %.7f' % float(self)  # + '\n %s' % repr(self.masterscale)
+                msg = 'masterscale does not embrace %.7f' % float(
+                    self)  # + '\n %s' % repr(self.masterscale)
                 if self.__class__.SLOPPY:
                     _logger.warning(msg)
                 else:
@@ -131,18 +141,19 @@ class RatingClass(object):
 
             if value < min(value_list):
                 for i, v in enumerate(value_list):
-                    yield round(value/v, 7) if i == 0 else 0.
+                    yield round(value / v, 7) if i == 0 else 0.
 
             elif max(value_list) < value:
-                l = len(value_list)-1
+                k = len(value_list) - 1
                 for i, v in enumerate(value_list):
-                    yield round(value/v, 7) if i == l else 0.
+                    yield round(value / v, 7) if i == k else 0.
 
             else:
                 ceiling_index = [x < value for x in value_list].index(False)
                 floor_index = ceiling_index - 1
 
-                pd_cap, pd_floor = value_list[ceiling_index], value_list[floor_index]
+                pd_cap, pd_floor = value_list[ceiling_index], value_list[
+                    floor_index]
                 alpha = (value - pd_cap) / (pd_floor - pd_cap)
 
                 for i, _ in enumerate(value_list):

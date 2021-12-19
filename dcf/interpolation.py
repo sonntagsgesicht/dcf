@@ -5,7 +5,7 @@
 # A Python library for generating discounted cashflows.
 #
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
-# Version:  0.5, copyright Sunday, 21 November 2021
+# Version:  0.5, copyright Saturday, 18 December 2021
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -45,7 +45,8 @@ class base_interpolation(object):
         else:
             x_list = list(map(float, x_list))
             y_list = list(map(float, y_list))
-            data = [(x, y) for x, y in zip(self.x_list, self.y_list) if x not in x_list]
+            data = [(x, y) for x, y in
+                    zip(self.x_list, self.y_list) if x not in x_list]
             data.extend(list(zip(x_list, y_list)))
             data = sorted(data)
             self.x_list = [float(x) for (x, y) in data]
@@ -88,11 +89,13 @@ class left(base_interpolation):
         if x in self.x_list:
             i = self.x_list.index(x)
         else:
-            i = bisect.bisect_left(self.x_list, float(x), 1, len(self.x_list)) - 1
+            i = bisect.bisect_left(self.x_list, float(x), 1,
+                                   len(self.x_list)) - 1
         return self.y_list[i]
 
 
-class constant(left):  # why is is this derived from class left and not from interpolation itself
+class constant(left):
+    # why is is this derived from class left and not from interpolation itself
     pass
 
 
@@ -103,7 +106,8 @@ class right(base_interpolation):
         if x in self.x_list:
             i = self.x_list.index(x)
         else:
-            i = bisect.bisect_right(self.x_list, float(x), 0, len(self.x_list) - 1)
+            i = bisect.bisect_right(self.x_list, float(x), 0,
+                                    len(self.x_list) - 1)
         return self.y_list[i]
 
 
@@ -116,8 +120,10 @@ class nearest(base_interpolation):
         if x in self.x_list:
             i = self.x_list.index(x)
         else:
-            i = bisect.bisect_left(self.x_list, float(x), 1, len(self.x_list) - 1)
-            if (self.x_list[i - 1] - x) / (self.x_list[i - 1] - self.x_list[i]) < 0.5:
+            i = bisect.bisect_left(self.x_list, float(x), 1,
+                                   len(self.x_list) - 1)
+            if (self.x_list[i - 1] - x) / (self.x_list[i - 1] -
+                                           self.x_list[i]) < 0.5:
                 i -= 1
         return self.y_list[i]
 
@@ -130,7 +136,7 @@ class linear(base_interpolation):
             return self.y_list[0]
         i = bisect.bisect_left(self.x_list, float(x), 1, len(self.x_list) - 1)
         return self.y_list[i - 1] + (self.y_list[i] - self.y_list[i - 1]) * \
-                                    (self.x_list[i - 1] - x) / (self.x_list[i - 1] - self.x_list[i])
+            (self.x_list[i - 1] - x) / (self.x_list[i - 1] - self.x_list[i])
 
 
 class loglinear(linear):
@@ -184,7 +190,9 @@ class neglogconstant(constant):
 class loglinearrate(linear):
     def __init__(self, x_list=list(), y_list=list()):
         if not all(0. < y for y in y_list):
-            raise ValueError('log interpolation requires positive values. Got %s' % str(y_list))
+            raise ValueError(
+                'log interpolation requires positive values. Got %s' % str(
+                    y_list))
         z = [x for x in x_list if not x]
         self._y_at_zero = y_list[x_list.index(z[0])] if z else None
         log_y_list = [-math.log(y) / x for x, y in zip(x_list, y_list) if x]
@@ -236,7 +244,6 @@ class squaredlinear(linear):
 
 
 class interpolation_scheme(object):
-
     _interpolation = constant, linear, constant
 
     def __init__(self, domain, data, interpolation=None):
@@ -245,7 +252,8 @@ class interpolation_scheme(object):
 
         :param list(float) domain: source values
         :param list(float) data: target values
-        :param function interpolation: interpolation function on x_list (optional)
+        :param function interpolation:
+            interpolation function on x_list (optional)
             or triple of (left, mid, right) interpolation functions with
             left for x < x_list[0] (as default triple.right is used)
             right for x > x_list][-1] (as default constant is used)
@@ -301,4 +309,5 @@ class interpolation_scheme(object):
 
 def dyn_scheme(left, mid, right):
     name = left.__name__ + '_' + mid.__name__ + '_' + right.__name__
-    return type(name, (interpolation_scheme,), {'_interpolation': (left, mid, right)})
+    return type(name, (interpolation_scheme,),
+                {'_interpolation': (left, mid, right)})

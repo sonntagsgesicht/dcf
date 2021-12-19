@@ -5,7 +5,7 @@
 # A Python library for generating discounted cashflows.
 #
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
-# Version:  0.5, copyright Sunday, 21 November 2021
+# Version:  0.5, copyright Saturday, 18 December 2021
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -16,8 +16,7 @@ import logging
 from math import sqrt
 
 from .curve import RateCurve
-from .interpolation import zero, linear, constant
-from . import dyn_scheme
+from .interpolation import zero, linear, constant, dyn_scheme
 
 _logger = logging.getLogger('dcf')
 
@@ -40,16 +39,21 @@ class InstantaneousVolatilityCurve(VolatilityCurve):
     def _get_storage_value(curve, x):
         return curve.get_instantaneous_vol(x)
 
-    def __init__(self, domain=(), data=(), interpolation=None, origin=None, day_count=None, forward_tenor=None):
-        # if argument is a curve add extra curve points to domain for better approximation
+    def __init__(self, domain=(), data=(), interpolation=None, origin=None,
+                 day_count=None, forward_tenor=None):
+        # if argument is a curve add extra curve points
+        # to domain for better approximation
         if isinstance(domain, RateCurve):
             if data:
-                raise TypeError("If first argument is %s, data argument must not be given." % domain.__class__.__name__)
+                raise TypeError("If first argument is %s, "
+                                "data argument must not be given." %
+                                domain.__class__.__name__)
             data = domain
             origin = data.origin if origin is None else origin
             new_domain = list()
             for d in data.domain + [origin]:
-                new_domain.extend([d - self._time_shift, d, d + self._time_shift])
+                new_domain.extend(
+                    [d - self._time_shift, d, d + self._time_shift])
             domain = sorted(set(new_domain))
         super(InstantaneousVolatilityCurve, self).__init__(
             domain, data, interpolation, origin, day_count, forward_tenor)
@@ -75,15 +79,22 @@ class TerminalVolatilityCurve(VolatilityCurve):
     def _get_storage_value(curve, x):
         return curve.get_terminal_vol(x)
 
-    def __init__(self, domain=(), data=(), interpolation=None, origin=None, day_count=None, forward_tenor=None):
-        # if argument is a curve add extra curve points to domain for better approximation
+    def __init__(self, domain=(), data=(), interpolation=None, origin=None,
+                 day_count=None, forward_tenor=None):
+        # if argument is a curve add extra curve points
+        # to domain for better approximation
         if isinstance(domain, RateCurve):
             if data:
-                raise TypeError("If first argument is %s, data argument must not be given." % domain.__class__.__name__)
+                raise TypeError("If first argument is %s, "
+                                "data argument must not be given." %
+                                domain.__class__.__name__)
             data = domain
             origin = data.origin if origin is None else origin
-            domain = sorted(set(list(data.domain) + [origin + '1d', max(data.domain) + '10y']))
-        super(TerminalVolatilityCurve, self).__init__(domain, data, interpolation, origin, day_count, forward_tenor)
+            domain = sorted(set(list(data.domain) +
+                                [origin + '1d', max(data.domain) + '10y']))
+        super(TerminalVolatilityCurve, self).__init__(domain, data,
+                                                      interpolation, origin,
+                                                      day_count, forward_tenor)
 
     def get_instantaneous_vol(self, start):
         return self.get_terminal_vol(start, start + self.__class__._time_shift)
@@ -103,14 +114,16 @@ class TerminalVolatilityCurve(VolatilityCurve):
         var = (var_end - var_start) / self.day_count(start, stop)
 
         if var < 0.:
-            r = self.origin, start, stop, self(start), self(stop), var_start, var_start, var
+            r = self.origin, start, stop, self(start), self(
+                stop), var_start, var_start, var
             m1 = 'Negative variance detected in %s' % repr(self)
             _logger.warning(m1)
             m2 = 'Negative variance detected at: %s' % ' '.join(map(str, r))
             _logger.warning(m2)
             if self.__class__.FLOOR is None:
                 raise ZeroDivisionError(m1)
-        var = max(var, self.__class__.FLOOR**2) if self.__class__.FLOOR is not None else var
+        var = max(var, self.__class__.FLOOR ** 2) \
+            if self.__class__.FLOOR is not None else var
 
         return sqrt(var)
 

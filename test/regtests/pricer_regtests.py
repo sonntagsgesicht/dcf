@@ -51,6 +51,22 @@ maturities = '2y', '5y', '10y', '20y'
 
 class FirstRegTests(RegressionTestCase):
 
+    def cashflow_details(self):
+        for maturity in maturities:
+            end = start + maturity
+            schedule = BusinessSchedule(start, end, '1y', end)
+            schedule_3m = BusinessSchedule(start, end, '3m', end)
+            float_leg = RateCashFlowList(schedule, notional, forward_curve=fwd_curve_3m)
+            float_pv = get_present_value(float_leg, zero_curve, start)
+            fixed_leg = RateCashFlowList(schedule, -notional, fixed_rate=0.01)
+            par_rate = get_par_rate(fixed_leg, zero_curve, start, -float_pv)
+            fixed_leg.fixed_rate = par_rate
+            swap = CashFlowLegList([float_leg, fixed_leg], start)
+
+            self.assertAlmostRegressiveEqual(par_rate)
+            self.assertAlmostEqual(0.0, get_present_value(swap, zero_curve, start))
+            self.assertAlmostRegressiveEqual(pkg.get_basis_point_value(swap, zero_curve, zero_curve, start))
+
     def test_bond_bpv(self):
         for maturity in maturities:
             end = start + maturity
