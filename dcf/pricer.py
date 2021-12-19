@@ -5,7 +5,7 @@
 # A Python library for generating discounted cashflows.
 #
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
-# Version:  0.5, copyright Saturday, 18 December 2021
+# Version:  0.5, copyright Sunday, 19 December 2021
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -105,8 +105,8 @@ def get_interest_accrued(cashflow_list, valuation_date):
     return 0.
 
 
-def get_par_rate(cashflow_list, discount_curve,
-                 valuation_date=None, present_value=0.):
+def get_fair_rate(cashflow_list, discount_curve,
+                  valuation_date=None, present_value=0.):
     if valuation_date is None:
         valuation_date = cashflow_list.origin
 
@@ -127,34 +127,66 @@ def get_par_rate(cashflow_list, discount_curve,
     return par
 
 
+def get_par_rate(cashflow_list, discount_curve,
+                 valuation_date=None, present_value=0.):
+    return get_fair_rate(cashflow_list, discount_curve, valuation_date,
+                         present_value)
+
+
 def get_basis_point_value(cashflow_list, discount_curve,
-                          delta_curve=None, valuation_date=None):
+                          delta_curve=None, valuation_date=None, shift=.0001):
     if isinstance(cashflow_list, CashFlowLegList):
         return sum(get_basis_point_value(
-            leg, discount_curve, delta_curve, valuation_date)
+            leg, discount_curve, delta_curve, valuation_date, shift)
                    for leg in cashflow_list.legs)
+    buckets = get_bucketed_delta(cashflow_list, discount_curve, delta_curve,
+                                 None, valuation_date, shift)
+    return sum(buckets)
+
+
+def get_bucketed_delta(cashflow_list, discount_curve,
+                       delta_curve=None, delta_grid=None,
+                       valuation_date=None, shift=.0001):
+    if isinstance(cashflow_list, CashFlowLegList):
+        buckets = zip(get_bucketed_delta(
+            leg, discount_curve, delta_curve, delta_grid, valuation_date, shift
+        ) for leg in cashflow_list.legs)
+        return tuple(sum(b) for b in buckets)
 
     pv = get_present_value(cashflow_list, discount_curve, valuation_date)
-
     delta_curve = discount_curve if delta_curve is None else delta_curve
+
     # check if curve is CashRateCurve
-    if isinstance(delta_curve, CashRateCurve):
-        basis_point_curve = CashRateCurve([delta_curve.origin], [0.0001])
+    basis_point_curve_type = CashRateCurve \
+        if isinstance(delta_curve, CashRateCurve) else ZeroRateCurve
+
+    if delta_grid:
+        first = delta_grid[0], delta_grid[1]
+        mids = tuple(
+            zip(delta_grid[0, -3], delta_grid[1, -2], delta_grid[2, -1]))
+        last = delta_grid[-2], delta_grid[-1]
+
+        grid = (first,) + mids + (last,)
+        shifts = tuple(
+            [shift, 0.],) + ([0., shift, 0.],) * len(mids) + ([0., shift],)
     else:
-        basis_point_curve = ZeroRateCurve([delta_curve.origin], [0.0001])
-    shifted_curve = delta_curve + basis_point_curve
+        grid = ([delta_curve.origin],)
+        shifts = ([shift],)
 
-    if delta_curve == discount_curve:
-        discount_curve = shifted_curve
+    buckets = list()
+    for g, s in zip(grid, shifts):
+        shifted_curve = delta_curve + basis_point_curve_type(g, s)
+        if delta_curve == discount_curve:
+            discount_curve = shifted_curve
+        # todo: cashflow_list.payoff_model.forward_curve
+        fwd_curve = getattr(cashflow_list, 'forward_curve', None)
+        if fwd_curve == delta_curve:
+            # replace delta_curve by shifted_curve
+            cashflow_list.forward_curve = shifted_curve
+        sh = get_present_value(cashflow_list, discount_curve, valuation_date)
+        if fwd_curve == delta_curve:
+            # restore delta_curve by shifted_curve
+            cashflow_list.forward_curve = delta_curve
 
-    # todo: cashflow_list.payoff_model.forward_curve
-    fwd_curve = getattr(cashflow_list, 'forward_curve', None)
-    if fwd_curve == delta_curve:
-        # replace delta_curve by shifted_curve
-        cashflow_list.forward_curve = shifted_curve
-    sh = get_present_value(cashflow_list, discount_curve, valuation_date)
-    if fwd_curve == delta_curve:
-        # restore delta_curve by shifted_curve
-        cashflow_list.forward_curve = shifted_curve
-
-    return sh - pv
+        buckets.append((sh - pv) / shift * .0001)
+    return buckets
