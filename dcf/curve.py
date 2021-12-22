@@ -5,7 +5,7 @@
 # A Python library for generating discounted cashflows.
 #
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
-# Version:  0.6, copyright Sunday, 19 December 2021
+# Version:  0.6, copyright Monday, 20 December 2021
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -16,6 +16,82 @@ from warnings import warn
 from .compounding import continuous_compounding, continuous_rate
 from .interpolation import constant, linear, dyn_scheme
 from .day_count import day_count as _default_day_count
+
+
+def rate_table(curve, x_grid=None, y_grid=None):
+    r""" table of calculated rates
+
+    :param curve: function
+    :param x_grid:
+    :param y_grid:
+    :return: list(list(float))
+
+    >>> from tabulate import tabulate
+    >>> from dcf import Curve, rate_table
+    >>> curve = Curve([1, 4], [0, 1])
+    >>> table = rate_table(curve, x_grid=(0, 1, 2, 3, 4, 5), y_grid=(.0, .25, .5, .75))
+    >>> print(tabulate(table, headers='firstrow', floatfmt='.4f'))
+           0.0    0.25     0.5    0.75
+    --  ------  ------  ------  ------
+     0  0.0000  0.0000  0.0000  0.0000
+     1  0.0000  0.0833  0.1667  0.2500
+     2  0.3333  0.4167  0.5000  0.5833
+     3  0.6667  0.7500  0.8333  0.9167
+     4  1.0000  1.0000  1.0000  1.0000
+     5  1.0000  1.0000  1.0000  1.0000
+
+
+    >>> from businessdate import BusinessDate, BusinessPeriod
+    >>> from dcf import ZeroRateCurve
+
+    >>> term = '1m', '3m', '6m', '1y', '2y', '5y',
+    >>> rates = -0.008, -0.0057, -0.0053, -0.0036, -0.0010, 0.0014,
+    >>> today = BusinessDate(20211201)
+    >>> tenor = BusinessPeriod('1m')
+    >>> dates = [today + t for t in term]
+    >>> f = ZeroRateCurve(dates, rates, origin=today, forward_tenor=tenor)
+
+    >>> print(tabulate(f.table, headers='firstrow', floatfmt=".4f", tablefmt='latex'))
+    \begin{tabular}{lrrrrrrr}
+    \hline
+              &      0D &      1M &      2M &      3M &      6M &      1Y &     2Y \\
+    \hline
+     20211201 & -0.0080 &         &         &         &         &         &        \\
+     20220101 & -0.0080 & -0.0068 &         &         &         &         &        \\
+     20220301 & -0.0057 & -0.0056 & -0.0054 &         &         &         &        \\
+     20220601 & -0.0053 & -0.0050 & -0.0047 & -0.0044 &         &         &        \\
+     20221201 & -0.0036 & -0.0034 & -0.0032 & -0.0030 & -0.0023 &         &        \\
+     20231201 & -0.0010 & -0.0009 & -0.0009 & -0.0008 & -0.0006 & -0.0002 & 0.0006 \\
+     20261201 &  0.0014 &  0.0014 &  0.0014 &  0.0014 &  0.0014 &  0.0014 & 0.0014 \\
+    \hline
+    \end{tabular}
+    """  # noqa: E501
+    if x_grid is None:
+        x_grid = curve.domain
+        if curve.origin not in curve.domain:
+            x_grid = [curve.origin] + x_grid
+
+    if y_grid is None:
+        diff = list(e-s for s, e in zip(x_grid[:-1], x_grid[1:]))
+        step = diff[0]
+        y_grid = [step * 0]
+        for span in diff:
+            line = [step]
+            while line[-1] + step < span:
+                line.append(line[-1] + step)
+            y_grid.extend(line)
+            step = span
+        y_grid = tuple(sorted(set(y_grid)))
+
+    # fill table
+    grid = list()
+    grid.append(('',) + tuple(y_grid))
+    for i, x in enumerate(x_grid):
+        lst = x_grid[i+1] if i < len(x_grid)-1 \
+            else x_grid[-1] + y_grid[-1] + y_grid[-1]
+        grid.append(((x,) + tuple(curve(x+y) for y in y_grid if x + y < lst)))
+
+    return grid
 
 
 class Curve(object):
@@ -74,6 +150,12 @@ class Curve(object):
     @property
     def domain(self):
         return self._domain
+
+    @property
+    def table(self):
+        """ table of interpolated rates """
+        # print(tabulate(curve.table, headers='firstrow'))  # for pretty print
+        return rate_table(self)
 
     def __call__(self, x):
         if isinstance(x, (tuple, list)):

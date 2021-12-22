@@ -29,6 +29,7 @@ Basic Curves
 .. autoclass:: DateCurve
 .. autoclass:: RateCurve
 
+.. autofunction:: rate_table
 
 Interest Rate Curves
 --------------------
@@ -153,8 +154,8 @@ Interest Accrued
 .. autofunction:: dcf.pricer.get_interest_accrued
 
 
-Basis Point Value (BPV)
------------------------
+Basis Point Value
+-----------------
 
 .. autofunction:: dcf.pricer.get_basis_point_value
 

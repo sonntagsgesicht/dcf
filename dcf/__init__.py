@@ -5,7 +5,7 @@
 # A Python library for generating discounted cashflows.
 #
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
-# Version:  0.6, copyright Sunday, 19 December 2021
+# Version:  0.6, copyright Monday, 20 December 2021
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -13,7 +13,7 @@
 __doc__ = 'A Python library for generating discounted cashflows.'
 __version__ = '0.6'
 __dev_status__ = '4 - Beta'
-__date__ = 'Monday, 20 December 2021'
+__date__ = 'Wednesday, 22 December 2021'
 __author__ = 'sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]'
 __email__ = 'sonntagsgesicht@icloud.com'
 __url__ = 'https://github.com/sonntagsgesicht/' + __name__
@@ -29,7 +29,7 @@ logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 # from .interpolation import *
 # from .compounding import *
-from .curve import Curve, DateCurve, RateCurve  # noqa E401 E402
+from .curve import Curve, DateCurve, RateCurve, rate_table  # noqa E401 E402
 from .interestratecurve import CashRateCurve, InterestRateCurve, \
     DiscountFactorCurve, ZeroRateCurve, ShortRateCurve  # noqa E401 E402
 from .creditcurve import SurvivalProbabilityCurve, \
