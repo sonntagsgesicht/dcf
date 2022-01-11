@@ -5,15 +5,13 @@
 # A Python library for generating discounted cashflows.
 #
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
-# Version:  0.6, copyright Monday, 20 December 2021
+# Version:  0.6, copyright Wednesday, 22 December 2021
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
 
-from datetime import date, timedelta
-from businessdate import BusinessDate, BusinessSchedule, BusinessPeriod
-from dcf import ZeroRateCurve, CashRateCurve
 import matplotlib.pyplot as plt
+
 '''
 term = 1, 2, 5, 10, 15, 20, 30
 zeros = -0.0084, -0.0079, -0.0057, -0.0024, -0.0008, -0.0001, 0.0003
@@ -27,11 +25,12 @@ fwd_6m = -0.0053, -0.0048, -0.0042, -0.0022, 0.0002, 0.0022, 0.0065
 f6 = Curve(fwd_term, fwd_6m)
 '''
 
+
 def get_step(diff, nums=10):
     try:
         step = diff / nums
     except TypeError:
-        d, y = diff.days, diff.years
+        d, _ = diff.days, diff.years
         step = type(diff)(days=int(d / nums), years=(d / nums))
     return step
 
@@ -45,7 +44,7 @@ def rate_table(curve, x_grid=None, y_grid=None):
 
     if y_grid is None:
         se_grid = tuple(zip(x_grid[:-1], x_grid[1:]))
-        step = min(e-s for s, e in se_grid)
+        step = min(e - s for s, e in se_grid)
         ticks = list()
         for s, e in se_grid:
             line = [s]
@@ -55,14 +54,15 @@ def rate_table(curve, x_grid=None, y_grid=None):
             ticks.append(line)
         ticks.append([(x_grid[-1],)])
         max_ticks = max(len(t) for t in ticks)
-        y_grid = [step*i for i in range(max_ticks)]
+        y_grid = [step * i for i in range(max_ticks)]
 
     grid = list()
     grid.append(('',) + tuple(y_grid))
     for i, x in enumerate(x_grid):
-        lst = x_grid[i+1] if i < len(x_grid)-1 \
+        lst = x_grid[i + 1] if i < len(x_grid) - 1 \
             else x_grid[-1] + y_grid[-1] + y_grid[-1]
-        grid.append(((x,) + tuple(curve(x+y) for y in y_grid if x + y < lst)))
+        grid.append(
+            ((x,) + tuple(curve(x + y) for y in y_grid if x + y < lst)))
     return grid
 
 
@@ -116,7 +116,10 @@ def plot(curve, func='get_zero_rate', step=None, nums=10, *args, **kwargs):
     plt.show()
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
+    from businessdate import BusinessDate, BusinessPeriod
+    from dcf import ZeroRateCurve
+
     dates = [-1, 0, 1, 2, 3, 7, 10]
     dates = list(BusinessDate() + BusinessPeriod(years=d) for d in dates)
     rates = -0.01, -0.005, -0.001, 0.001, 0.005, 0.01, 0.005

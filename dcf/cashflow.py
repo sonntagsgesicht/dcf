@@ -5,7 +5,7 @@
 # A Python library for generating discounted cashflows.
 #
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
-# Version:  0.6, copyright Sunday, 19 December 2021
+# Version:  0.6, copyright Wednesday, 22 December 2021
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -75,6 +75,22 @@ class CashFlowList(object):
             return tuple(self[i] for i in item)
         else:
             return self._flows.get(item, 0.)
+
+    def __add__(self, other):
+        for k in self._flows:
+            self._flows[k].__add__(other)
+
+    def __sub__(self, other):
+        for k in self._flows:
+            self._flows[k].__sub__(other)
+
+    def __mul__(self, other):
+        for k in self._flows:
+            self._flows[k].__mul__(other)
+
+    def __truediv__(self, other):
+        for k in self._flows:
+            self._flows[k].__truediv__(other)
 
     def __str__(self):
         inner = ''
@@ -170,6 +186,10 @@ class RateCashFlowList(CashFlowList):
         :param day_count: day count convention
         :param fixed_rate: agreed fixed rate
         :param forward_curve: interest rate curve for forward estimation
+        :param fixing_offset: time difference between
+            interest rate fixing date and interest period payment date
+        :param pay_offset: time difference between
+            interest period end date and interest payment date
 
         Let $t_0$ be the list **origin**
         and $t_i$ $i=1, \dots n$ the **payment_date_list**
@@ -290,3 +310,19 @@ class CashFlowLegList(CashFlowList):
             return tuple(self[i] for i in item)
         else:
             return sum(leg[item] for leg in self._legs if item in leg.domain)
+
+    def __add__(self, other):
+        for leg in self._legs:
+            leg.__add__(other)
+
+    def __sub__(self, other):
+        for leg in self._legs:
+            leg.__sub__(other)
+
+    def __mul__(self, other):
+        for leg in self._legs:
+            leg.__mul__(other)
+
+    def __truediv__(self, other):
+        for leg in self._legs:
+            leg.__truediv__(other)

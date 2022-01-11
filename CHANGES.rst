@@ -13,6 +13,8 @@ Release date was |today|
 
 * added |get_bucketed_delta()|
 
+* added submodules data, product and plot (under construction)
+
 
 Release 0.5
 ===========

@@ -49,7 +49,7 @@ notional = 1.0
 maturities = '2y', '5y', '10y', '20y'
 
 
-class FirstRegTests(RegressionTestCase):
+class PricerRegTests(RegressionTestCase):
 
     def cashflow_details(self):
         for maturity in maturities:
@@ -80,7 +80,7 @@ class FirstRegTests(RegressionTestCase):
 
             self.assertAlmostRegressiveEqual(par_rate)
             self.assertAlmostEqual(notional, get_present_value(bond, zero_curve, start))
-            self.assertAlmostRegressiveEqual(pkg.get_basis_point_value(bond, zero_curve, zero_curve, start))
+            self.assertAlmostRegressiveEqual(pkg.get_basis_point_value(bond, zero_curve, start))
 
     def test_swap_x_bpv(self):
         for maturity in maturities:
@@ -96,4 +96,4 @@ class FirstRegTests(RegressionTestCase):
 
             self.assertAlmostRegressiveEqual(par_rate)
             self.assertAlmostEqual(0.0, get_present_value(swap, zero_curve, start))
-            self.assertAlmostRegressiveEqual(pkg.get_basis_point_value(swap, zero_curve, zero_curve, start))
+            self.assertAlmostRegressiveEqual(pkg.get_basis_point_value(swap, zero_curve, start))
