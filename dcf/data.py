@@ -5,7 +5,7 @@
 # A Python library for generating discounted cashflows.
 #
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
-# Version:  0.6, copyright Wednesday, 22 December 2021
+# Version:  0.6.1, copyright Tuesday, 11 January 2022
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -22,6 +22,8 @@ try:
     y = BusinessPeriod('1y')
 
 except ImportError:
+
+    BusinessDate = BusinessPeriod = None
 
     today = 0.0
     b = 1 / 365.25

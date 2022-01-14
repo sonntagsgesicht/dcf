@@ -5,7 +5,7 @@
 # A Python library for generating discounted cashflows.
 #
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
-# Version:  0.6, copyright Wednesday, 22 December 2021
+# Version:  0.6.1, copyright Tuesday, 11 January 2022
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -174,17 +174,18 @@ def get_interest_accrued(cashflow_list, valuation_date):
 
 
 def get_fair_rate(cashflow_list, discount_curve,
-                  valuation_date=None, present_value=0.):
+                  valuation_date=None, present_value=0., precision=1e-7):
     r""" coupon rate to meet given value
 
     :param cashflow_list: list of cashflows
     :param discount_curve: discount factors are obtained from this curve
     :param valuation_date: date to discount to
     :param present_value: price to meet by discounting
+    :param precision: max distance of present value to par
     :return: `float` - the fair coupon rate as
         **fixed_rate** of a |RateCashFlowList()|
 
-    Let $cf_i(c) = N_i \cdot \tau(s_i,e_i) \cdot c \cdot f(d_i)$
+    Let $cf_i(c) = N_i \cdot \tau(s_i,e_i) \cdot (c + f(d_i))$
     be the $i$-th cashflow in the **cashflow_list**.
 
     Here, the fair rate is the fixed_rate $c=\hat{c}$ such that
@@ -212,7 +213,7 @@ def get_fair_rate(cashflow_list, discount_curve,
         return pv - present_value
 
     # run bracketing
-    _, par, _ = _simple_bracketing(err, -0.1, .2, 1e-7)
+    _, par, _ = _simple_bracketing(err, -0.1, .2, precision)
 
     # restore fixed rate
     cashflow_list.fixed_rate = fixed_rate
@@ -220,10 +221,10 @@ def get_fair_rate(cashflow_list, discount_curve,
 
 
 def get_par_rate(cashflow_list, discount_curve,
-                 valuation_date=None, present_value=0.):
+                 valuation_date=None, present_value=0., precision=1e-7):
     """ same as |get_fair_rate()| """
     return get_fair_rate(cashflow_list, discount_curve, valuation_date,
-                         present_value)
+                         present_value, precision)
 
 
 def get_basis_point_value(cashflow_list, discount_curve, valuation_date=None,
@@ -375,7 +376,8 @@ def get_bucketed_delta(cashflow_list, discount_curve, valuation_date=None,
 
     buckets = list()
     for g, s in zip(grid, shifts):
-        shifted_curve = delta_curve + basis_point_curve_type(g, s)
+        shifted_curve = delta_curve + basis_point_curve_type(
+            g, s, forward_tenor=delta_curve.forward_tenor)
         # todo: cashflow_list.payoff_model.forward_curve
         fwd_curve = getattr(cashflow_list, 'forward_curve', None)
         if fwd_curve == delta_curve:

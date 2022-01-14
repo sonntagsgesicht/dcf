@@ -41,10 +41,13 @@ Example Usage
 
 >>> from dcf import ZeroRateCurve
 
->>> ZeroRateCurve([0, 2], [.03, .05]).get_zero_rate(0, 1)
+>>> time_grid = [0, 2]
+>>> rate_grid = [.03, .05]
+
+>>> ZeroRateCurve(time_grid, rate_grid).get_zero_rate(0, 1)
 0.04
 
->>> ZeroRateCurve([0, 2], [.03, .05]).get_discount_factor(0, 1)
+>>> ZeroRateCurve(time_grid, rate_grid).get_discount_factor(0, 1)
 0.9607894391523232
 
 

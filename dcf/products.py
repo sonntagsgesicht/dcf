@@ -5,7 +5,7 @@
 # A Python library for generating discounted cashflows.
 #
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
-# Version:  0.6, copyright Wednesday, 22 December 2021
+# Version:  0.6.1, copyright Tuesday, 11 January 2022
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -39,7 +39,7 @@ def _interest_payment_dates(
     else:
         payment_date_list = [end_date]
         cnt = 1
-        while start_date + period < payment_date_list[0]:
+        while start_date + period <= payment_date_list[0]:
             payment_date_list.append(end_date - period * cnt)
             cnt += 1
         payment_date_list.reverse()
@@ -60,7 +60,7 @@ def bond(start_date=TODAY,
          forward_curve=None,
          fixing_offset=None,
          pay_offset=None):
-    ''' simple bond product
+    """ simple bond product
 
     :param start_date: pay date of inital notional amount
     :param end_date: rolling date for interest pay dates
@@ -79,7 +79,7 @@ def bond(start_date=TODAY,
         interest period end date and interest payment date
     :return: |CashFlowLegList|
 
-    '''
+    """
     interest_payment_date_list = _interest_payment_dates(
         start_date, end_date, period, convention, holidays)
 
@@ -140,7 +140,7 @@ def interest_rate_swap(start_date=TODAY,
                        rec_leg_day_count='actact',
                        rec_leg_fixed_rate=0.0,
                        rec_leg_forward_curve=None):
-    ''' plain vanilla swap
+    """ plain vanilla swap
 
     :param start_date: pay date of inital notional amount
     :param end_date: rolling date for interest pay dates
@@ -171,7 +171,7 @@ def interest_rate_swap(start_date=TODAY,
     if not mentioned explicitly all arguments are applied to both legs,
     pay and receive leg.
 
-    '''
+    """
 
     pay_leg_payment_date_list = _interest_payment_dates(
         start_date, end_date,

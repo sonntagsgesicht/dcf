@@ -5,7 +5,7 @@
 # A Python library for generating discounted cashflows.
 #
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
-# Version:  0.6, copyright Wednesday, 22 December 2021
+# Version:  0.6.1, copyright Tuesday, 11 January 2022
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -125,7 +125,7 @@ class FixedCashFlowList(CashFlowList):
     @property
     def table(self):
         """ cashflow details as list of tuples """
-        header = [('cashflow', 'pay_date')]
+        header = [('cashflow', 'pay date')]
         table = list((self[d], d,) for d in self.domain)
         return header + table
 
@@ -206,7 +206,7 @@ class RateCashFlowList(CashFlowList):
         $d_i = s_i - \epsilon$
         for **pay_offset** $\delta$ and **fixing_offset** $\epsilon$,
 
-        $$cf_i = N_i \cdot \tau(s_i,e_i) \cdot c \cdot f(d_i).$$
+        $$cf_i = N_i \cdot \tau(s_i,e_i) \cdot (c + f(d_i)).$$
 
         Note, the **pay_offset** $\delta$ is not applied
         in case of the first cashflow, then $s_1=t_0$.
