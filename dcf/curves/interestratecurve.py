@@ -134,7 +134,9 @@ class InterestRateCurve(RateCurve, ABC):
     def get_swap_annuity(self, date_list):
         # todo: add forward_rate tenor resp. day_count
         return sum(
-            [self.get_discount_factor(self.origin, t) for t in date_list])
+            self.get_discount_factor(self.origin, e) * self.day_count(s, e)
+            for s, e in zip(date_list[:-1], date_list[0:])
+        )
 
 
 class DiscountFactorCurve(InterestRateCurve):
