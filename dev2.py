@@ -13,8 +13,8 @@ from __future__ import print_function
 
 from tabulate import tabulate as tb
 
-from businessdate import BusinessDate, BusinessPeriod, BusinessSchedule
-from dcf import ZeroRateCurve, CashRateCurve, rate_table
+from businessdate import BusinessDate, BusinessPeriod
+from dcf import ZeroRateCurve, rate_table
 
 fwd_term = '1m', '3m', '6m', '1y', '2y', '5y',  # '10y'
 fwd_1m = -0.008, -0.0057, -0.0053, -0.0036, -0.0010, 0.0014,  # 0.0066
@@ -41,15 +41,10 @@ import matplotlib.pyplot as plt
 path.append('')
 matplotlib.use('agg')
 
-from businessdate import BusinessDate, BusinessPeriod, BusinessRange
+from businessdate import BusinessRange
 
-from dcf.compounding import continuous_rate, continuous_compounding
-from dcf.ratingclass import RatingClass, SHORT_MASTER_SCALE
 from dcf import DiscountFactorCurve, ZeroRateCurve, CashRateCurve, \
-    ShortRateCurve, dyn_scheme
-from dcf import MarginalDefaultProbabilityCurve, \
-    MarginalSurvivalProbabilityCurve
-from dcf import TerminalVolatilityCurve, InstantaneousVolatilityCurve
+    ShortRateCurve
 
 if 0:
     from businessdate import BusinessDate, BusinessSchedule
@@ -438,7 +433,7 @@ if 0:
     '''
 
 if 0:
-    from dcf.interpolation import constant, linear
+    from dcf.base.interpolation import constant, linear
 
     s = [constant()] * 3
     s = constant, linear, constant

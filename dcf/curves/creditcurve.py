@@ -14,14 +14,14 @@ from abc import ABC
 from sys import float_info
 
 from .curve import RateCurve
-from .compounding import continuous_compounding, continuous_rate
-from .interpolation import constant, linear, logconstantrate, loglinearrate, \
-    neglogconstant, negloglinear, dyn_scheme
+from ..base.compounding import continuous_compounding, continuous_rate
+from ..base.interpolation import constant, linear_scheme, \
+    log_linear_rate_scheme, neg_log_linear_scheme
 
 
 class CreditCurve(RateCurve, ABC):
     """ generic curve for default probabilities (under construction) """
-    _forward_tenor = '1Y'
+    _FORWARD_TENOR = '1Y'
 
     def __init__(self, domain=(), data=(), interpolation=None, origin=None,
                  day_count=None, forward_tenor=None):
@@ -52,7 +52,7 @@ class CreditCurve(RateCurve, ABC):
             return self.get_hazard_rate(min(self.domain))
         if max(self.domain) <= start:
             return self.get_hazard_rate(
-                max(self.domain) - self.__class__._time_shift)
+                max(self.domain) - self._TIME_SHIFT)
 
         previous = max(d for d in self.domain if d <= start)
         follow = min(d for d in self.domain if start < d)
@@ -90,8 +90,7 @@ class ProbabilityCurve(CreditCurve, ABC):
 
 
 class SurvivalProbabilityCurve(ProbabilityCurve):
-    _interpolation = dyn_scheme(logconstantrate, loglinearrate,
-                                logconstantrate)
+    _INTERPOLATION = log_linear_rate_scheme
 
     @staticmethod
     def _get_storage_value(curve, x):
@@ -131,7 +130,7 @@ class DefaultProbabilityCurve(SurvivalProbabilityCurve):
 
 
 class FlatIntensityCurve(CreditCurve):
-    _interpolation = dyn_scheme(constant, linear, constant)
+    _INTERPOLATION = linear_scheme
 
     @staticmethod
     def _get_storage_value(curve, x):
@@ -153,7 +152,7 @@ class FlatIntensityCurve(CreditCurve):
 
 
 class HazardRateCurve(CreditCurve):
-    _interpolation = dyn_scheme(constant, constant, constant)
+    _INTERPOLATION = constant
 
     @staticmethod
     def _get_storage_value(curve, x):
@@ -165,7 +164,7 @@ class HazardRateCurve(CreditCurve):
 
         current = start
         rate = 0.0
-        step = self.__class__._time_shift
+        step = self._TIME_SHIFT
 
         while current + step < stop:
             rate += self(current) * self.day_count(current, current + step)
@@ -179,7 +178,7 @@ class HazardRateCurve(CreditCurve):
 
 
 class MarginalSurvivalProbabilityCurve(ProbabilityCurve):
-    _interpolation = dyn_scheme(neglogconstant, negloglinear, neglogconstant)
+    _INTERPOLATION = neg_log_linear_scheme
 
     @staticmethod
     def _get_storage_value(curve, x):
@@ -210,7 +209,7 @@ class MarginalSurvivalProbabilityCurve(ProbabilityCurve):
         if max(self.domain) <= start:
             return self.get_flat_intensity(
                 max(self.domain),
-                max(self.domain) + self.__class__._time_shift)
+                max(self.domain) + self._TIME_SHIFT)
 
         previous = max(d for d in self.domain if d <= start)
         follow = min(d for d in self.domain if start < d)

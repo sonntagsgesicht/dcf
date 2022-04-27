@@ -12,10 +12,10 @@
 
 from abc import ABC
 
+from ..base.compounding import continuous_rate, simple_compounding, simple_rate
+from ..base.interpolation import constant, linear_scheme, \
+    log_linear_rate_scheme
 from .curve import RateCurve
-from .compounding import continuous_rate, simple_compounding, simple_rate
-from .interpolation import constant, linear, loglinearrate, logconstantrate, \
-    dyn_scheme
 
 
 class InterestRateCurve(RateCurve, ABC):
@@ -66,7 +66,7 @@ class InterestRateCurve(RateCurve, ABC):
             return self.get_short_rate(min(self.domain))
         if max(self.domain) <= start:
             return self.get_short_rate(
-                max(self.domain) - self.__class__._time_shift)
+                max(self.domain) - self._TIME_SHIFT)
 
         previous = max(d for d in self.domain if d <= start)
         follow = min(d for d in self.domain if start < d)
@@ -132,13 +132,13 @@ class InterestRateCurve(RateCurve, ABC):
         return simple_rate(df, t)
 
     def get_swap_annuity(self, date_list):
+        # todo: add forward_rate tenor resp. day_count
         return sum(
             [self.get_discount_factor(self.origin, t) for t in date_list])
 
 
 class DiscountFactorCurve(InterestRateCurve):
-    _interpolation = dyn_scheme(logconstantrate, loglinearrate,
-                                logconstantrate)
+    _INTERPOLATION = log_linear_rate_scheme
 
     @staticmethod
     def _get_storage_value(curve, x):
@@ -177,7 +177,7 @@ class DiscountFactorCurve(InterestRateCurve):
 
 
 class ZeroRateCurve(InterestRateCurve):
-    _interpolation = dyn_scheme(constant, linear, constant)
+    _INTERPOLATION = linear_scheme
 
     @staticmethod
     def _get_storage_value(curve, x):
@@ -199,7 +199,7 @@ class ZeroRateCurve(InterestRateCurve):
 
 
 class ShortRateCurve(InterestRateCurve):
-    _interpolation = dyn_scheme(constant, constant, constant)
+    _INTERPOLATION = constant
 
     @staticmethod
     def _get_storage_value(curve, x):
@@ -211,7 +211,7 @@ class ShortRateCurve(InterestRateCurve):
 
         current = start
         rate = 0.0
-        step = self.__class__._time_shift
+        step = self._TIME_SHIFT
 
         while current + step < stop:
             rate += self(current) * self.day_count(current, current + step)

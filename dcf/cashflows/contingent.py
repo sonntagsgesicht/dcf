@@ -10,9 +10,10 @@
 # License:  Apache License 2.0 (see LICENSE file)
 
 
+from ..base.day_count import day_count as default_day_count
+from ..base.plans import DEFAULT_AMOUNT
 from .cashflow import CashFlowList as _CashFlowList, \
     RateCashFlowList as _RateCashFlowList
-from .plans import DEFAULT_AMOUNT
 
 
 DEFAULT_PAYOFF = DEFAULT_PAYOFF_MODEL = (lambda *_: 0.)
@@ -52,9 +53,7 @@ class ContingentRateCashFlowList(ContingentCashFlowList):
                      amount=1.0, fixed_rate=0.0):
             self.start = start
             self.end = end
-            if day_count is None:
-                day_count = _RateCashFlowList.DAY_COUNT
-            self.day_count = day_count
+            self.day_count = day_count or default_day_count
             self.amount = amount
             self.fixed_rate = fixed_rate
 
@@ -90,9 +89,7 @@ class ContingentRateCashFlowList(ContingentCashFlowList):
         :param forward_curve:
         """
 
-        if day_count is None:
-            day_count = _RateCashFlowList.DAY_COUNT
-        self.day_count = day_count
+        self.day_count = day_count or default_day_count
 
         payoff_list = list()
         if origin is None and payment_date_list:

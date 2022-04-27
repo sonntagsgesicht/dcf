@@ -10,8 +10,22 @@
 # License:  Apache License 2.0 (see LICENSE file)
 
 
-from .day_count import day_count as _default_day_count
-from .plans import DEFAULT_AMOUNT, same as _same
+from ..base.day_count import day_count as _default_day_count
+from ..base.plans import DEFAULT_AMOUNT, same as _same
+
+
+class CashFlow(object):
+
+    def __init__(self, date=0.0, value=0.0, currency=None):
+        self.date = date
+        self.value = float(value)
+
+    def __float__(self):
+        return float(self.value)
+
+    def __repr__(self):
+        args = f"date={self.date!r}", f"value={self.value!r}"
+        return f"{self.__class__.__name__}({', '.join(args)})"
 
 
 class CashFlowList(object):
@@ -61,9 +75,8 @@ class CashFlowList(object):
             data = _same(len(domain), data)
 
         if not len(data) == len(domain):
-            cls = self.__class__.__name__
-            msg = "%s arguments `data` and `domain` must have same length." % \
-                  cls
+            msg = f"{self.__class__.__name__} arguments " \
+                  f"`data` and `domain` must have same length."
             raise ValueError(msg)
 
         self._origin = domain[0] if origin is None and domain else origin

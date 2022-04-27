@@ -10,8 +10,8 @@
 # License:  Apache License 2.0 (see LICENSE file)
 
 
-from .interestratecurve import ZeroRateCurve, CashRateCurve
-from .cashflow import CashFlowLegList
+from .cashflows.cashflow import CashFlowLegList
+from .curves.interestratecurve import ZeroRateCurve, CashRateCurve
 
 
 def _simple_bracketing(func, a, b, precision=1e-13):

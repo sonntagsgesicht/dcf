@@ -15,7 +15,7 @@ try:
 except ImportError:
     bd = None
 
-from dcf import CashFlowLegList, FixedCashFlowList, RateCashFlowList
+from .cashflow import CashFlowLegList, FixedCashFlowList, RateCashFlowList
 
 TODAY = 0.0
 MATURITY = 10

@@ -27,7 +27,7 @@ setup(
     author_email=pkg.__email__,
     url=pkg.__url__,
     license=pkg.__license__,
-    packages=(pkg.__name__,),
+    packages=find_packages(),
     package_data={pkg.__name__: list(pkg.__data__)},
     scripts=pkg.__scripts__,
     install_requires=pkg.__dependencies__,

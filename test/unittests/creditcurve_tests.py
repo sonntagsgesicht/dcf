@@ -3,7 +3,7 @@
 # dcf
 # ---
 # A Python library for generating discounted cashflows.
-# 
+#
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
 # Version:  0.4, copyright Saturday, 10 October 2020
 # Website:  https://github.com/sonntagsgesicht/dcf
@@ -130,9 +130,9 @@ class CastIntensityCurveUnitTests(TestCase):
         for t in (SurvivalProbabilityCurve, FlatIntensityCurve, HazardRateCurve):
             cast = t(curve)
             recast = self.cast_type(cast)
-            self.assertEqual(self.cast_type._interpolation, curve.interpolation)
-            self.assertEqual(t._interpolation, cast.interpolation)
-            self.assertEqual(self.cast_type._interpolation, recast.interpolation)
+            self.assertEqual(self.cast_type._INTERPOLATION, curve._INTERPOLATION)
+            self.assertEqual(t._INTERPOLATION, cast._INTERPOLATION)
+            self.assertEqual(self.cast_type._INTERPOLATION, recast._INTERPOLATION)
 
     def test_survival_cast(self):
         for p in self.periods:

@@ -15,15 +15,15 @@ from abc import ABC
 import logging
 from math import sqrt
 
+from ..base.interpolation import zero, linear, constant, dyn_scheme
 from .curve import RateCurve
-from .interpolation import zero, linear, constant, dyn_scheme
 
 _logger = logging.getLogger('dcf')
 
 
 class VolatilityCurve(RateCurve, ABC):
     """ generic curve for default probabilities (under construction) """
-    _time_shift = '1d'
+    _TIME_SHIFT = '1d'
     _interpolation = dyn_scheme(zero, linear, constant)
 
     def get_instantaneous_vol(self, start):

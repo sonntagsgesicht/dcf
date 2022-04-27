@@ -12,7 +12,7 @@
 
 from unittest.case import TestCase
 
-from dcf.compounding import periodic_compounding, periodic_rate, \
+from dcf.base.compounding import periodic_compounding, periodic_rate, \
     continuous_compounding, continuous_rate, simple_compounding, simple_rate
 
 

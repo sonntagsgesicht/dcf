@@ -3,7 +3,7 @@
 # dcf
 # ---
 # A Python library for generating discounted cashflows.
-# 
+#
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
 # Version:  0.4, copyright Saturday, 10 October 2020
 # Website:  https://github.com/sonntagsgesicht/dcf
@@ -14,7 +14,7 @@ from unittest.case import TestCase
 
 from businessdate import BusinessDate, BusinessSchedule
 
-from dcf.plans import DEFAULT_AMOUNT, FIXED_RATE, same, bullet, amortize, annuity, consumer, outstanding
+from dcf.base.plans import DEFAULT_AMOUNT, FIXED_RATE, same, bullet, amortize, annuity, consumer, outstanding
 from dcf import ZeroRateCurve
 
 

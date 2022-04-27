@@ -311,3 +311,15 @@ def dyn_scheme(left, mid, right):
     name = left.__name__ + '_' + mid.__name__ + '_' + right.__name__
     return type(name, (interpolation_scheme,),
                 {'_interpolation': (left, mid, right)})
+
+
+constant_linear_constant = dyn_scheme(constant, linear, constant)
+linear_scheme = constant_linear_constant
+
+logconstantrate_loglinearrate_logconstantrate = \
+    dyn_scheme(logconstantrate, loglinearrate, logconstantrate)
+log_linear_rate_scheme = logconstantrate_loglinearrate_logconstantrate
+
+neglogconstant_negloglinear_neglogconstant = \
+    dyn_scheme(neglogconstant, negloglinear, neglogconstant)
+neg_log_linear_scheme = neglogconstant_negloglinear_neglogconstant

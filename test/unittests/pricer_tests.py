@@ -15,7 +15,7 @@ from unittest.case import TestCase
 from businessdate import BusinessDate, BusinessSchedule
 
 from dcf import DiscountFactorCurve, CashRateCurve, ZeroRateCurve
-from dcf.interpolation import interpolation_scheme
+from dcf.base.interpolation import interpolation_scheme
 from dcf import FixedCashFlowList, RateCashFlowList, CashFlowLegList
 from dcf.pricer import get_present_value, get_yield_to_maturity, get_par_rate, get_interest_accrued
 

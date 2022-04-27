@@ -10,7 +10,7 @@
 # License:  Apache License 2.0 (see LICENSE file)
 
 
-from .interestratecurve import ZeroRateCurve, CashRateCurve
+from .curves.interestratecurve import ZeroRateCurve, CashRateCurve
 
 try:
     from businessdate import BusinessDate, BusinessPeriod

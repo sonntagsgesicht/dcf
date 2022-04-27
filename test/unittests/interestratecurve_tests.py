@@ -3,7 +3,7 @@
 # dcf
 # ---
 # A Python library for generating discounted cashflows.
-# 
+#
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
 # Version:  0.4, copyright Saturday, 10 October 2020
 # Website:  https://github.com/sonntagsgesicht/dcf
@@ -14,7 +14,7 @@ from unittest import TestCase
 
 from businessdate import BusinessDate, BusinessRange
 
-from dcf.compounding import simple_compounding, continuous_rate
+from dcf.base.compounding import simple_compounding, continuous_rate
 from dcf import ZeroRateCurve, DiscountFactorCurve, ShortRateCurve, CashRateCurve
 
 
@@ -90,9 +90,9 @@ class CastZeroRateCurveUnitTests(TestCase):
             cast = t(curve)
             curve.cast(t)
             recast = self.cast_type(cast)
-            self.assertEqual(self.cast_type._interpolation, curve.interpolation)
-            self.assertEqual(t._interpolation, cast.interpolation)
-            self.assertEqual(self.cast_type._interpolation, recast.interpolation)
+            self.assertEqual(self.cast_type._INTERPOLATION, curve._INTERPOLATION)
+            self.assertEqual(t._INTERPOLATION, cast._INTERPOLATION)
+            self.assertEqual(self.cast_type._INTERPOLATION, recast._INTERPOLATION)
 
     def test_discount_cast(self):
         for p in self.periods:
