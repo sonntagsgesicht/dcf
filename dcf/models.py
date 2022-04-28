@@ -5,23 +5,24 @@ class RateCashFlowOptionPayOffModel(object):
         self.forward_curve = forward_curve
         self.valuation_date = valuation_date
 
-    def get_cash_rate(self, date):
-        return self.forward_curve.get_cash_rate(date)
+    def get_forward_value(self, date):
+        return self.forward_curve(date)
 
-    def get_call_value(self, date, strike):
-        rate = self.get_cash_rate(date)
+    def get_call_value(self, date, strike, rate=None):
+        if rate is None:
+            rate = self.get_forward_value(date)
         return max(rate - strike, 0.0)
 
-    def get_put_value(self, date, strike):
-        rate = self.get_cash_rate(date)
-        return max(strike - rate, 0.0)
+    def get_put_value(self, date, strike, rate=None):
+        if rate is None:
+            rate = self.get_forward_value(date)
+        call = self.get_call_value(date, strike, rate)
+        return strike - rate + call
 
-    def get_binary_call_value(self, date, strike):
-        rate = self.get_cash_rate(date)
+    def get_binary_call_value(self, date, strike, rate=None):
+        if rate is None:
+            rate = self.get_forward_value(date)
         return 0.0 if rate < strike else 1.0
 
-    def get_binary_call_value(self, date, strike):
-        rate = self.get_cash_rate(date)
-        return 1.0 if rate < strike else 0.0
-
-
+    def get_binary_put_value(self, date, strike, rate=None):
+        return 1.0 - self.get_binary_call_value(date, strike, rate)

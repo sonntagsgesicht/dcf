@@ -63,12 +63,13 @@ class ContingentRateCashFlowList(ContingentCashFlowList):
             self.floor_strike = None
 
         def __call__(self, model=None):
+            fwd = model.get_forward_value(self.start)
             rate = self.fixed_rate
-            rate += model.get_cash_rate(self.start)
+            rate += fwd
             if self.cap_strike:
-                rate -= model.get_call_value(self.start, self.cap_strike)
+                rate -= model.get_call_value(self.start, self.cap_strike, fwd)
             if self.floor_strike:
-                rate += model.get_put_value(self.start, self.floor_strike)
+                rate += model.get_put_value(self.start, self.floor_strike, fwd)
             yf = self.day_count(self.start, self.end)
             return rate * yf * self.amount
 
