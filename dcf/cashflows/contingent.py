@@ -44,6 +44,20 @@ class ContingentCashFlowList(_CashFlowList):
             return payoff(item, self.payoff_model)
 
 
+class CashFlow(object):
+
+    def __init__(self, date=0.0, value=0.0, currency=None):
+        self.date = date
+        self.value = float(value)
+
+    def __float__(self):
+        return float(self.value)
+
+    def __repr__(self):
+        args = f"date={self.date!r}", f"value={self.value!r}"
+        return f"{self.__class__.__name__}({', '.join(args)})"
+
+
 class ContingentRateCashFlowList(ContingentCashFlowList):
     """ list of cashflows by interest rate payments """
 

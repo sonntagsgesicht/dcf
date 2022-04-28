@@ -9,23 +9,12 @@
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
+from collections import OrderedDict
+from inspect import signature
+from warnings import warn
 
 from ..base.day_count import day_count as _default_day_count
 from ..base.plans import DEFAULT_AMOUNT, same as _same
-
-
-class CashFlow(object):
-
-    def __init__(self, date=0.0, value=0.0, currency=None):
-        self.date = date
-        self.value = float(value)
-
-    def __float__(self):
-        return float(self.value)
-
-    def __repr__(self):
-        args = f"date={self.date!r}", f"value={self.value!r}"
-        return f"{self.__class__.__name__}({', '.join(args)})"
 
 
 class CashFlowList(object):
@@ -38,9 +27,31 @@ class CashFlowList(object):
     @property
     def origin(self):
         """ cashflow list start date """
+        if self._origin is None and self._domain:
+            return self._domain[0]
         return self._origin
 
-    def __init__(self, domain=(), data=(), origin=None):
+    @property
+    def kwargs(self):
+        warn('%s().kwargs is under construction' % self.__class__.__name__)
+        kw = OrderedDict()
+        for name in signature(self.__class__).parameters:
+            attr = None
+            if name == 'amount_list':
+                attr = tuple(self._flows[d] for d in self.domain)
+            if name == 'payment_date_list':
+                attr = self.domain
+            attr = getattr(self, '_' + name, attr)
+            if isinstance(attr, (list, tuple)):
+                attr = tuple(getattr(a, 'kwargs', a) for a in attr)
+                attr = tuple(getattr(a, '__name__', a) for a in attr)
+            attr = getattr(attr, 'kwargs', attr)
+            attr = getattr(attr, '__name__', attr)
+            if attr is not None:
+                kw[name] = attr
+        return kw
+
+    def __init__(self, payment_date_list=(), amount_list=(), origin=None):
         """ basic cashflow list object
 
         :param domain: list of cashflow dates
@@ -71,17 +82,17 @@ class CashFlowList(object):
         (0.0, -100.0, 100.0, 0.0)
 
         """
-        if isinstance(data, (int, float)):
-            data = _same(len(domain), data)
+        if isinstance(amount_list, (int, float)):
+            amount_list = _same(len(payment_date_list), amount_list)
 
-        if not len(data) == len(domain):
+        if not len(amount_list) == len(payment_date_list):
             msg = f"{self.__class__.__name__} arguments " \
                   f"`data` and `domain` must have same length."
             raise ValueError(msg)
 
-        self._origin = domain[0] if origin is None and domain else origin
-        self._domain = domain
-        self._flows = dict(zip(domain, data))
+        self._origin = origin
+        self._domain = tuple(payment_date_list)
+        self._flows = dict(zip(payment_date_list, amount_list))
 
     def __getitem__(self, item):
         if isinstance(item, (tuple, list)):
@@ -106,30 +117,27 @@ class CashFlowList(object):
             self._flows[k].__truediv__(other)
 
     def __str__(self):
-        inner = ''
+        inner = tuple()
         if self.domain:
             s, e = self.domain[0], self.domain[-1]
-            t = s, e, self._flows[s], self._flows[e]
-            inner = '[%s ... %s], [%s ... %s]' % \
-                    tuple(map(repr, t)) + self._args(', ')
-        s = self.__class__.__name__ + '(' + inner + ')'
+            inner = f'[{s!r} ... {e!r}]', \
+                    f'[{self._flows[s]!r} ... {self._flows[e]!r}]'
+        kw = self.kwargs
+        kw.pop('amount_list', ())
+        kw.pop('payment_date_list', ())
+        inner += tuple(f"{k!s}={v!r}" for k, v in kw.items())
+        s = self.__class__.__name__ + '(' + ', '.join(inner) + ')'
         return s
 
     def __repr__(self):
-        start = self.__class__.__name__ + '('
-        fill = ' ' * len(start)
-        s = start + str(self.domain) + ',\n' + fill + \
-            str(self[self.domain]) + self._args(',\n' + fill) + ')'
-        return s
-
-    def _args(self, sep=''):
-        s = ''
-        for name in 'origin', 'day_count':
-            if hasattr(self, name):
-                attr = getattr(self, name)
-                attr = attr.__name__ \
-                    if hasattr(attr, '__name__') else repr(attr)
-                s += sep + name + '=' + attr
+        s = self.__class__.__name__ + '()'
+        if self.domain:
+            fill = ',\n' + ' ' * (len(s) - 1)
+            kw = self.kwargs
+            inner = str(kw.pop('payment_date_list', ())), \
+                    str(kw.pop('amount_list', ()))
+            inner += tuple(f"{k!s}={v!r}" for k, v in kw.items())
+            s = self.__class__.__name__ + '(' + fill.join(inner) + ')'
         return s
 
 
@@ -151,6 +159,10 @@ class FixedCashFlowList(CashFlowList):
         :param origin: origin of object,
             i.e. start date of the cashflow list as a product
         """
+        if isinstance(payment_date_list, CashFlowList):
+            amount_list = payment_date_list[payment_date_list.domain]
+            origin = origin or payment_date_list.kwargs.get('origin', None)
+            payment_date_list = payment_date_list.domain
         super().__init__(payment_date_list, amount_list, origin=origin)
 
 
@@ -231,9 +243,9 @@ class RateCashFlowList(CashFlowList):
         r""" day count function for rate period calculation $\tau$"""
 
         self.fixed_rate = fixed_rate
-        """ cashflow fixed rate $c$ """
+        r""" cashflow fixed rate $c$ """
         self.forward_curve = forward_curve
-        """ cashflow forward curve to derive float rates $f$ """
+        r""" cashflow forward curve to derive float rates $f$ """
 
         self.pay_offset = pay_offset
         r""" difference $\delta$

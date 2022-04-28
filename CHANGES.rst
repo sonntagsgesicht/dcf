@@ -1,10 +1,19 @@
 
 These changes are listed in decreasing version number order.
 
-Release 0.6
+Release 0.7
 ===========
 
 Release date was |today|
+
+* added |Curve().kwargs| to clone and persist object
+* added |CashFlowList().kwargs| to clone and persist object
+
+
+Release 0.6
+===========
+
+Release date was Friday, 14 January 2022
 
 * added |FixedCashFlowList().table| and |RateCashFlowList().table|
 
