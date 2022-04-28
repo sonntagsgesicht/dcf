@@ -410,9 +410,12 @@ class RateCurve(DateCurve, ABC):
             # use other properties if not give explicitly
             # interpolation should default to class defaults
             # interpolation = other.interpolation
-            #  if interpolation is None else interpolation
-            origin = other.origin if origin is None else origin
-            day_count = other.day_count if day_count is None else day_count
+            # interpolation = \
+            #     interpolation or other.kwargs.get('interpolation', None)
+            origin = \
+                origin or other.kwargs.get('origin', None)
+            day_count = \
+                day_count or other.kwargs.get('day_count', None)
 
         super(RateCurve, self).__init__(
             domain, data, interpolation, origin, day_count)

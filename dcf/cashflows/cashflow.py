@@ -169,39 +169,10 @@ class FixedCashFlowList(CashFlowList):
 class RateCashFlowList(CashFlowList):
     """ list of cashflows by interest rate payments """
 
-    DAY_COUNT = _default_day_count
-    """ default day count function for rate period calculation
-
-        **DAY_COUNT** is a static function
-        and can be set on class level, e.g.
-
-        :code:`RateCashFlowList.DAY_COUNT = (lambda s, e : e - s)`
-
-        :param start: period start date
-        :param end: period end date
-        :returns: year fraction for **start** to **end** as a float
-
-    """
-
-    @property
-    def table(self):
-        """ cashflow details as list of tuples """
-        # print(tabulate(cf.table, headers='firstrow'))  # for pretty print
-
-        header = 'cashflow', 'pay date', 'notional', \
-                 'start date', 'end date', 'year fraction', 'fixed rate'
-        if self.forward_curve:
-            header += 'forward rate', 'fixing date', 'tenor'
-        table = list()
-        for d in self.domain:
-            details = self._flow_details(d)
-            table.append(tuple(details.get(h, '') for h in header))
-        return [header] + table
-
     def __init__(self, payment_date_list, amount_list=DEFAULT_AMOUNT,
                  origin=None, day_count=None,
-                 fixed_rate=0., forward_curve=None,
-                 fixing_offset=None, pay_offset=None):
+                 fixing_offset=None, pay_offset=None,
+                 fixed_rate = 0., forward_curve = None):
         r""" list of interest rate cashflows
 
         :param payment_date_list: pay dates, assuming that pay dates agree
@@ -255,6 +226,35 @@ class RateCashFlowList(CashFlowList):
         between rate period start date and rate fixing date """
 
         super().__init__(payment_date_list, amount_list, origin=origin)
+    DAY_COUNT = _default_day_count
+
+    """ default day count function for rate period calculation
+
+        **DAY_COUNT** is a static function
+        and can be set on class level, e.g.
+
+        :code:`RateCashFlowList.DAY_COUNT = (lambda s, e : e - s)`
+
+        :param start: period start date
+        :param end: period end date
+        :returns: year fraction for **start** to **end** as a float
+
+    """
+
+    @property
+    def table(self):
+        """ cashflow details as list of tuples """
+        # print(tabulate(cf.table, headers='firstrow'))  # for pretty print
+
+        header = 'cashflow', 'pay date', 'notional', \
+                 'start date', 'end date', 'year fraction', 'fixed rate'
+        if self.forward_curve:
+            header += 'forward rate', 'fixing date', 'tenor'
+        table = list()
+        for d in self.domain:
+            details = self._flow_details(d)
+            table.append(tuple(details.get(h, '') for h in header))
+        return [header] + table
 
     def _flow_details(self, item):
         if isinstance(item, (tuple, list)):

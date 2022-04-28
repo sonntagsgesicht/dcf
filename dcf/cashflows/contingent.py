@@ -41,57 +41,43 @@ class ContingentCashFlowList(_CashFlowList):
             return tuple(self[i] for i in item)
         else:
             payoff = self._flows.get(item, 0.)
-            return payoff(item, self.payoff_model)
-
-
-class CashFlow(object):
-
-    def __init__(self, date=0.0, value=0.0, currency=None):
-        self.date = date
-        self.value = float(value)
-
-    def __float__(self):
-        return float(self.value)
-
-    def __repr__(self):
-        args = f"date={self.date!r}", f"value={self.value!r}"
-        return f"{self.__class__.__name__}({', '.join(args)})"
+            if isinstance(payoff, (int, float)):
+                return payoff
+            return payoff(self.payoff_model)
 
 
 class ContingentRateCashFlowList(ContingentCashFlowList):
     """ list of cashflows by interest rate payments """
 
-    class RateCashFlowPayOff(object):
+    class RateCashFlowCollaredPayOff(object):
 
-        def __init__(self, start, end=None, day_count=None,
-                     amount=1.0, fixed_rate=0.0):
+        def __init__(self, start, end=None, amount=1.0,
+                     day_count=None, fixed_rate=0.0,
+                     cap_strike=None, floor_strike=None):
             self.start = start
             self.end = end
             self.day_count = day_count or default_day_count
             self.amount = amount
             self.fixed_rate = fixed_rate
+            self.cap_strike = None
+            self.floor_strike = None
 
-        def __call__(self, date, model=None):
-            yf = self.day_count(self.start, self.end or date)
+        def __call__(self, model=None):
             rate = self.fixed_rate
-            if hasattr(model, 'get_cash_rate'):
-                rate += model.get_cash_rate(self.start)
-            # add caplet/floorlet here
-            #     rate -= model.get_call_value(self.start, self.cap_strike)
-            #     rate += model.get_put_value(self.start, self.floor_strike)
+            rate += model.get_cash_rate(self.start)
+            if self.cap_strike:
+                rate -= model.get_call_value(self.start, self.cap_strike)
+            if self.floor_strike:
+                rate += model.get_put_value(self.start, self.floor_strike)
+            yf = self.day_count(self.start, self.end)
             return rate * yf * self.amount
 
-    class RateCashFlowPayOffModel(object):
-
-        def __init__(self, forward_curve=None):
-            self.forward_curve = forward_curve
-
-        def get_cash_rate(self, date):
-            return self.forward_curve.get_cash_rate(date)
 
     def __init__(self, payment_date_list, amount_list=DEFAULT_AMOUNT,
-                 day_count=None, origin=None,
-                 fixed_rate=0., forward_curve=None):
+                 origin=None, day_count=None,
+                 fixing_offset=None, pay_offset=None,
+                 fixed_rate=0., cap_strike=None, floor_strike=None,
+                 payoff_model=DEFAULT_PAYOFF_MODEL):
         """
 
         :param payment_date_list: pay dates, assuming that pay dates agree
@@ -101,6 +87,13 @@ class ContingentRateCashFlowList(ContingentCashFlowList):
         :param day_count: day count convention
         :param fixed_rate: agreed fixed rate
         :param forward_curve:
+        :param fixing_offset: time difference between
+            interest rate fixing date and interest period payment date
+        :param pay_offset: time difference between
+            interest period end date and interest payment date
+        :param cap_strike:
+        :param floor_strike:
+
         """
 
         self.day_count = day_count or default_day_count
@@ -113,12 +106,13 @@ class ContingentRateCashFlowList(ContingentCashFlowList):
         for s, e, a in zip(start_dates, payment_date_list, amount_list):
             payoff = self.RateCashFlowPayOff(
                 start=s, end=e, day_count=day_count,
-                amount=a, fixed_rate=fixed_rate)
+                amount=a, fixed_rate=fixed_rate,
+                cap_strike=cap_strike, floor_strike=floor_strike
+            )
             payoff_list.append(payoff)
 
-        model = self.RateCashFlowPayOffModel(forward_curve)
         super().__init__(payment_date_list, payoff_list,
-                         origin=origin, payoff_model=model)
+                         origin=origin, payoff_model=payoff_model)
 
     @property
     def fixed_rate(self):
