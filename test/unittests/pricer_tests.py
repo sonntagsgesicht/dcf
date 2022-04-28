@@ -60,16 +60,16 @@ class YTMUnitTests(TestCase):
         total = sum(cfs[cfs.domain])
 
         ytm = get_yield_to_maturity(cfs, present_value=total)
-        self.assertAlmostEqual(0., ytm, 4)
+        self.assertAlmostEqual(-0.006488037109374991, ytm, 4)
 
         ytm = get_yield_to_maturity(cfs, present_value=total*0.95)
-        self.assertAlmostEqual(0.020725590840447707, ytm, 4)
+        self.assertAlmostEqual(0.01376342773437501, ytm, 4)
 
         ytm = get_yield_to_maturity(cfs, present_value=total*0.8)
-        self.assertAlmostEqual(0.09308670969912783, ytm, 4)
+        self.assertAlmostEqual(0.08431396484375, ytm, 4)
 
         ytm = get_yield_to_maturity(cfs, present_value=total * 1.2)
-        self.assertAlmostEqual(-0.07084882935159839, ytm, 4)
+        self.assertAlmostEqual(-0.07595825195312501, ytm, 4)
 
         pv = get_present_value(cfs, self.df)
         ytm = get_yield_to_maturity(cfs, present_value=pv)

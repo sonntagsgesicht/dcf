@@ -48,23 +48,19 @@ def _simple_bracketing(func, a, b, precision=1e-13):
 
 
 def get_present_value(cashflow_list, discount_curve,
-                      valuation_date=None, include_value_date=True):
+                      valuation_date=None):
     r""" calculates the present value by discounting cashflows
 
     :param cashflow_list: list of cashflows
     :param discount_curve: discount factors are obtained from this curve
     :param valuation_date: date to discount to
-    :param include_value_date: (bool) to decide if cashflows
-        at **valuation_date** are included,
-        (optional with default *True*)
     :return: `float` - as the sum of all discounted future cashflows
 
     Let $cf_1 \dots cf_n$ be the list of cashflows
     with payment dates $t_1, \dots, t_n$.
 
     Moreover, let $t$ be the valuation date
-    and $T=\{t_i \mid t \leq t_i \}$ if **include_value_date** is *True*
-    else $T=\{t_i \mid t < t_i \}$.
+    and $T=\{t_i \mid t < t_i \}$.
 
     Then the present value is given as
 
@@ -77,11 +73,7 @@ def get_present_value(cashflow_list, discount_curve,
         valuation_date = cashflow_list.origin
 
     # filter flows
-    if include_value_date:
-        pay_dates = \
-            list(d for d in cashflow_list.domain if valuation_date <= d)
-    else:
-        pay_dates = list(d for d in cashflow_list.domain if valuation_date < d)
+    pay_dates = list(d for d in cashflow_list.domain if valuation_date < d)
 
     # discount flows
     value_flows = zip(pay_dates, cashflow_list[pay_dates])
