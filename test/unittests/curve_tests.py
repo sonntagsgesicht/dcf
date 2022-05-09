@@ -19,7 +19,7 @@ from math import floor
 from businessdate import BusinessDate, BusinessRange
 from scipy.interpolate import interp1d
 
-from dcf.base.interpolation import linear, constant, dyn_scheme
+from dcf.interpolation import linear, constant, dyn_scheme
 
 from dcf import Curve, DateCurve, RateCurve
 

@@ -7,7 +7,18 @@ Release 0.7
 Release date was |today|
 
 * added |Curve().kwargs| to clone and persist object
+* added |ForwardCurve()| for asset forwards like stocks or commodities
 * added |CashFlowList().kwargs| to clone and persist object
+* added |dcf.cashflows.contingent| for option pricing
+* added various standard option pricing formulas |dcf.models|
+  incl. digital or binary versions like
+
+  * *Bachelier* as |NormalOptionPayOffModel()|
+  * *Black-Scholes* resp. *Black76* as |LogNormalOptionPayOffModel()|
+  * *displaced Black76* as |DisplacedLogNormalOptionPayOffModel()|
+  * as well as an intrinsic version |IntrinsicOptionPayOffModel()|
+
+* modified |get_present_value()|, it now excludes cashflows at valuation date
 
 
 Release 0.6
@@ -17,7 +28,7 @@ Release date was Friday, 14 January 2022
 
 * added |FixedCashFlowList().table| and |RateCashFlowList().table|
 
-* added new module |dcf.day_count| and updated |day_count()|
+* added new module |dcf.daycount| and updated |day_count()|
     to default to year fractions in case of simple float inputs
 
 * added |get_bucketed_delta()|
@@ -42,7 +53,7 @@ Release date was October 11, 2020
 
 * new casting concept for curves, old `curve_instance.cast(TypeToCastTo)` is replaced by `TypeToCastTo(curve_instance)`
 
-* restructuring cashflow lists, see |dcf.cashflow|
+* restructuring cashflow lists, see |dcf.cashflows.cashflow|
 
 * adding payment plans, see |dcf.plans|
 

@@ -173,7 +173,7 @@ and generate an redemption amount list for paying back the loan notional amount.
 
 .. doctest::
 
-    >>> from dcf import annuity, outstanding
+    >>> from dcf.plans import annuity, outstanding
 
     >>> number_of_payments = 8
     >>> interest_rate = 0.02
@@ -204,7 +204,7 @@ and the list of outstanding into a `RateCashflowList` gives the legs of a loan.
 .. doctest::
 
     >>> from businessdate import BusinessDate, BusinessSchedule
-    >>> from dcf import amortize, outstanding
+    >>> from dcf.plans import amortize, outstanding
     >>> from dcf import FixedCashFlowList, RateCashFlowList
 
 Again, build a date schedule.
@@ -242,7 +242,7 @@ Finally, create for each leg a |CashFlowList|.
 
     >>> interest = RateCashFlowList(payment_dates, out, origin=start_date, fixed_rate=interest_rate)
     >>> print(interest)
-    RateCashFlowList([BusinessDate(20210131) ... BusinessDate(20221031)], [1000.0 ... 125.0], origin=BusinessDate(20201031), day_count=day_count)
+    RateCashFlowList([BusinessDate(20210131) ... BusinessDate(20221031)], [1000.0 ... 125.0], origin=BusinessDate(20201031))
 
 Valuation
 ---------

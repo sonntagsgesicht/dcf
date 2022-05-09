@@ -12,10 +12,8 @@
 
 from unittest.case import TestCase
 
-from businessdate import BusinessDate, BusinessSchedule
-
-from dcf.base.plans import DEFAULT_AMOUNT, FIXED_RATE, same, bullet, amortize, annuity, consumer, outstanding
-from dcf import ZeroRateCurve
+from dcf.plans import DEFAULT_AMOUNT, FIXED_RATE, same, bullet, amortize, annuity, \
+    outstanding
 
 
 class AmortizationUnitTests(TestCase):

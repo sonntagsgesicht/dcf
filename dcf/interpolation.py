@@ -5,7 +5,7 @@
 # A Python library for generating discounted cashflows.
 #
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
-# Version:  0.5, copyright Saturday, 18 December 2021
+# Version:  0.7, copyright Friday, 14 January 2022
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -315,6 +315,10 @@ def dyn_scheme(left, mid, right):
 
 constant_linear_constant = dyn_scheme(constant, linear, constant)
 linear_scheme = constant_linear_constant
+
+logconstant_loglinear_logconstant = \
+    dyn_scheme(logconstant, loglinear, logconstant)
+log_linear_scheme = logconstant_loglinear_logconstant
 
 logconstantrate_loglinearrate_logconstantrate = \
     dyn_scheme(logconstantrate, loglinearrate, logconstantrate)

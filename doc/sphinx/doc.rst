@@ -13,7 +13,7 @@ Curve Objects
 Basic Curves
 ------------
 
-.. module:: dcf.curve
+.. module:: dcf.curves.curve
 
 .. autosummary::
     :nosignatures:
@@ -22,7 +22,7 @@ Basic Curves
     DateCurve
     RateCurve
 
-.. inheritance-diagram:: dcf.curve
+.. inheritance-diagram:: dcf.curves.curve
     :parts: 1
 
 .. autoclass:: Curve
@@ -34,7 +34,7 @@ Basic Curves
 Interest Rate Curves
 --------------------
 
-.. module:: dcf.interestratecurve
+.. module:: dcf.curves.interestratecurve
 
 .. autosummary::
     :nosignatures:
@@ -45,9 +45,9 @@ Interest Rate Curves
     CashRateCurve
     ShortRateCurve
 
-.. inheritance-diagram:: dcf.interestratecurve
+.. inheritance-diagram:: dcf.curves.interestratecurve
     :parts: 1
-    :top-classes: dcf.curve.RateCurve
+    :top-classes: dcf.curves.curve.RateCurve
 
 .. autoclass:: InterestRateCurve
 .. autoclass:: ZeroRateCurve
@@ -59,7 +59,7 @@ Interest Rate Curves
 Credit Curves
 -------------
 
-.. module:: dcf.creditcurve
+.. module:: dcf.curves.creditcurve
 
 .. autosummary::
     :nosignatures:
@@ -71,9 +71,9 @@ Credit Curves
     MarginalSurvivalProbabilityCurve
     MarginalDefaultProbabilityCurve
 
-.. inheritance-diagram:: dcf.creditcurve
+.. inheritance-diagram:: dcf.curves.creditcurve
     :parts: 1
-    :top-classes: dcf.curve.RateCurve
+    :top-classes: dcf.curves.curve.RateCurve
 
 .. autoclass:: CreditCurve
 .. autoclass:: SurvivalProbabilityCurve
@@ -87,16 +87,16 @@ Credit Curves
 Fx Curve
 --------
 
-.. module:: dcf.fx
+.. module:: dcf.curves.fx
 
 .. autosummary::
     :nosignatures:
 
     FxCurve
 
-.. inheritance-diagram:: dcf.fx.FxCurve
+.. inheritance-diagram:: dcf.curves.fx.FxCurve
     :parts: 1
-    :top-classes: dcf.curve.DateCurve
+    :top-classes: dcf.curves.curve.DateCurve
 
 .. autoclass:: FxRate
     :inherited-members:
@@ -117,15 +117,15 @@ Cashflow Objects
 ----------------
 
 
-.. py:currentmodule:: dcf.cashflow
+.. py:currentmodule:: dcf.cashflows.cashflow
 
 .. autosummary::
     :nosignatures:
 
-.. inheritance-diagram:: dcf.cashflow
+.. inheritance-diagram:: dcf.cashflows.cashflow
     :parts: 1
 
-.. automodule:: dcf.cashflow
+.. automodule:: dcf.cashflows.cashflow
     :members:
 
 
@@ -184,7 +184,7 @@ Compounding
 DayCount
 --------
 
-.. automodule:: dcf.day_count
+.. automodule:: dcf.daycount
 
 
 Rating Classes

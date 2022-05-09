@@ -5,7 +5,7 @@
 # A Python library for generating discounted cashflows.
 #
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
-# Version:  0.5, copyright Saturday, 18 December 2021
+# Version:  0.7, copyright Friday, 14 January 2022
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -14,8 +14,8 @@ from abc import ABC
 from sys import float_info
 
 from .curve import RateCurve
-from ..base.compounding import continuous_compounding, continuous_rate
-from ..base.interpolation import constant, linear_scheme, \
+from dcf.compounding import continuous_compounding, continuous_rate
+from dcf.interpolation import constant, linear_scheme, \
     log_linear_rate_scheme, neg_log_linear_scheme
 
 

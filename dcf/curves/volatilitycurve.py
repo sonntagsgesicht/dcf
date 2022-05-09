@@ -5,7 +5,7 @@
 # A Python library for generating discounted cashflows.
 #
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
-# Version:  0.5, copyright Saturday, 18 December 2021
+# Version:  0.7, copyright Friday, 14 January 2022
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -15,7 +15,7 @@ from abc import ABC
 import logging
 from math import sqrt
 
-from ..base.interpolation import zero, linear, constant, dyn_scheme
+from dcf.interpolation import zero, linear, constant, dyn_scheme
 from .curve import RateCurve
 
 _logger = logging.getLogger('dcf')
@@ -53,7 +53,7 @@ class InstantaneousVolatilityCurve(VolatilityCurve):
             new_domain = list()
             for d in data.domain + [origin]:
                 new_domain.extend(
-                    [d - self._time_shift, d, d + self._time_shift])
+                    [d - self._TIME_SHIFT, d, d + self._TIME_SHIFT])
             domain = sorted(set(new_domain))
         super(InstantaneousVolatilityCurve, self).__init__(
             domain, data, interpolation, origin, day_count, forward_tenor)
@@ -97,7 +97,7 @@ class TerminalVolatilityCurve(VolatilityCurve):
                                                       day_count, forward_tenor)
 
     def get_instantaneous_vol(self, start):
-        return self.get_terminal_vol(start, start + self.__class__._time_shift)
+        return self.get_terminal_vol(start, start + self.__class__._TIME_SHIFT)
 
     def get_terminal_vol(self, start, stop=None):
         if stop is None:

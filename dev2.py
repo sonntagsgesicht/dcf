@@ -433,7 +433,7 @@ if 0:
     '''
 
 if 0:
-    from dcf.base.interpolation import constant, linear
+    from dcf.interpolation import constant, linear
 
     s = [constant()] * 3
     s = constant, linear, constant

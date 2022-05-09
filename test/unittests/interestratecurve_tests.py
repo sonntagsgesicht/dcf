@@ -14,7 +14,7 @@ from unittest import TestCase
 
 from businessdate import BusinessDate, BusinessRange
 
-from dcf.base.compounding import simple_compounding, continuous_rate
+from dcf.compounding import simple_compounding, continuous_rate
 from dcf import ZeroRateCurve, DiscountFactorCurve, ShortRateCurve, CashRateCurve
 
 

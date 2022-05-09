@@ -5,47 +5,40 @@
 # A Python library for generating discounted cashflows.
 #
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
-# Version:  0.5, copyright Saturday, 18 December 2021
+# Version:  0.7, copyright Friday, 14 January 2022
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
 
-from .curve import DateCurve, RateCurve
-
-
-class Price(object):
-    @property
-    def value(self):
-        return self._value
-
-    @property
-    def origin(self):
-        return self._origin
-
-    def __init__(self, value=0., origin=None):
-        self._value = value
-        self._origin = origin
-
-    def __float__(self):
-        return float(self.value)
-
-    def __str__(self):
-        return '%s(%f; %s)' % \
-               (self.__class__.__name__, self.value, str(self.origin))
+from .curve import RateCurve
+from .forwardcurves import Price, ForwardCurve
 
 
 class FxRate(Price):
     pass
 
 
-class FxCurve(DateCurve):
-    @classmethod
-    def cast(cls, fx_spot, domestic_curve=None, foreign_curve=None):
-        """ creator method to build FxCurve """
-        if not domestic_curve.origin == foreign_curve.origin:
-            raise AssertionError()
-        return cls(fx_spot, domestic_curve=domestic_curve,
-                   foreign_curve=foreign_curve)
+class FxCurve(ForwardCurve):
+
+    def __init__(self, domain=(), data=(), interpolation=None, origin=None,
+                 day_count=None, domestic_curve=None, foreign_curve=None):
+        """ fx rate curve for currency pair """
+        super().__init__(domain, data, interpolation, origin, day_count,
+                         domestic_curve)
+        self.foreign_curve = foreign_curve
+
+    def get_forward_price(self, value_date):
+        last_date = self.domain[-1]
+        if value_date <= last_date:
+            return super().__call__(value_date)
+        else:
+            y = super().__call__(last_date)
+            d = self.foreign_curve.get_discount_factor(last_date, value_date)
+            return y * d
+
+
+'''
+class FxCurveX(ForwardCurve):
 
     def __init__(self, domain=1., data=None, interpolation=None, origin=None,
                  day_count=None,
@@ -72,13 +65,7 @@ class FxCurve(DateCurve):
         super(FxCurve, self).__init__(domain, data, interpolation, origin,
                                       day_count)
 
-    def __call__(self, x):
-        if isinstance(x, (list, tuple)):
-            return [self(xx) for xx in x]
-        else:
-            return self.get_fx_rate(x)
-
-    def get_fx_rate(self, value_date):
+    def get_forward_price(self, value_date):
         last_date = self.domain[-1]
         if value_date <= last_date:
             return super(FxCurve, self).__call__(value_date)
@@ -87,6 +74,7 @@ class FxCurve(DateCurve):
             d = self.foreign_curve.get_discount_factor(last_date, value_date)
             d /= self.domestic_curve.get_discount_factor(last_date, value_date)
             return y * d
+'''
 
 
 class FxContainer(dict):
@@ -120,8 +108,7 @@ class FxContainer(dict):
         :param RateCurve domestic_curve:
             base curve of FxContainer for discounting
         """
-
-        super(FxContainer, self).__init__()
+        super().__init__()
         self.currency = currency
         self.domestic_curve = domestic_curve
         self.add(currency, domestic_curve)
@@ -154,7 +141,7 @@ class FxContainer(dict):
                     and value.domestic_curve == self.domestic_curve):
                 raise AssertionError()
             self.add(key, value.foreign_curve,
-                     value.get_fx_rate(self.domestic_curve.origin))
+                     value.get_forward_price(self.domestic_curve.origin))
 
     def add(self, foreign_currency, foreign_curve=None, fx_spot=1.0):
         """
@@ -193,10 +180,7 @@ class FxContainer(dict):
                                              self[d, s].domestic_curve)
         self.update(new)
 
-    def get_fx_rate(self, domestic_currency, foreign_currency, value_date):
-        return self[domestic_currency, foreign_currency].get_fx_rate(
+    def get_forward_price(self, domestic_currency, foreign_currency,
+                          value_date):
+        return self[domestic_currency, foreign_currency].get_forward_price(
             value_date)
-
-    def get_forward(self, domestic_currency, foreign_currency, value_date):
-        return self.get_fx_rate(domestic_currency, foreign_currency,
-                                value_date)

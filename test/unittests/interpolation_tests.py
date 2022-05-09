@@ -13,7 +13,7 @@
 from math import log, exp
 from unittest.case import TestCase
 
-from dcf.base.interpolation import flat, no, left, right, loglinear, logconstant, \
+from dcf.interpolation import flat, no, left, right, loglinear, logconstant, \
     nearest, linear, zero, loglinearrate, constant, logconstantrate
 
 

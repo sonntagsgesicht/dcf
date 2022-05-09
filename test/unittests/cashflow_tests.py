@@ -15,7 +15,8 @@ from unittest.case import TestCase
 from businessdate import BusinessDate, BusinessSchedule
 from businessdate.daycount import get_30_360
 from dcf import CashRateCurve
-from dcf import DEFAULT_AMOUNT, FixedCashFlowList, RateCashFlowList, CashFlowLegList
+from dcf import FixedCashFlowList, RateCashFlowList, CashFlowLegList
+from dcf.plans import DEFAULT_AMOUNT
 
 
 class CashflowListUnitTests(TestCase):

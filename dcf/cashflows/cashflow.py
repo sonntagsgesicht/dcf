@@ -5,16 +5,17 @@
 # A Python library for generating discounted cashflows.
 #
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
-# Version:  0.6.1, copyright Tuesday, 11 January 2022
+# Version:  0.7, copyright Friday, 14 January 2022
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
+
 
 from collections import OrderedDict
 from inspect import signature
 from warnings import warn
 
-from ..base.day_count import day_count as _default_day_count
-from ..base.plans import DEFAULT_AMOUNT, same as _same
+from ..daycount import day_count as _default_day_count
+from dcf.plans import DEFAULT_AMOUNT, same as _same
 
 
 class CashFlowList(object):
@@ -67,7 +68,7 @@ class CashFlowList(object):
         >>> from dcf import CashFlowList
         >>> cf_list = CashFlowList([0, 1], [-100., 100.])
         >>> cf_list.domain
-        [0, 1]
+        (0, 1)
 
         In order to get cashflows
 
@@ -134,8 +135,9 @@ class CashFlowList(object):
         if self.domain:
             fill = ',\n' + ' ' * (len(s) - 1)
             kw = self.kwargs
-            inner = str(kw.pop('payment_date_list', ())), \
-                    str(kw.pop('amount_list', ()))
+            inner = \
+                str(kw.pop('payment_date_list', ())), \
+                str(kw.pop('amount_list', ()))
             inner += tuple(f"{k!s}={v!r}" for k, v in kw.items())
             s = self.__class__.__name__ + '(' + fill.join(inner) + ')'
         return s
@@ -169,10 +171,24 @@ class FixedCashFlowList(CashFlowList):
 class RateCashFlowList(CashFlowList):
     """ list of cashflows by interest rate payments """
 
+    DAY_COUNT = _default_day_count
+    """ default day count function for rate period calculation
+
+        **DAY_COUNT** is a static function
+        and can be set on class level, e.g.
+
+        :code:`RateCashFlowList.DAY_COUNT = (lambda s, e : e - s)`
+
+        :param start: period start date
+        :param end: period end date
+        :returns: year fraction for **start** to **end** as a float
+
+    """
+
     def __init__(self, payment_date_list, amount_list=DEFAULT_AMOUNT,
                  origin=None, day_count=None,
                  fixing_offset=None, pay_offset=None,
-                 fixed_rate = 0., forward_curve = None):
+                 fixed_rate=0., forward_curve=None):
         r""" list of interest rate cashflows
 
         :param payment_date_list: pay dates, assuming that pay dates agree
@@ -226,20 +242,6 @@ class RateCashFlowList(CashFlowList):
         between rate period start date and rate fixing date """
 
         super().__init__(payment_date_list, amount_list, origin=origin)
-    DAY_COUNT = _default_day_count
-
-    """ default day count function for rate period calculation
-
-        **DAY_COUNT** is a static function
-        and can be set on class level, e.g.
-
-        :code:`RateCashFlowList.DAY_COUNT = (lambda s, e : e - s)`
-
-        :param start: period start date
-        :param end: period end date
-        :returns: year fraction for **start** to **end** as a float
-
-    """
 
     @property
     def table(self):

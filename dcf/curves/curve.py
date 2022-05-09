@@ -5,7 +5,7 @@
 # A Python library for generating discounted cashflows.
 #
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
-# Version:  0.6, copyright Monday, 20 December 2021
+# Version:  0.7, copyright Friday, 14 January 2022
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -15,10 +15,10 @@ from collections import OrderedDict
 from inspect import signature
 from warnings import warn
 
-from ..base import interpolation as _interpolations
-from ..base.compounding import continuous_compounding, continuous_rate
-from ..base.interpolation import linear_scheme
-from ..base.day_count import day_count as _default_day_count
+from .. import interpolation as _interpolations
+from ..compounding import continuous_compounding, continuous_rate
+from ..interpolation import linear_scheme
+from ..daycount import day_count as _default_day_count
 
 
 def rate_table(curve, x_grid=None, y_grid=None):
@@ -70,10 +70,9 @@ def rate_table(curve, x_grid=None, y_grid=None):
     \end{tabular}
     """  # noqa: E501
     if x_grid is None:
-        x_grid = curve.domain
-        if curve.origin not in curve.domain:
+        x_grid = list(curve.domain)
+        if curve.origin not in x_grid:
             x_grid = [curve.origin] + x_grid
-
     if y_grid is None:
         diff = list(e-s for s, e in zip(x_grid[:-1], x_grid[1:]))
         step = diff[0]
@@ -148,13 +147,15 @@ class Curve(object):
 
     @property
     def kwargs(self):
-        kw = OrderedDict()
+        """ returns constructor arguments as ordered dictionary """
+        kw = type(self.__class__.__name__ + 'Kwargs', (OrderedDict,), {})()
         for name in signature(self.__class__).parameters:
             attr = self(self.domain) if name == 'data' else None
             attr = getattr(self, '_' + name, attr)
             attr = getattr(attr, '__name__', attr)
             if attr is not None:
                 kw[name] = attr
+            setattr(kw, name, attr)
         return kw
 
     @property
@@ -225,12 +226,13 @@ class Curve(object):
             x_list = [x + delta for x in self.domain]
         else:
             x_list = self.domain
-        y_list = self(self.domain)
-        return self.__class__(x_list, y_list, self.interpolation)
+        # y_list = self(self.domain)
+        # return self.__class__(x_list, y_list, self.interpolation)
+        return self.__class__(x_list, self)
 
 
 class DateCurve(Curve):
-    _TIME_SHIFT = '1d'
+    _TIME_SHIFT = '1D'
     _DAY_COUNT = _default_day_count
 
     DAY_COUNT = dict()
@@ -241,12 +243,9 @@ class DateCurve(Curve):
             data = domain
             domain = data.domain
         elif isinstance(data, DateCurve):
-            interpolation = \
-                interpolation or data.kwargs.get('interpolation', None)
-            origin = \
-                origin or data.kwargs.get('origin', None)
-            day_count = \
-                day_count or data.kwargs.get('day_count', None)
+            interpolation = interpolation or data.kwargs.interpolation
+            origin = origin or data.kwargs.origin
+            day_count = day_count or data.kwargs.day_count
             data = data(domain)  # assuming data is a list of dates !
 
         self._domain = domain
@@ -265,7 +264,9 @@ class DateCurve(Curve):
     @property
     def origin(self):
         """ date of origin (date zero) """
-        return self._domain[0] if self._origin is None else self._origin
+        if self._origin is not None:
+            return self._origin
+        return self._domain[0] if self._domain else None
 
     def __call__(self, x):
         if isinstance(x, (list, tuple)):
@@ -351,7 +352,6 @@ class DateCurve(Curve):
 
 
 class RateCurve(DateCurve, ABC):
-    _TIME_SHIFT = '1D'
     _FORWARD_TENOR = '3M'
 
     @staticmethod
@@ -412,10 +412,8 @@ class RateCurve(DateCurve, ABC):
             # interpolation = other.interpolation
             # interpolation = \
             #     interpolation or other.kwargs.get('interpolation', None)
-            origin = \
-                origin or other.kwargs.get('origin', None)
-            day_count = \
-                day_count or other.kwargs.get('day_count', None)
+            origin = origin or other.kwargs.origin
+            day_count = day_count or other.kwargs.day_count
 
         super(RateCurve, self).__init__(
             domain, data, interpolation, origin, day_count)
@@ -423,23 +421,19 @@ class RateCurve(DateCurve, ABC):
 
     def __add__(self, other):
         new = super(RateCurve, self).__add__(self.__class__(other))
-        new.forward_tenor = self._forward_tenor
-        return new
+        return self.__class__(new, forward_tenor=self._forward_tenor)
 
     def __sub__(self, other):
         new = super(RateCurve, self).__sub__(self.__class__(other))
-        new.forward_tenor = self._forward_tenor
-        return new
+        return self.__class__(new, forward_tenor=self._forward_tenor)
 
     def __mul__(self, other):
         new = super(RateCurve, self).__mul__(self.__class__(other))
-        new.forward_tenor = self._forward_tenor
-        return new
+        return self.__class__(new, forward_tenor=self._forward_tenor)
 
     def __div__(self, other):
         new = super(RateCurve, self).__div__(self.__class__(other))
-        new.forward_tenor = self._forward_tenor
-        return new
+        return self.__class__(new, forward_tenor=self._forward_tenor)
 
     def _get_compounding_factor(self, start, stop):
         if start == stop:

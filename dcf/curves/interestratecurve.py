@@ -5,15 +5,15 @@
 # A Python library for generating discounted cashflows.
 #
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
-# Version:  0.5, copyright Saturday, 18 December 2021
+# Version:  0.7, copyright Friday, 14 January 2022
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
 
 from abc import ABC
 
-from ..base.compounding import continuous_rate, simple_compounding, simple_rate
-from ..base.interpolation import constant, linear_scheme, \
+from dcf.compounding import continuous_rate, simple_compounding, simple_rate
+from dcf.interpolation import constant, linear_scheme, \
     log_linear_rate_scheme
 from .curve import RateCurve
 
@@ -132,7 +132,6 @@ class InterestRateCurve(RateCurve, ABC):
         return simple_rate(df, t)
 
     def get_swap_annuity(self, date_list):
-        # todo: add forward_rate tenor resp. day_count
         return sum(
             self.get_discount_factor(self.origin, e) * self.day_count(s, e)
             for s, e in zip(date_list[:-1], date_list[0:])
@@ -192,7 +191,7 @@ class ZeroRateCurve(InterestRateCurve):
             return self(stop)
         if start == stop:
             return self._get_compounding_rate(
-                start, start + self.__class__._time_shift)
+                start, start + self.__class__._TIME_SHIFT)
 
         s = self(start) * self.day_count(self.origin, start)
         e = self(stop) * self.day_count(self.origin, stop)

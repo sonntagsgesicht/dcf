@@ -5,7 +5,7 @@
 # A Python library for generating discounted cashflows.
 #
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
-# Version:  0.6.1, copyright Tuesday, 11 January 2022
+# Version:  0.7, copyright Friday, 14 January 2022
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -69,11 +69,13 @@ def get_present_value(cashflow_list, discount_curve,
     with $df(t, t_i)$, the discount factor discounting form $t_i$ to $t$.
 
     """
+    # todo: use discount_curve.origin
     if valuation_date is None:
         valuation_date = cashflow_list.origin
 
     # filter flows
-    pay_dates = list(d for d in cashflow_list.domain if valuation_date < d)
+    # todo: use cf.origin to filter future cf (and set model val date)
+    pay_dates = list(d for d in cashflow_list.domain if valuation_date <= d)
 
     # discount flows
     value_flows = zip(pay_dates, cashflow_list[pay_dates])
@@ -195,7 +197,6 @@ def get_fair_rate(cashflow_list, discount_curve,
     if valuation_date is None:
         valuation_date = cashflow_list.origin
 
-    # todo: cashflow_list.payoff.fixed_rate
     fixed_rate = cashflow_list.fixed_rate
 
     # set error function
@@ -370,7 +371,6 @@ def get_bucketed_delta(cashflow_list, discount_curve, valuation_date=None,
     for g, s in zip(grid, shifts):
         shifted_curve = delta_curve + basis_point_curve_type(
             g, s, forward_tenor=delta_curve.forward_tenor)
-        # todo: cashflow_list.payoff_model.forward_curve
         fwd_curve = getattr(cashflow_list, 'forward_curve', None)
         if fwd_curve == delta_curve:
             # replace delta_curve by shifted_curve
