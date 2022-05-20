@@ -12,7 +12,7 @@
 
 from unittest import TestCase
 
-from dcf.curves.forwardcurves import ForwardCurve
+from dcf.curves.curve import ForwardCurve
 from dcf.curves.interestratecurve import ZeroRateCurve
 
 

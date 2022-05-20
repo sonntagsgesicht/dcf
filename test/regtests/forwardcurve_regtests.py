@@ -1,7 +1,7 @@
 
 from regtest import RegressionTestCase
 
-from dcf.curves.forwardcurves import ForwardCurve
+from dcf.curves.curve import ForwardCurve
 
 
 class ForwardCurveRegTests(RegressionTestCase):
