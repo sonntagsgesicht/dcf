@@ -56,20 +56,26 @@ class YTMUnitTests(TestCase):
         self.curve = CashRateCurve([self.today], [.1])
 
     def test_ytm(self):
-        cfs = FixedCashFlowList(self.schedule)
+        cfs = FixedCashFlowList(self.schedule[1:])
         total = sum(cfs[cfs.domain])
+        self.assertAlmostEqual(60.0, total, 4)
 
-        ytm = get_yield_to_maturity(cfs, present_value=total)
-        self.assertAlmostEqual(-0.006488037109374991, ytm, 4)
+        ytm = get_yield_to_maturity(cfs,
+                                    valuation_date=self.today,
+                                    present_value=total)
+        self.assertAlmostEqual(0.0, ytm)
+        curve = ZeroRateCurve([self.today], [ytm])
+        pv = get_present_value(cfs, curve, self.today)
+        self.assertAlmostEqual(total, pv, 4)
 
         ytm = get_yield_to_maturity(cfs, present_value=total*0.95)
-        self.assertAlmostEqual(0.01376342773437501, ytm, 4)
+        self.assertGreater(ytm, 0.01, 4)
 
         ytm = get_yield_to_maturity(cfs, present_value=total*0.8)
-        self.assertAlmostEqual(0.08431396484375, ytm, 4)
+        self.assertGreater(ytm, 0.05, 4)
 
         ytm = get_yield_to_maturity(cfs, present_value=total * 1.2)
-        self.assertAlmostEqual(-0.07595825195312501, ytm, 4)
+        self.assertGreater(-0.05, ytm, 4)
 
         pv = get_present_value(cfs, self.df)
         ytm = get_yield_to_maturity(cfs, present_value=pv)

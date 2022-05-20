@@ -120,7 +120,7 @@ def get_yield_to_maturity(cashflow_list,
         return pv - present_value
 
     # run bracketing
-    _, ytm, _ = _simple_bracketing(err, -0.1, .2, 1e-2)
+    _, ytm, _ = _simple_bracketing(err, -0.1, .2, 1e-6)
     return ytm
 
 
