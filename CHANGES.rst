@@ -8,6 +8,7 @@ Release date was |today|
 
 * added |Curve().kwargs| to clone and persist object
 * added |ForwardCurve()| for asset forwards like stocks or commodities
+* added |FxForwardCurve()| for fx forwards rates
 * added |CashFlowList().kwargs| to clone and persist object
 * added |dcf.cashflows.contingent| for option pricing
 * added various standard option pricing formulas |dcf.models|
@@ -70,19 +71,19 @@ Release 0.3
 Release date was September 18, 2019
 
 
-# migration to python 3.4, 3.5, 3.6 and 3.7
+* migration to python 3.4, 3.5, 3.6 and 3.7
 
-# automated code review
+* automated code review
 
-# more docs
+* more docs
 
-# supporting third party (e.g.) interpolation
+* supporting third party (e.g.) interpolation
 
-# adding travis ci
+* adding travis ci
 
-# update for auxilium tools
+* update for auxilium tools
 
-# replaced `assert stmt` by `if not stmt: raise AssertionError()` (bandit recommendation)
+* replaced `assert stmt` by `if not stmt: raise AssertionError()` (bandit recommendation)
 
 
 Release 0.2

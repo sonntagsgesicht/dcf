@@ -5,7 +5,7 @@
 # A Python library for generating discounted cashflows.
 #
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
-# Version:  0.7, copyright Friday, 14 January 2022
+# Version:  0.7, copyright Monday, 09 May 2022
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -13,7 +13,7 @@
 __doc__ = 'A Python library for generating discounted cashflows.'
 __version__ = '0.7'
 __dev_status__ = '4 - Beta'
-__date__ = 'Monday, 09 May 2022'
+__date__ = 'Wednesday, 11 May 2022'
 __author__ = 'sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]'
 __email__ = 'sonntagsgesicht@icloud.com'
 __url__ = 'https://github.com/sonntagsgesicht/' + __name__
@@ -39,15 +39,14 @@ from . import daycount, compounding, interpolation, plans, \
     models  # noqa E401 E402
 
 from .curves.curve import Curve, DateCurve, RateCurve, \
-    rate_table  # noqa E401 E402
+    rate_table, Price, ForwardCurve  # noqa E401 E402
 from .curves.creditcurve import DefaultProbabilityCurve, FlatIntensityCurve, \
     HazardRateCurve, MarginalDefaultProbabilityCurve, \
     MarginalSurvivalProbabilityCurve, SurvivalProbabilityCurve, \
     ProbabilityCurve, CreditCurve  # noqa E401 E402
 from .curves.interestratecurve import InterestRateCurve, DiscountFactorCurve, \
     CashRateCurve, ZeroRateCurve, ShortRateCurve  # noqa E401 E402
-from .curves.forwardcurves import Price, ForwardCurve  # noqa E401 E402
-from .curves.fx import FxCurve, FxContainer, Price, FxRate  # noqa E401 E402
+from .curves.fx import FxForwardCurve, FxContainer, Price, FxRate  # noqa E401 E402
 from .curves.volatilitycurve import VolatilityCurve, TerminalVolatilityCurve, \
     InstantaneousVolatilityCurve  # noqa E401 E402
 

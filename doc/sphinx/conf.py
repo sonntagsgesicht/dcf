@@ -135,13 +135,13 @@ man_pages = [(
 
 autodoc_default_options = {
     'show-inheritance': 1,
-    'inherit_docstrings': True,
+    # 'inherit_docstrings': True,
     'member-order': 'bysource',
     'members': True,  # 'var1, var2',
     'undoc-members': True,
-    'private-members': False,
-    'inherited-members': False,
-    'imported-members': False,
+    # 'private-members': False,
+    # 'inherited-members': False,
+    # 'imported-members': False,
     # 'special-members': '__call__',
     # 'exclude-members': '__weakref__',
     # 'autosummary': True,
