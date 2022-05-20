@@ -18,18 +18,24 @@ Basic Curves
 .. autosummary::
     :nosignatures:
 
+    Price
     Curve
     DateCurve
+    ForwardCurve
     RateCurve
 
 .. inheritance-diagram:: dcf.curves.curve
+    :top-classes: dcf.curves.curve.Curve
     :parts: 1
 
+.. autoclass:: Price
 .. autoclass:: Curve
 .. autoclass:: DateCurve
+.. autoclass:: ForwardCurve
 .. autoclass:: RateCurve
 
 .. autofunction:: rate_table
+
 
 Interest Rate Curves
 --------------------
@@ -92,16 +98,16 @@ Fx Curve
 .. autosummary::
     :nosignatures:
 
-    FxCurve
+    FxForwardCurve
 
-.. inheritance-diagram:: dcf.curves.fx.FxCurve
+.. inheritance-diagram:: dcf.curves.fx.FxForwardCurve
     :parts: 1
     :top-classes: dcf.curves.curve.DateCurve
 
 .. autoclass:: FxRate
     :inherited-members:
 
-.. autoclass:: FxCurve
+.. autoclass:: FxForwardCurve
 
 
 Cashflow Objects
@@ -128,6 +134,41 @@ Cashflow Objects
 .. automodule:: dcf.cashflows.cashflow
     :members:
 
+
+Contingent Cashflow Objects (Options)
+-------------------------------------
+
+.. py:currentmodule:: dcf.cashflows.contingent
+
+.. autosummary::
+    :nosignatures:
+
+.. inheritance-diagram:: dcf.cashflows.contingent
+    :parts: 1
+
+.. automodule:: dcf.cashflows.contingent
+    :members:
+
+
+Contingent Cashflow Models
+--------------------------
+
+.. py:currentmodule:: dcf.models
+
+.. automodule:: dcf.models.base
+    :members:
+
+.. automodule:: dcf.models.intrinsic
+    :members:
+
+.. automodule:: dcf.models.bachelier
+    :members:
+
+.. automodule:: dcf.models.black76
+    :members:
+
+.. automodule:: dcf.models.displaced
+    :members:
 
 Valuation Routines
 ==================
@@ -166,6 +207,7 @@ Bucketed Delta
 .. autofunction:: dcf.pricer.get_bucketed_delta
 
 
+
 Fundamentals
 ============
 
@@ -185,10 +227,3 @@ DayCount
 --------
 
 .. automodule:: dcf.daycount
-
-
-Rating Classes
---------------
-
-.. automodule:: dcf.ratingclass
-
