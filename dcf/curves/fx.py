@@ -10,31 +10,31 @@
 # License:  Apache License 2.0 (see LICENSE file)
 
 
-from .curve import RateCurve
-from .forwardcurves import Price, ForwardCurve
+from .curve import Price, ForwardCurve, RateCurve
 
 
 class FxRate(Price):
     pass
 
 
-class FxCurve(ForwardCurve):
+class FxForwardCurve(ForwardCurve):
 
     def __init__(self, domain=(), data=(), interpolation=None, origin=None,
                  day_count=None, domestic_curve=None, foreign_curve=None):
         """ fx rate curve for currency pair """
-        super().__init__(domain, data, interpolation, origin, day_count,
-                         domestic_curve)
+        super().__init__(domain, data, interpolation, origin, day_count)
+        self.domestic_curve = domestic_curve
         self.foreign_curve = foreign_curve
 
     def get_forward_price(self, value_date):
         last_date = self.domain[-1]
         if value_date <= last_date:
-            return super().__call__(value_date)
+            return super().get_forward_price(value_date)
         else:
-            y = super().__call__(last_date)
-            d = self.foreign_curve.get_discount_factor(last_date, value_date)
-            return y * d
+            y = super().get_forward_price(last_date)
+            d = self.domestic_curve.get_discount_factor(last_date, value_date)
+            f = self.foreign_curve.get_discount_factor(last_date, value_date)
+            return y / f * d
 
 
 '''
@@ -132,12 +132,12 @@ class FxContainer(dict):
             d, f = key
             if not (isinstance(d, type(self.currency))
                     and isinstance(f, type(self.currency))
-                    and isinstance(value, FxCurve)):
+                    and isinstance(value, FxForwardCurve)):
                 raise AssertionError()
             super(FxContainer, self).__setitem__(key, value)
         else:
             if not (isinstance(key, type(self.currency))
-                    and isinstance(value, FxCurve)
+                    and isinstance(value, FxForwardCurve)
                     and value.domestic_curve == self.domestic_curve):
                 raise AssertionError()
             self.add(key, value.foreign_curve,
@@ -158,9 +158,13 @@ class FxContainer(dict):
 
         # create missing FxCurves
         self[self.currency, foreign_currency] = \
-            FxCurve.cast(fx_spot, self.domestic_curve, foreign_curve)
+            FxForwardCurve([self.domestic_curve.origin], [fx_spot],
+                           domestic_curve=self.domestic_curve,
+                           foreign_curve=foreign_curve)
         self[foreign_currency, self.currency] = \
-            FxCurve.cast(1 / fx_spot, foreign_curve, self.domestic_curve)
+            FxForwardCurve([self.domestic_curve.origin], [1 / fx_spot],
+                           domestic_curve=self.domestic_curve,
+                           foreign_curve=foreign_curve)
         # _update relevant FxCurves
         f = foreign_currency
         new = dict()
@@ -173,11 +177,14 @@ class FxContainer(dict):
                     self[f, d].domestic_curve = foreign_curve
                     self[f, d].fx_spot = 1 / triangulated
                 else:
-                    new[d, f] = FxCurve.cast(triangulated,
-                                             self[d, s].domestic_curve,
-                                             foreign_curve)
-                    new[f, d] = FxCurve.cast(1 / triangulated, foreign_curve,
-                                             self[d, s].domestic_curve)
+                    new[d, f] = FxForwardCurve(
+                        [self.domestic_curve.origin], [triangulated],
+                        domestic_curve=self[d, s].domestic_curve,
+                        foreign_curve=foreign_curve)
+                    new[f, d] = FxForwardCurve(
+                        [self.domestic_curve.origin], [1 / triangulated],
+                        domestic_curve=foreign_curve,
+                        foreign_curve=self[d, s].domestic_curve)
         self.update(new)
 
     def get_forward_price(self, domestic_currency, foreign_currency,
