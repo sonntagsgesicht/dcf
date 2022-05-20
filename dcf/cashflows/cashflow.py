@@ -34,6 +34,9 @@ class CashFlowList(object):
 
     @property
     def kwargs(self):
+        """returns constructor arguments as ordered dictionary
+        (under construction)
+        """
         warn('%s().kwargs is under construction' % self.__class__.__name__)
         kw = OrderedDict()
         for name in signature(self.__class__).parameters:
@@ -172,18 +175,6 @@ class RateCashFlowList(CashFlowList):
     """ list of cashflows by interest rate payments """
 
     DAY_COUNT = _default_day_count
-    """ default day count function for rate period calculation
-
-        **DAY_COUNT** is a static function
-        and can be set on class level, e.g.
-
-        :code:`RateCashFlowList.DAY_COUNT = (lambda s, e : e - s)`
-
-        :param start: period start date
-        :param end: period end date
-        :returns: year fraction for **start** to **end** as a float
-
-    """
 
     def __init__(self, payment_date_list, amount_list=DEFAULT_AMOUNT,
                  origin=None, day_count=None,

@@ -5,7 +5,7 @@ from dcf.daycount import day_count
 from dcf.cashflows.contingent import ContingentCashFlowList, \
     ContingentRateCashFlowList, OptionCashflowList, OptionStrategyCashflowList
 from dcf.curves.interestratecurve import ZeroRateCurve, CashRateCurve
-from dcf.curves.forwardcurves import ForwardCurve
+from dcf.curves.curve import ForwardCurve
 from dcf.models.bachelier import NormalOptionPayOffModel
 from dcf.models.black76 import LogNormalOptionPayOffModel
 from dcf.pricer import get_present_value

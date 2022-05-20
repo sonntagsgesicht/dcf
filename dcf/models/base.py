@@ -20,7 +20,7 @@ class OptionPricingFormula(ABC):
         return self._call_price(tau, strike, forward, volatility)
 
     def _call_price(self, tau, strike, forward, volatility):
-        raise NotImplementedError()
+        return self.__call__(tau, strike, forward, volatility)
 
     def _call_delta(self, tau, strike, forward, volatility):
         return
@@ -72,9 +72,9 @@ class OptionPayOffModel(OptionPricingFormula, ABC):
 
         if self.day_count:
             tau = self.day_count(self.valuation_date, date)
-        elif self.volatility_curve:
+        elif hasattr(self.volatility_curve, 'day_count'):
             tau = self.volatility_curve.day_count(self.valuation_date, date)
-        elif self.forward_curve:
+        elif hasattr(self.forward_curve, 'day_count'):
             tau = self.forward_curve.day_count(self.valuation_date, date)
         else:
             tau = self.__class__.DAY_COUNT(self.valuation_date, date)
