@@ -13,8 +13,8 @@
 from math import log, exp
 from unittest.case import TestCase
 
-from dcf.interpolation import flat, no, left, right, loglinear, logconstant, \
-    nearest, linear, zero, loglinearrate, constant, logconstantrate
+from dcf.interpolation import flat, no, left, right, loglinear, nearest, \
+    linear, zero, loglinearrate, constant, logconstantrate
 
 
 class InterpolationUnitTests(TestCase):
@@ -42,7 +42,7 @@ class InterpolationUnitTests(TestCase):
         for x, y in zip(self.x, self.y):
             self.assertAlmostEqual(f(x), y)
         for x in self.x:
-            self.assertRaises(ValueError, lambda: f(x + 0.001))
+            self.assertEqual(None, f(x + 0.001))
 
     def test_zero(self):
         f = zero(self.x, self.y)
@@ -117,12 +117,12 @@ class InterpolationUnitTests(TestCase):
     def test_logconstant(self):
         yy = [x * .5 for x in self.x]
         log_yy = [log(y) for x, y in zip(self.x, yy)]
-        lin = constant(self.x, log_yy)
-        loglin = logconstant(self.x, yy)
+        const = constant(self.x, log_yy)
+        logconst = constant(self.x, yy)
         for w in [0.25]:
             for x in self.s:
                 x = 0.01 + x * w
-                self.assertAlmostEqual(loglin(x), exp(lin(x)))
+                self.assertAlmostEqual(logconst(x), exp(const(x)))
 
     def test_nearest(self):
         f = nearest(self.x, self.y)
@@ -136,7 +136,7 @@ class InterpolationUnitTests(TestCase):
                     y = self.y[self.x.index(x + s)]
                 elif x + s < self.x[-1]:
                     i = self.x.index(x)
-                    if s < self.x[i + 1] - x - s:
+                    if s <= self.x[i + 1] - x - s:
                         y = self.y[i]
                     else:
                         y = self.y[i + 1]

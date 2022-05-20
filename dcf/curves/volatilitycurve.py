@@ -15,7 +15,7 @@ from abc import ABC
 import logging
 from math import sqrt
 
-from dcf.interpolation import zero, linear, constant, dyn_scheme
+from ..interpolation import zero_linear_scheme
 from .curve import RateCurve
 
 _logger = logging.getLogger('dcf')
@@ -24,7 +24,7 @@ _logger = logging.getLogger('dcf')
 class VolatilityCurve(RateCurve, ABC):
     """ generic curve for default probabilities (under construction) """
     _TIME_SHIFT = '1d'
-    _interpolation = dyn_scheme(zero, linear, constant)
+    _interpolation = zero_linear_scheme
 
     def get_instantaneous_vol(self, start):
         raise NotImplementedError
