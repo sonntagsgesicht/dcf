@@ -15,8 +15,8 @@ from sys import float_info
 
 from .curve import RateCurve
 from dcf.compounding import continuous_compounding, continuous_rate
-from dcf.interpolation import constant, linear_scheme, \
-    log_linear_rate_scheme, neg_log_linear_scheme
+from dcf.interpolation import constant, linear_scheme, log_linear_scheme, \
+    log_linear_rate_scheme
 
 
 class CreditCurve(RateCurve, ABC):
@@ -178,7 +178,7 @@ class HazardRateCurve(CreditCurve):
 
 
 class MarginalSurvivalProbabilityCurve(ProbabilityCurve):
-    _INTERPOLATION = neg_log_linear_scheme
+    _INTERPOLATION = log_linear_scheme
 
     @staticmethod
     def _get_storage_value(curve, x):
