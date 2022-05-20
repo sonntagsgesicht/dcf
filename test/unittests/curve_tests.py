@@ -15,11 +15,12 @@ import os
 
 from unittest import TestCase
 
+from datetime import date, timedelta
 from math import floor
 from businessdate import BusinessDate, BusinessRange
 from scipy.interpolate import interp1d
 
-from dcf.interpolation import linear, constant, dyn_scheme
+from dcf.interpolation import linear, constant, _dyn_scheme as dyn_scheme
 
 from dcf import Curve, DateCurve, RateCurve
 
@@ -88,22 +89,27 @@ class CurveUnitTests(TestCase):
             self.assertAlmostEqual(f(x), curve(x))
             self.assertAlmostEqual(linear_curve(x), curve(x))
 
-        dcf_curve = Curve(self.x_list, self.y_list, dyn_scheme(constant, linear, constant))
+        dcf_curve = Curve(self.x_list, self.y_list,
+                          dyn_scheme(constant, linear, constant))
         scipy_linear = lambda x, y: interp1d(x, y, kind="linear")
-        scipy_curve = Curve(self.x_list, self.y_list, dyn_scheme(constant, scipy_linear, constant))
+        scipy_curve = Curve(self.x_list, self.y_list,
+                            dyn_scheme(constant, scipy_linear, constant))
         for x in self.x_test:
             self.assertAlmostEqual(scipy_curve(x), dcf_curve(x))
 
-        dcf_curve = Curve(self.x_list, self.y_list, dyn_scheme(linear, linear, linear))
+        dcf_curve = Curve(self.x_list, self.y_list,
+                          dyn_scheme(linear, linear, linear))
         scipy_scheme = lambda x, y: \
             interp1d(x, y, kind="linear", fill_value="extrapolate")
         scipy_curve = Curve(self.x_list, self.y_list, scipy_scheme)
         for x in self.x_test:
             self.assertAlmostEqual(scipy_curve(x), dcf_curve(x))
 
-        dcf_curve = Curve(self.x_list, self.y_list, dyn_scheme(constant, linear, constant))
+        dcf_curve = Curve(self.x_list, self.y_list,
+                          dyn_scheme(constant, linear, constant))
         scipy_scheme = lambda x, y: \
-            interp1d(x, y, kind="linear", bounds_error=False, fill_value=(self.y_list[0], self.y_list[-1]))
+            interp1d(x, y, kind="linear", bounds_error=False,
+                     fill_value=(self.y_list[0], self.y_list[-1]))
         scipy_curve = Curve(self.x_list, self.y_list, scipy_scheme)
         for x in self.x_test:
             self.assertAlmostEqual(scipy_curve(x), dcf_curve(x))
@@ -111,22 +117,38 @@ class CurveUnitTests(TestCase):
 
 class DateCurveUnitTests(TestCase):
     def setUp(self):
-        self.dates = BusinessRange(BusinessDate(), BusinessDate() + '10Y', '1Y')
-        self.values = [0.01 * n ** 4 - 2 * n ** 2 for n in range(0, len(self.dates))]
+        self.dates = [date(year=2020+y, month=1, day=12)
+                      for y in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]]
+        self.values = [0.01 * n ** 4 - 2 * n ** 2 for n in
+                       range(0, len(self.dates))]
         self.curve = DateCurve(self.dates, self.values)
+        self.period = timedelta(days=90)
 
     def test_dates(self):
         for d in self.dates:
             self.assertTrue(d in self.curve.domain)
-        d = BusinessDate() + '3M'
+        values = self.curve(self.dates)
+        for d in self.dates:
+            d += self.period
+            self.assertTrue(min(values) <= self.curve(d) <= max(values))
 
     def test_shift_origin(self):
-        origin1 = BusinessDate()
-        origin2 = BusinessDate() + "3m2d"
+        origin1 = self.curve.origin
+        origin2 = self.curve.origin + self.period
         Curve1 = DateCurve(self.dates, self.values, origin=origin1)
         Curve2 = DateCurve(self.dates, self.values, origin=origin2)
         for d in self.dates:
             self.assertAlmostEqual(Curve1(d), Curve2(d))
+
+
+class DateCurveUnitTestsBusinessDate(DateCurveUnitTests):
+    def setUp(self):
+        self.dates = BusinessRange(BusinessDate(), BusinessDate() + '10Y',
+                                   '1Y')
+        self.values = [0.01 * n ** 4 - 2 * n ** 2 for n in
+                       range(0, len(self.dates))]
+        self.curve = DateCurve(self.dates, self.values)
+        self.period = '3M'
 
     def test_fixings(self):
         curve = DateCurve(self.dates, self.values)
@@ -145,3 +167,12 @@ class DateCurveUnitTests(TestCase):
         curve = Curve(date_curve)
         for x, d in zip(curve.domain, date_curve.domain):
             self.assertAlmostEqual(curve(x), date_curve(d))
+
+
+class DateCurveUnitTestsYearFraction(DateCurveUnitTests):
+    def setUp(self):
+        self.dates = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+        self.values = [0.01 * n ** 4 - 2 * n ** 2 for n in
+                       range(0, len(self.dates))]
+        self.curve = DateCurve(self.dates, self.values)
+        self.period = 0.3
