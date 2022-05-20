@@ -10,24 +10,26 @@
 # License:  Apache License 2.0 (see LICENSE file)
 
 
-from abc import ABC
 from collections import OrderedDict
 from inspect import signature
+from math import exp
 from warnings import warn
 
 from .. import interpolation as _interpolations
 from ..compounding import continuous_compounding, continuous_rate
-from ..interpolation import linear_scheme
+from ..interpolation import linear_scheme, log_linear_scheme
 from ..daycount import day_count as _default_day_count
 
 
 def rate_table(curve, x_grid=None, y_grid=None):
     r""" table of calculated rates
 
-    :param curve: function
-    :param x_grid:
-    :param y_grid:
-    :return: list(list(float))
+    :param curve: function $f$
+    :param x_grid: vertical date axis $x_0, \dots, x_m$
+    :param y_grid: horizontal period axis $y_1, \dots, y_n$
+        (implicitly added a non-period $y_0=0$)
+    :return: list(list(float)) matrix $T=(t_{i,j})$ with
+        $t_{i,j}=f(x_i+y_j) \text{ if } x_i+y_j < x_{i+1}$.
 
     >>> from tabulate import tabulate
     >>> from dcf import Curve, rate_table
@@ -96,19 +98,65 @@ def rate_table(curve, x_grid=None, y_grid=None):
     return grid
 
 
+class Price(object):
+    """price object"""
+
+    @property
+    def value(self):
+        """ asset price value """
+        return float(self._value)
+
+    @property
+    def origin(self):
+        """ asset price date """
+        return self._origin
+
+    def __init__(self, value=0., origin=None):
+        """price object
+
+        :param value: price value
+        :param origin: price date
+
+        >>> from businessdate import BusinessDate
+        >>> from dcf import Price
+        >>> p=Price(100, BusinessDate(20201212))
+        >>> p.value
+        100.0
+        >>> float(p)
+        100.0
+        >>> p
+        Price(100.000000; origin=BusinessDate(20201212))
+
+        """
+        self._value = value
+        self._origin = origin
+
+    def __float__(self):
+        return float(self.value)
+
+    def __str__(self):
+        return '%s(%f; origin=%s)' % \
+               (self.__class__.__name__, self.value, repr(self.origin))
+
+    def __repr__(self):
+        return str(self)
+
+
 class Curve(object):
-    INTERPOLATION = vars(_interpolations)
+    INTERPOLATIONS = dict()
+    """mapping (dict) of availiable interpolations
+        additional to |dcf.interpolation|"""
     _INTERPOLATION = linear_scheme
+    """default interpolation"""
 
     def __init__(self, domain=(), data=(), interpolation=None):
-        r"""
-        Curve object to build function
+        r"""curve object to build a function
 
         :param list(float) domain: source values
         :param list(float) data: target values
         :param function interpolation:
             interpolation function on x_list (optional),
-               default is taken from class member _INTERPOLATION
+               default is taken from class member **_INTERPOLATION**
 
                Interpolation functions can be constructed piecewise
                using via |interpolation_scheme|.
@@ -117,6 +165,8 @@ class Curve(object):
             :math:`f:R \rightarrow R, x \mapsto y`
             from finite point vectors :math:`x` and :math:`y`
             using piecewise various interpolation functions.
+
+
         """
         # cast/extract inputs from Curve if given as argument
         if isinstance(domain, Curve):
@@ -137,11 +187,13 @@ class Curve(object):
         if domain:
             domain, data = map(list, zip(*sorted(zip(*(domain, data)))))
 
-        if interpolation is None:
-            self._func = self._INTERPOLATION(domain, data)
+        if interpolation in self.INTERPOLATIONS:
+            func = self.INTERPOLATIONS[interpolation]
+        elif interpolation is None:
+            func = self._INTERPOLATION
         else:
-            func = self.INTERPOLATION.get(interpolation, interpolation)
-            self._func = func(domain, data)
+            func = vars(_interpolations).get(interpolation, interpolation)
+        self._func = func(domain, data)
         self._interpolation = interpolation
         self._domain = domain
 
@@ -160,6 +212,7 @@ class Curve(object):
 
     @property
     def domain(self):
+        """coordinates and date of given (not interpolated) x-values"""
         return self._domain
 
     @property
@@ -222,6 +275,11 @@ class Curve(object):
         return s
 
     def shifted(self, delta=0.0):
+        """ build curve object with shifted **domain** by **delta**
+
+        :param delta: shift size
+        :return: curve object with shifted **domain** by **delta**
+        """
         if delta:
             x_list = [x + delta for x in self.domain]
         else:
@@ -232,13 +290,28 @@ class Curve(object):
 
 
 class DateCurve(Curve):
-    _TIME_SHIFT = '1D'
-    _DAY_COUNT = _default_day_count
+    """curve function object with dates as domain (points)"""
 
     DAY_COUNT = dict()
+    """mapping (dict) of availiable day count functions
+        additional to |dcf.daycount|"""
+
+    _TIME_SHIFT = '1D'
+    """default time shift"""
 
     def __init__(self, domain=(), data=(), interpolation=None,
                  origin=None, day_count=None):
+        """curve function object with dates as domain (points)
+
+        :param domain: squences of date points
+        :param data: squence of curve values
+        :param interpolation: interpolation function
+            (see |Curve|)
+        :param origin: inital origin of date points
+            (used to calculate year fractions of poins in domain)
+        :param day_count: day count function
+            to derive year fractions from time periods
+        """
         if isinstance(domain, DateCurve):
             data = domain
             domain = data.domain
@@ -303,18 +376,41 @@ class DateCurve(Curve):
         return new
 
     def day_count(self, start, end=None):
+        """ day count function to calculate a year fraction of time period
+
+        :param start: first date of period
+        :param end: last date of period
+        :return: (float) year fraction
+        """
         if end is None:
             return self.day_count(self.origin, start)
         if self._day_count is None:
-            return self.__class__._DAY_COUNT(start, end)
-        day_count = self.DAY_COUNT.get(self._day_count, self._day_count)
-        return day_count(start, end)
+            return _default_day_count(start, end)
+        if self._day_count in self.DAY_COUNT:
+            day_count = self.DAY_COUNT.get(self._day_count)
+            return day_count(start, end)
+        return self._day_count(start, end)
 
     def to_curve(self):
+        """returns unterlying |Curve()| object"""
         return Curve(self)
 
     def integrate(self, start, stop):
-        """ integrates curve and returns results as annualized rates """
+        r""" integrates curve and returns results as annualized rates
+
+        :param start: lower integration boundary
+        :param stop: upper integration boundary
+        :return: (float) integral value$
+
+        If $\gamma$ is this the curve. **integrate** returns
+        $$\int_a^b \gamma(t)\ dt$$
+        where $a$ is **start** and $b$ is **stop**.
+
+        if available **integrate** uses 
+        `scipy.integrate.quad <https://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.quad.html>`_
+
+        """  # noqa E501
+
         # try use result, error = scipy.integrate(self, start, stop)
         try:
             from scipy.integrate import quad
@@ -336,6 +432,20 @@ class DateCurve(Curve):
         return result
 
     def derivative(self, start):
+        r""" calculates numericaly the first derivative
+
+        :param start: curve point to calcuate derivative at this point
+        :return: (float) first derivative
+
+        If $\gamma$ is this the curve **derivative** returns
+        $$\frac{d\ \gamma(t)}{dt}$$
+        where $t$ is **start** but derived numericaly.
+
+        if available **derivative** uses 
+        `scipy.misc.derivative <https://docs.scipy.org/doc/scipy/reference/generated/scipy.misc.derivative.html>`_
+
+        """  # noqa E501
+
         # todo use
         #  scipy.misc.derivative(self, start, self._TIME_SHIFT)
         try:
@@ -351,7 +461,75 @@ class DateCurve(Curve):
         return result
 
 
-class RateCurve(DateCurve, ABC):
+class ForwardCurve(DateCurve):
+    """ forward price curve with yield extrapolation """
+    _INTERPOLATION = log_linear_scheme
+
+    def __init__(self, domain=(), data=(), interpolation=None, origin=None,
+                 day_count=None, yield_curve=0.0):
+        r""" curve of future asset prices i.e. asset forward prices
+
+        :param domain: dates of given asset prices $t_1 \dots t_n$
+        :param data: actual asset prices $p_{t_1} \dots p_{t_n}$
+        :param interpolation: interpolation method
+            for interpolating given asset prices
+        :param origin: origin of curve
+        :param day_count: day count method resp. function $\tau$
+            to calculate year fractions
+        :param yield_curve: yield $y$ to extrapolate by continous compounding
+            $$p_T = p_{t_n} \cdot \exp(\tau(t_n, T) \cdot y)$$
+            or interest rate curve $c$ extrapolate by
+            $$p_T = p_{t_n} \cdot df_{c}^{-1}(t_n, T)$$
+
+        """
+        if not data:
+            if isinstance(domain, float):
+                # build lists from single spot price value
+                data = [domain]
+                domain = [origin]
+            elif isinstance(domain, Price):
+                # build lists from single spot price
+                origin = domain.origin
+                data = [domain.value]
+                domain = [domain.origin]
+        super().__init__(domain, data, interpolation, origin, day_count)
+        if isinstance(yield_curve, float) and self.origin is not None:
+            yc = (lambda x: exp(-self.day_count(x) * yield_curve))
+        else:
+            yc = yield_curve
+        self.yield_curve = yc
+        """ yield curve for extrapolation using discount factors """
+
+    def __call__(self, x):
+        if isinstance(x, (list, tuple)):
+            return [self(xx) for xx in x]
+        else:
+            return self.get_forward_price(x)
+
+    def get_forward_price(self, value_date):
+        """ asset forward price at **value_date**
+
+        derived by interpolation on given forward prices
+        and extrapolation by given discount_factor resp. yield curve
+
+        :param value_date: future date of asset price
+        :return: asset forward price at **value_date**
+        """
+        last_date = self.domain[-1]
+        if value_date <= last_date:
+            return super().__call__(value_date)
+        last_price = super().__call__(last_date)
+        if self.yield_curve is None:
+            df = 1.0
+        elif hasattr(self.yield_curve, 'get_discount_factor'):
+            df = self.yield_curve.get_discount_factor(last_date, value_date)
+        else:
+            df = self.yield_curve(value_date) / self.yield_curve(last_date)
+
+        return last_price / df
+
+
+class RateCurve(DateCurve):
     _FORWARD_TENOR = '3M'
 
     @staticmethod
@@ -374,13 +552,13 @@ class RateCurve(DateCurve, ABC):
 
     @property
     def forward_tenor(self):
+        """tenor (time period) associated to the rates of the curve """
         return self._FORWARD_TENOR \
             if self._forward_tenor is None else self._forward_tenor
 
     def __init__(self, domain=(), data=(), interpolation=None, origin=None,
                  day_count=None, forward_tenor=None):
-        """
-            abstract base class for InterestRateCurve and CreditCurve
+        """base class for InterestRateCurve and CreditCurve
 
         :param domain: either curve points or a RateCurve
         :param data: either curve values or a RateCurve
