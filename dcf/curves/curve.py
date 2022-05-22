@@ -5,7 +5,7 @@
 # A Python library for generating discounted cashflows.
 #
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
-# Version:  0.7, copyright Friday, 14 January 2022
+# Version:  0.7, copyright Wednesday, 11 May 2022
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -406,7 +406,7 @@ class DateCurve(Curve):
         $$\int_a^b \gamma(t)\ dt$$
         where $a$ is **start** and $b$ is **stop**.
 
-        if available **integrate** uses 
+        if available **integrate** uses
         `scipy.integrate.quad <https://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.quad.html>`_
 
         """  # noqa E501
@@ -441,7 +441,7 @@ class DateCurve(Curve):
         $$\frac{d\ \gamma(t)}{dt}$$
         where $t$ is **start** but derived numericaly.
 
-        if available **derivative** uses 
+        if available **derivative** uses
         `scipy.misc.derivative <https://docs.scipy.org/doc/scipy/reference/generated/scipy.misc.derivative.html>`_
 
         """  # noqa E501

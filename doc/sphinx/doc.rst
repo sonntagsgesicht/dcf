@@ -122,7 +122,6 @@ Build Functions
 Cashflow Objects
 ----------------
 
-
 .. py:currentmodule:: dcf.cashflows.cashflow
 
 .. autosummary::
@@ -155,7 +154,15 @@ Contingent Cashflow Models
 
 .. py:currentmodule:: dcf.models
 
-.. automodule:: dcf.models.base
+.. autosummary::
+    :nosignatures:
+
+    dcf.models.intrinsic.IntrinsicOptionPayOffModel
+    dcf.models.bachelier.NormalOptionPayOffModel
+    dcf.models.black76.LogNormalOptionPayOffModel
+    dcf.models.displaced.DisplacedLogNormalOptionPayOffModel
+
+.. automodule:: dcf.models.optionpricing
     :members:
 
 .. automodule:: dcf.models.intrinsic

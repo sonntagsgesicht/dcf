@@ -5,7 +5,7 @@
 # A Python library for generating discounted cashflows.
 #
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
-# Version:  0.5, copyright Saturday, 18 December 2021
+# Version:  0.7, copyright Wednesday, 11 May 2022
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 

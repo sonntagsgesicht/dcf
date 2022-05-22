@@ -135,7 +135,7 @@ man_pages = [(
 
 autodoc_default_options = {
     'show-inheritance': 1,
-    # 'inherit_docstrings': True,
+    'inherit_docstrings': True,
     'member-order': 'bysource',
     'members': True,  # 'var1, var2',
     'undoc-members': True,
@@ -153,7 +153,7 @@ autodoc_default_options = {
 # "class" Only the class’ docstring is inserted.
 # "init" Only the __init__ method’s docstring is inserted.
 # "both" Both the class’ and the __init__ method’s docstring are inserted.
-autoclass_content = 'init'
+autoclass_content = 'both'
 
 # This value selects how the signature will be displayed for the class defined
 # by autoclass directive. (autodoc)
