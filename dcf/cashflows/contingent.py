@@ -10,16 +10,17 @@
 # License:  Apache License 2.0 (see LICENSE file)
 
 
-from ..daycount import day_count as default_day_count
 from ..plans import DEFAULT_AMOUNT
 from .cashflow import CashFlowList as _CashFlowList
-
+from .payoffs import OptionCashFlowPayOff, OptionStrategyCashFlowPayOff, \
+    ContingentRateCashFlowPayOff
 
 _DEFAULT_PAYOFF = (lambda *_: 0.)
 
 
 class ContingentCashFlowList(_CashFlowList):
     """ list of contingent cashflows """
+    _cashflow_details = 'cashflow', 'pay date'
 
     @property
     def table(self):
@@ -81,15 +82,6 @@ class ContingentCashFlowList(_CashFlowList):
                 return payoff
             return payoff(self.payoff_model)
 
-    def __call__(self, payoff_model):
-        flows = list()
-        for item in self.domain:
-            payoff = self._flows.get(item, 0.)
-            if not isinstance(payoff, (int, float)):
-                payoff = payoff(payoff_model)
-            flows.append(payoff)
-        return _CashFlowList(self.domain, flows, self._origin)
-
     @property
     def forward_curve(self):
         r"""underlying model forward curve to derive float rates $f$"""
@@ -102,84 +94,11 @@ class ContingentCashFlowList(_CashFlowList):
 
 class OptionCashflowList(ContingentCashFlowList):
     """ list of option cashflows """
-
-    class OptionCashFlowPayOff(object):
-
-        def __init__(self, expiry, amount=DEFAULT_AMOUNT,
-                     strike=None, is_put=False):
-            r""" European option payoff function
-
-            :param expiry: option exipry date $T$
-            :param amount: option notional amount $N$
-            :param strike: strike price $K$
-            :param is_put: bool **True**
-                for put options and **False** for call options
-                (optional with default **False**)
-
-            An European call option $C_K(S(T))$ is the right to buy
-            an agreed amount $N$
-            of an asset with future price $S(T)$
-            at a future point in time $T$ (the option exipry date)
-            for a pre-agreed strike price $K$.
-
-            The call option payoff provides the expected profit
-            from such transaction, i.e.
-
-            $$C_K(S(T)) = N \cdot E[ \max(S(T)-K,0) ]$$
-
-            Resp. a put option $P_K(S(T))$ is the right to sell
-            an asset at a pre-agreed strike price.
-            Hence, the put option payoff provides the expected profit
-            from such transaction, i.e.
-
-            $$P_K(S(T)) = N \cdot E[ \max(K-S(T),0) ]$$
-
-            As the asset price $S(t)$ is unknown at time $t < T$,
-            the estimation of $C_K(S(T))$ resp. $P_K(S(T))$
-            requires assumptions on the as randomness understood
-            unkown behavior of $S$ until $T$.
-
-            This is provided by **payoff_model**
-            implementing |OptionPayOffModel|
-            and is invoked by calling an
-            |OptionCashflowList.OptionCashFlowPayOff()| object.
-
-            First, setup a classical log-normal *Black-Scholes* model.
-
-            >>> from dcf.models import LogNormalOptionPayOffModel
-            >>> from math import exp
-            >>> f = lambda t: 100.0 * exp(t * 0.05)  # spot price 100 and yield of 5%
-            >>> v = lambda v: 0.1  # flat volatility of 10%
-            >>> m = LogNormalOptionPayOffModel(valuation_date=0.0, forward_curve=f, volatility_curve=v)
-
-            Then, build a call option payoff.
-
-            >>> from dcf import OptionCashflowList
-            >>> c = OptionCashflowList.OptionCashFlowPayOff(expiry=0.25, strike=110.0)
-            >>> # get expected option payoff
-            >>> c(m)
-            0.10726740675017865
-
-            And a put option payoff.
-
-            >>> p = OptionCashflowList.OptionCashFlowPayOff(expiry=0.25, strike=110.0, is_put=True)
-            >>> # get expected option payoff
-            >>> p(m)
-            8.849422252686733
-
-            """  # noqa E501
-            self.expiry = expiry
-            self.amount = amount
-            self.strike = strike
-            self.is_put = is_put
-
-        def __call__(self, model):
-            if self.is_put:
-                return self.amount * \
-                       model.get_put_value(self.expiry, self.strike)
-            else:
-                return self.amount * \
-                       model.get_call_value(self.expiry, self.strike)
+    _cashflow_details = \
+        'cashflow', 'pay date', 'put/call', 'long/short', \
+        'notional', 'strike', 'expiry date', \
+        'fixing date', 'forward', 'volatility', \
+        'time to expiry', 'valuation date'
 
     def __init__(self, payment_date_list, amount_list=DEFAULT_AMOUNT,
                  strike_list=(), is_put_list=False,
@@ -200,7 +119,7 @@ class OptionCashflowList(ContingentCashFlowList):
             i.e. start date of the cashflow list as a product
         :param payoff_model: payoff model to derive the expected payoff
 
-        List of |OptionCashflowList.OptionCashFlowPayOff()|.
+        List of |OptionCashFlowPayOff()|.
 
         """
         if isinstance(amount_list, (int, float)):
@@ -211,78 +130,39 @@ class OptionCashflowList(ContingentCashFlowList):
             is_put_list = [is_put_list] * len(payment_date_list)
 
         payoff_list = list()
-        cls = OptionCashflowList.OptionCashFlowPayOff
         for expiry, amount, strike, is_put in \
                 zip(payment_date_list, amount_list, strike_list, is_put_list):
             if pay_offset:
                 expiry -= pay_offset
             if fixing_offset:
                 expiry -= fixing_offset
-            option = cls(expiry, amount, strike, is_put)
+            option = OptionCashFlowPayOff(
+                expiry=expiry,
+                amount=amount,
+                strike=strike,
+                is_put=is_put
+            )
             payoff_list.append(option)
         super().__init__(payment_date_list, payoff_list, origin, payoff_model)
 
 
 class OptionStrategyCashflowList(ContingentCashFlowList):
     """ list of option strategy cashflows """
-
-    class OptionStrategyCashFlowPayOff(object):
-
-        def __init__(self, expiry,
-                     call_amount_list=DEFAULT_AMOUNT, call_strike_list=(),
-                     put_amount_list=DEFAULT_AMOUNT, put_strike_list=()):
-            r"""option strategy,
-            i.e. series of call and put options with single expiry
-
-            :param expiry: option exiptry date $T$
-            :param call_amount_list: list of call option notional amounts $N_i$
-            :param call_strike_list: list of call option strikes $K_i$
-            :param put_amount_list: list of put option notional amounts $N_j$
-            :param put_strike_list: list of put option strikes $L_j$
-
-            The option strategy payoff $X$ is the sum of call and put payoffs
-
-            $$X(S(T))
-            =\sum_{i=1}^m N_i \cdot C_{K_i}(S(T))
-            + \sum_{j=1}^n N_j \cdot P_{L_j}(S(T))$$
-
-            see more on `options strategies <https://en.wikipedia.org/wiki/Options_strategy>`_
-
-            First, setup a classical log-normal *Black-Scholes* model.
-
-            >>> from dcf.models import LogNormalOptionPayOffModel
-            >>> from math import exp
-            >>> #
-            >>> f = lambda t: 100.0 * exp(t * 0.05)  # spot price 100 and yield of 5%
-            >>> v = lambda v: 0.1  # flat volatility of 10%
-            >>> m = LogNormalOptionPayOffModel(valuation_date=0.0, forward_curve=f, volatility_curve=v)
-
-            Then, setup a *butterlfy* payoff and evaluate it.
-
-            >>> from dcf import OptionStrategyCashflowList
-            >>> call_amounts = 1., -2., 1.
-            >>> call_strikes = 100, 110, 120
-            >>> s = OptionStrategyCashflowList.OptionStrategyCashFlowPayOff(expiry=1., call_amount_list=call_amounts, call_strike_list=call_strikes)
-            >>> s(m)
-            3.06924777745399
-
-            """  # noqa E501
-            if isinstance(call_amount_list, (int, float)):
-                call_amount_list = [call_amount_list] * len(call_strike_list)
-            if isinstance(put_amount_list, (int, float)):
-                put_amount_list = [put_amount_list] * len(put_strike_list)
-
-            self._options = list()
-            cls = OptionCashflowList.OptionCashFlowPayOff
-            for amount, strike in zip(call_amount_list, call_strike_list):
-                option = cls(expiry, amount, strike, is_put=False)
-                self._options.append(option)
-            for amount, strike in zip(put_amount_list, put_strike_list):
-                option = cls(expiry, amount, strike, is_put=True)
-                self._options.append(option)
-
-        def __call__(self, model):
-            return sum(option(model) for option in self._options)
+    _cashflow_details = \
+        'cashflow', 'pay date', \
+        '#0 put/call', '#0 long/short', '#0 notional', '#0 strike', \
+        '#1 put/call', '#1 long/short', '#1 notional', '#1 strike', \
+        '#2 put/call', '#2 long/short', '#2 notional', '#2 strike', \
+        '#3 put/call', '#3 long/short', '#3 notional', '#3 strike', \
+        '#4 put/call', '#4 long/short', '#4 notional', '#4 strike', \
+        '#5 put/call', '#5 long/short', '#5 notional', '#5 strike', \
+        '#6 put/call', '#6 long/short', '#6 notional', '#6 strike', \
+        '#7 put/call', '#7 long/short', '#7 notional', '#7 strike', \
+        '#8 put/call', '#8 long/short', '#8 notional', '#8 strike', \
+        '#9 put/call', '#9 long/short', '#9 notional', '#9 strike', \
+        'expiry date', 'fixing date', \
+        'forward', 'volatility', \
+        'time to expiry', 'valuation date'
 
     def __init__(self, payment_date_list,
                  call_amount_list=DEFAULT_AMOUNT, call_strike_list=(),
@@ -305,96 +185,44 @@ class OptionStrategyCashflowList(ContingentCashFlowList):
         :param payoff_model: payoff model to derive the expected payoff
 
         |OptionStrategyCashflowList()| object provides a list of
-        |OptionStrategyCashflowList.OptionStrategyCashFlowPayOff| $X_k$ objects
+        |OptionStrategyCashFlowPayOff()| $X_k$ objects
         with payment date $t_k$.
 
         Adjustetd by offset $X_k$ has expiry date $T_k=t_k-\delta-\epsilon$
         and for all $k$ the same $N_i$, $K_i$, $N_j$, $L_j$ are used.
 
         """
+
+        if 10 < len(put_strike_list) + len(call_strike_list):
+            raise KeyError('OptionStrategyCashflowList are limited '
+                           'to 10 options per strategy payoff not '
+                           '%d' % len(put_strike_list) + len(call_strike_list))
         payoff_list = list()
-        cls = OptionStrategyCashflowList.OptionStrategyCashFlowPayOff
         for expiry in payment_date_list:
             if pay_offset:
                 expiry -= pay_offset
             if fixing_offset:
                 expiry -= fixing_offset
-            strategy = cls(expiry,
-                           call_amount_list, call_strike_list,
-                           put_amount_list, put_strike_list)
+            strategy = OptionStrategyCashFlowPayOff(
+                expiry=expiry,
+                call_amount_list=call_amount_list,
+                call_strike_list=call_strike_list,
+                put_amount_list=put_amount_list,
+                put_strike_list=put_strike_list
+            )
             payoff_list.append(strategy)
         super().__init__(payment_date_list, payoff_list, origin, payoff_model)
 
 
 class ContingentRateCashFlowList(ContingentCashFlowList):
     """ list of cashflows by interest rate payments """
-
-    class ContingentRateCashFlowPayOff(object):
-
-        def __init__(self, start, end=None, amount=DEFAULT_AMOUNT,
-                     day_count=None, fixing_offset=None, fixed_rate=0.0,
-                     floor_strike=None, cap_strike=None):
-            r""" contigent but collared interest rate cashflow payoff
-
-            :param start: cashflow accrued period start date $s$
-            :param end: cashflow accrued period end date $e$
-            :param amount: notional amount $N$
-            :param day_count: function to calculate
-                accrued period year fraction $\tau$
-            :param fixing_offset: time difference between
-                interest rate fixing date
-                and interest period payment date $\delta$
-            :param fixed_rate: agreed fixed rate $c$
-            :param floor_strike: lower interest rate boundary $K$
-            :param cap_strike: upper interest rate boundary $L$
-
-            A collared interest rate cashflow payoff $X$
-            is given for a float rate $f$ at $T=s-\delta$
-
-            $$X(f(T)) = [\max(K, \min(f(T), L)) + c]\ \tau(s,e)\ N$$
-
-            The foorlet ($\max(K, \dots)$)
-            or resp. the caplet condition ($\min(\dots, L)
-            will be ignored if $K$ is or resp. $L$ is **None**.
-
-            Invoking $X(m)$ with a |OptionPayOffModel| object $m$ as argument
-            returns the acctual expected cashflow payoff amount of $X$.
-
-            """
-            self.start = start
-            """interes accrued period start date"""
-            self.end = end
-            """interes accrued period end date"""
-            self.day_count = day_count or default_day_count
-            """interes accrued period day count method"""
-            self.fixing_offset = fixing_offset
-            """time difference between
-            interest rate fixing date and interest period payment date"""
-            self.amount = amount
-            """cashflow notional amount"""
-            self.fixed_rate = fixed_rate
-            """agreed fixed rate"""
-            self.floor_strike = floor_strike
-            """floor strike rate"""
-            self.cap_strike = cap_strike
-            """cap strike rate"""
-
-        def __call__(self, model):
-            fixing_date = self.start
-            if self.fixing_offset:
-                fixing_date -= self.fixing_offset
-
-            rate = self.fixed_rate
-            if hasattr(model.forward_curve, 'get_cash_rate'):
-                rate += model.forward_curve.get_cash_rate(fixing_date)
-            else:
-                rate += model.forward_curve(fixing_date)
-            if self.cap_strike:
-                rate -= model.get_call_value(fixing_date, self.cap_strike)
-            if self.floor_strike:
-                rate += model.get_put_value(fixing_date, self.floor_strike)
-            yf = self.day_count(self.start, self.end)
-            return rate * yf * self.amount
+    _cashflow_details = \
+        'cashflow', 'pay date', 'notional', \
+        'start date', 'end date', 'year fraction', \
+        'fixed rate', 'forward rate', 'fixing date', 'tenor', \
+        'floorlet', 'floorlet strike', 'floorlet volatility', \
+        'caplet', 'caplet strike', 'caplet volatility', \
+        'time to expiry', 'model valuation date'
 
     def __init__(self, payment_date_list, amount_list=DEFAULT_AMOUNT,
                  origin=None, day_count=None,
@@ -416,9 +244,11 @@ class ContingentRateCashFlowList(ContingentCashFlowList):
             interest period end date and interest payment date
         :param floor_strike: lower interest rate boundary $K$
         :param cap_strike: upper interest rate boundary $L$
+        :param payoff_model: option valuation model to derive the
+            expected cashflow of option payoffs
 
         Each object consists of a list of
-        |ContingentRateCashFlowList.ContingentRateCashFlowPayOff()|, i.e.
+        |ContingentRateCashFlowPayOff()|, i.e.
         of collared payoff functions
 
         $$X_i(f(T_i)) = [\max(K, \min(f(T_i), L)) + c]\ \tau(s,e)\ N$$
@@ -427,14 +257,9 @@ class ContingentRateCashFlowList(ContingentCashFlowList):
         $p_i-\epsilon=e_i$, $e_i=s_{i+1}$ and $s_i-\delta=T_i$.
 
         """
-        cls = ContingentRateCashFlowList.ContingentRateCashFlowPayOff
-
         if isinstance(amount_list, (int, float)):
             amount_list = [amount_list] * len(payment_date_list)
 
-        self.day_count = day_count or default_day_count
-
-        payoff_list = list()
         if origin:
             start_dates = [origin]
             start_dates.extend(payment_date_list[:-1])
@@ -445,12 +270,13 @@ class ContingentRateCashFlowList(ContingentCashFlowList):
         elif payment_date_list:
             start_dates = payment_date_list
 
+        payoff_list = list()
         for s, e, a in zip(start_dates, payment_date_list, amount_list):
             if pay_offset:
                 e -= pay_offset
                 s -= pay_offset
 
-            payoff = cls(
+            payoff = ContingentRateCashFlowPayOff(
                 start=s, end=e, day_count=day_count,
                 fixing_offset=fixing_offset, amount=a, fixed_rate=fixed_rate,
                 cap_strike=cap_strike, floor_strike=floor_strike
@@ -459,12 +285,16 @@ class ContingentRateCashFlowList(ContingentCashFlowList):
 
         super().__init__(payment_date_list, payoff_list,
                          origin=origin, payoff_model=payoff_model)
+        self.payoff_model = payoff_model
+        """model to derive the expected cashflow of an option payoff"""
 
     @property
     def fixed_rate(self):
-        return self._flows[self.domain[0]].fixed_rate
+        fixed_rates = tuple(cf.fixed_rate for cf in self._flows.values())
+        if len(set(fixed_rates)) == 1:
+            return fixed_rates[0]
 
     @fixed_rate.setter
     def fixed_rate(self, value):
-        for date in self.domain:
-            self._flows[date].fixed_rate = value
+        for cf in self._flows.values():
+            cf.fixed_rate = value

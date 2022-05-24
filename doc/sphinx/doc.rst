@@ -194,7 +194,6 @@ Fair/Par Rate
 -------------
 
 .. autofunction:: dcf.pricer.get_fair_rate
-.. autofunction:: dcf.pricer.get_par_rate
 
 Interest Accrued
 ----------------

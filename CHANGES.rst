@@ -19,7 +19,10 @@ Release date was |today|
   * *displaced Black76* as |DisplacedLogNormalOptionPayOffModel()|
   * as well as an intrinsic version |IntrinsicOptionPayOffModel()|
 
-* modified |get_present_value()|, it now excludes cashflows at valuation date
+* modified |get_present_value()| to word with |OptionPayOffModel()|
+* removed |get_fair_rate()| alias *get_par_rate()*
+* removed submodules *dcf.data*
+* added submodules |dcf.cashflows.payoffs|
 
 
 Release 0.6
@@ -34,7 +37,8 @@ Release date was Friday, 14 January 2022
 
 * added |get_bucketed_delta()|
 
-* added submodules data, product and plot (under construction)
+* added submodules *dcf.data*, *dcf.cashflows.products* and *dcf.curves.plot*
+  (under construction)
 
 
 Release 0.5
@@ -58,7 +62,7 @@ Release date was October 11, 2020
 
 * adding payment plans, see |dcf.plans|
 
-* adding pricing functions, e.g. |get_present_value()|, |get_yield_to_maturity()|, |get_par_rate()|, ...
+* adding pricing functions, e.g. |get_present_value()|, |get_yield_to_maturity()|, *get_par_rate()*, ...
 
 * more docs
 

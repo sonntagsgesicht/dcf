@@ -96,9 +96,11 @@ class OptionPayOffModel(OptionPricingFormula):
     """base option payoff model to derive expected payoff cashflows"""
 
     DELTA_SHIFT = 0.0001
-    """finite difference to calculate numerical delta sensitivities"""
+    r"""finite difference to calculate numerical delta sensitivities
+    """
     DELTA_SCALE = 0.0001
-    r"""factor to express numerical delta sensitivities, usually in a value of a basis point (bpv)
+    r"""factor to express numerical delta sensitivities
+    usually in a value of a basis point (bpv)
 
     Let $\delta$ be the **DELTA_SHIFT**
     and $\epsilon$ be the **DELTA_SCALE**
@@ -106,9 +108,10 @@ class OptionPayOffModel(OptionPricingFormula):
     such that
     $$f' = \frac{df}{dF} \approx
     \Delta_f(F) = \frac{f(F+\delta) - f(x)}{\delta/\epsilon}.$$
-    """  # noqa 501
+    """
     VEGA_SHIFT = 0.01
-    """finite difference to calculate numerical vega sensitivities"""
+    r"""finite difference to calculate numerical vega sensitivities
+    """
     VEGA_SCALE = 0.01
     r"""factor to express numerical vega sensitivities
 
@@ -119,10 +122,12 @@ class OptionPayOffModel(OptionPricingFormula):
     $$f'_\nu = \frac{df}{d\nu} \approx
     \mathcal{V}_f(\nu) = \frac{f(\nu+\delta) - f(\nu)}{\delta/\epsilon}.$$
     """
-    THETA_SHIFT = 1/_DAYS_IN_YEAR
-    """finite difference to calculate numerical theta sensitivities, usually one day (1/365.25)"""  # noqa 501
-    THETA_SCALE = 1/_DAYS_IN_YEAR
-    r"""factor to express numerical theta sensitivities, usually one day (1/365.25)
+    THETA_SHIFT = 1 / _DAYS_IN_YEAR
+    r"""finite difference to calculate numerical theta sensitivities
+    usually one day (1/365.25)"""
+    THETA_SCALE = 1 / _DAYS_IN_YEAR
+    r"""factor to express numerical theta sensitivities
+    usually one day (1/365.25)
 
     Let $\delta$ be the **THETA_SHIFT**
     and $\epsilon$ be the **THETA_SCALE**
@@ -131,11 +136,11 @@ class OptionPayOffModel(OptionPricingFormula):
     such that
     $$\dot{f} = \frac{df}{dt} \approx
     \Theta_f(t) = \frac{f(\tau(t,T)+\delta) - f(\tau(t,T))}{\delta/\epsilon}.$$
-    """  # noqa 51
+    """
 
     def __init__(self, valuation_date=None, forward_curve=None,
                  volatility_curve=None, day_count=None, bump_greeks=None):
-        """option payoff model
+        r"""option payoff model
 
         :param valuation_date: date of option valuation $t$
         :param forward_curve: curve for deriving forward values
@@ -159,9 +164,72 @@ class OptionPayOffModel(OptionPricingFormula):
         self.bump_greeks = bump_greeks
 
     def _tsfv(self, date, strike=None):
-        fwd = self.forward_curve(date) if self.forward_curve else 0.0
-        strike = fwd if strike is None else strike
-        vol = self.volatility_curve(date) if self.volatility_curve else 0.0
+        details = self.details(date, strike)
+        keys = 'time to expiry', 'strike', 'forward', 'volatility'
+        return tuple(details[k] for k in keys)
+        # fwd = 0.0
+        # if self.forward_curve:
+        #     if hasattr(self.forward_curve, 'get_forward_price'):
+        #         fwd = self.forward_curve.get_forward_price(date)
+        #     elif hasattr(self.forward_curve, 'get_cash_rate'):
+        #         fwd = self.forward_curve.get_cash_rate(date)
+        #     else:
+        #         fwd = self.forward_curve(date)
+        #
+        # strike = fwd if strike is None else strike
+        # vol = self.volatility_curve(date) if self.volatility_curve else 0.0
+        #
+        # if self.day_count:
+        #     time = self.day_count(self.valuation_date, date)
+        # elif hasattr(self.volatility_curve, 'day_count'):
+        #     time = self.volatility_curve.day_count(self.valuation_date, date)
+        # elif hasattr(self.forward_curve, 'day_count'):
+        #     time = self.forward_curve.day_count(self.valuation_date, date)
+        # else:
+        #     time = _default_day_count(self.valuation_date, date)
+        #
+        # return time, strike, fwd, vol
+
+    def details(self, date, strike=None):
+        """model parameter details
+
+        :param date: option expiry date (also fixing date)
+        :param strike: option strike value
+            (optional; default **None**, i.e. *at-the-money*)
+        :return: dict()
+
+        """
+        details = {'valuation date': self.valuation_date}
+        forward = 0.0
+        if self.forward_curve:
+            if hasattr(self.forward_curve, 'get_forward_price'):
+                forward = self.forward_curve.get_forward_price(date)
+            elif hasattr(self.forward_curve, 'get_cash_rate'):
+                forward = self.forward_curve.get_cash_rate(date)
+            elif isinstance(self.forward_curve, (int, float)):
+                forward = float(self.forward_curve)
+            else:
+                forward = self.forward_curve(date)
+
+            details['fixing date'] = date
+            if hasattr(self.forward_curve, 'forward_tenor'):
+                details['tenor'] = self.forward_curve.forward_tenor
+            details['forward'] = forward
+            details['forward-curve-id'] = id(self.forward_curve)
+
+        strike = forward if strike is None else strike
+        details['strike'] = strike
+
+        volatility = 0.0
+        if self.volatility_curve:
+            if hasattr(self.volatility_curve, 'get_terminal_vol'):
+                volatility = self.volatility_curve.get_terminal_vol(date)
+            elif isinstance(self.volatility_curve, (int, float)):
+                volatility = float(self.volatility_curve)
+            else:
+                volatility = self.volatility_curve(date)
+            details['volatility'] = volatility
+            details['volatility-curve-id'] = id(self.volatility_curve)
 
         if self.day_count:
             time = self.day_count(self.valuation_date, date)
@@ -171,8 +239,10 @@ class OptionPayOffModel(OptionPricingFormula):
             time = self.forward_curve.day_count(self.valuation_date, date)
         else:
             time = _default_day_count(self.valuation_date, date)
+        details['time to expiry'] = time
 
-        return time, strike, fwd, vol
+        details['model-id'] = id(self)
+        return details
 
     def get_call_value(self, date, strike=None):
         r""" value of a call option
@@ -269,7 +339,7 @@ class OptionPayOffModel(OptionPricingFormula):
         if not self.bump_greeks:
             gamma = self._call_gamma(date, strike, fwd, vol)
             if gamma is not None:
-                return gamma * (scale**2)
+                return gamma * (scale ** 2)
         gamma = self._call_price(time, strike, fwd + shift, vol)
         gamma -= 2 * self._call_price(time, strike, fwd, vol)
         gamma += self._call_price(time, strike, fwd - shift, vol)
@@ -374,7 +444,6 @@ class OptionPayOffModel(OptionPricingFormula):
 
 
 class BinaryOptionPayOffModel(OptionPayOffModel):
-
     STRIKE_SHIFT = 0.0001
     """finite difference to calculate binary option payoff as a call spread"""
 

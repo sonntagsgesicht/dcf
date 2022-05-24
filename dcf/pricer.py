@@ -11,6 +11,7 @@
 
 
 from .cashflows.cashflow import CashFlowLegList
+from .cashflows.payoffs import RateCashFlowPayOff
 from .curves.interestratecurve import ZeroRateCurve, CashRateCurve
 
 
@@ -54,13 +55,14 @@ def get_present_value(cashflow_list, discount_curve,
     :param cashflow_list: list of cashflows
     :param discount_curve: discount factors are obtained from this curve
     :param valuation_date: date to discount to
+        (optional; default: **discount_curve.origin**)
     :return: `float` - as the sum of all discounted future cashflows
 
     Let $cf_1 \dots cf_n$ be the list of cashflows
     with payment dates $t_1, \dots, t_n$.
 
     Moreover, let $t$ be the valuation date
-    and $T=\{t_i \mid t < t_i \}$.
+    and $T=\{t_i \mid t \leq t_i \}$.
 
     Then the present value is given as
 
@@ -68,19 +70,42 @@ def get_present_value(cashflow_list, discount_curve,
 
     with $df(t, t_i)$, the discount factor discounting form $t_i$ to $t$.
 
+    Note, **get_present_value** includes cashflows at valuation date.
+    Therefor it represents a *start-of-day* valuation
+    than a *end-of-day* valuation.
+
+    >>> from dcf import CashFlowList, ZeroRateCurve, get_present_value
+    >>> cfs = CashFlowList([0, 1, 2, 3],[100, 100, 100, 100])
+    >>> curve = ZeroRateCurve([0], [0.05])
+    >>> valuation_date = 0
+    >>> sod = get_present_value(cfs, curve, valuation_date)
+    >>> sod
+    371.67748189617316
+    >>> eod = sod - float(cfs[valuation_date])
+    >>> eod
+    271.67748189617316
+
     """
-    # todo: use discount_curve.origin
     if valuation_date is None:
-        valuation_date = cashflow_list.origin
+        valuation_date = discount_curve.origin
+
+    # store and set valuation date to payoff_model
+    model_valuation_date = valuation_date
+    if hasattr(cashflow_list, 'payoff_model'):
+        model_valuation_date = cashflow_list.payoff_model.valuation_date
+        cashflow_list.payoff_model.valuation_date = valuation_date
 
     # filter flows
-    # todo: use cf.origin to filter future cf (and set model val date)
     pay_dates = list(d for d in cashflow_list.domain if valuation_date <= d)
 
     # discount flows
     value_flows = zip(pay_dates, cashflow_list[pay_dates])
-    values = (discount_curve.get_discount_factor(valuation_date, t) * a
+    values = (discount_curve.get_discount_factor(valuation_date, t) * float(a)
               for t, a in value_flows)
+
+    # re-store model_valuation_date
+    if hasattr(cashflow_list, 'payoff_model'):
+        cashflow_list.payoff_model.valuation_date = model_valuation_date
     return sum(values)
 
 
@@ -90,7 +115,9 @@ def get_yield_to_maturity(cashflow_list,
 
     :param cashflow_list: list of cashflows
     :param valuation_date: date to discount to
+        (optional; default: **cashflow_list.origin**)
     :param present_value: price to meet by discounting
+        (optional; default: 0.0)
     :param kwargs: additional keyword used for constructing |ZeroRateCurve()|
     :return: `float` - as flat interest rate to discount all future cashflows
         in order to meet given **present_value**
@@ -142,29 +169,25 @@ def get_interest_accrued(cashflow_list, valuation_date):
     The accrued interest until $t$ is given as
     $$cf_{accrued} =  cf \cdot \frac{\tau(s, t)}{\tau(s, e)}.$$
 
+    Note, this function takes even expected payoffs of options
+    incl. caplets and floorlets into account
+    which probably should be excluded.
+
     """
-    if cashflow_list.origin < valuation_date < cashflow_list.domain[-1]:
-        if isinstance(cashflow_list, CashFlowLegList):
-            return sum(get_interest_accrued(leg, valuation_date)
-                       for leg in cashflow_list.legs)
-        # only interest cash flows entitle to accrued interest
-        if hasattr(cashflow_list, 'day_count'):
-            last = max((d for d in cashflow_list.domain if valuation_date > d),
-                       default=cashflow_list.origin)
-            next = list(d for d in cashflow_list.domain
-                        if valuation_date <= d)[0]
-
-            # use start and end rather than pay dates
-            if cashflow_list.pay_offset:
-                if not last == cashflow_list.origin:
-                    last -= cashflow_list.pay_offset
-                next -= cashflow_list.pay_offset
-
-            # calculate remaining rate period proportion
-            remaining = cashflow_list.day_count(valuation_date, next)
-            total = cashflow_list.day_count(last, next)
-            return cashflow_list[next] * (1. - remaining / total)
-    return 0.
+    if isinstance(cashflow_list, CashFlowLegList):
+        return sum(get_interest_accrued(leg, valuation_date)
+                   for leg in cashflow_list.legs)
+    # only interest cash flows entitle to accrued interest
+    ac = 0.0
+    for pay_date in cashflow_list.domain:
+        if valuation_date <= pay_date:
+            cf = cashflow_list.payoff(pay_date)
+            if isinstance(cf, RateCashFlowPayOff):
+                if cf.start < valuation_date:
+                    remaining = cf.day_count(valuation_date, cf.end)
+                    total = cf.day_count(cf.start, cf.end)
+                    ac += cashflow_list[pay_date] * (1. - remaining / total)
+    return ac
 
 
 def get_fair_rate(cashflow_list, discount_curve,
@@ -194,9 +217,7 @@ def get_fair_rate(cashflow_list, discount_curve,
     which is perturbed to find the solution for $\hat{c}$.
 
     """
-    if valuation_date is None:
-        valuation_date = cashflow_list.origin
-
+    # store fixed rate
     fixed_rate = cashflow_list.fixed_rate
 
     # set error function
@@ -211,13 +232,6 @@ def get_fair_rate(cashflow_list, discount_curve,
     # restore fixed rate
     cashflow_list.fixed_rate = fixed_rate
     return par
-
-
-def get_par_rate(cashflow_list, discount_curve,
-                 valuation_date=None, present_value=0., precision=1e-7):
-    """ same as |get_fair_rate()| """
-    return get_fair_rate(cashflow_list, discount_curve, valuation_date,
-                         present_value, precision)
 
 
 def get_basis_point_value(cashflow_list, discount_curve, valuation_date=None,

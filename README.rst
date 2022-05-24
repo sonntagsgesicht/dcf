@@ -175,7 +175,7 @@ by a forward rate curve, e.g. a `CashRateCurve`, are possible, too.
 >>> print(tabulate(float_interest.table, headers='firstrow'))
   cashflow  pay date      notional  start date    end date      year fraction    fixed rate    forward rate  fixing date    tenor
 ----------  ----------  ----------  ------------  ----------  ---------------  ------------  --------------  -------------  -------
- -0.974675  20210131          1000  20201031      20210128           0.243669         0.001    -0.005        20201029       3M
+ -0.996578  20210131          1000  20201029      20210128           0.249144         0.001    -0.005        20201027       3M
  -0.554077  20210430           875  20210128      20210428           0.246407         0.001    -0.00356986   20210126       3M
  -0.205991  20210731           750  20210428      20210729           0.251882         0.001    -0.00209041   20210426       3M
   0.065699  20211031           625  20210729      20211028           0.249144         0.001    -0.000578082  20210727       3M
@@ -186,7 +186,7 @@ by a forward rate curve, e.g. a `CashRateCurve`, are possible, too.
 
 
 >>> get_present_value(cashflow_list=float_interest, discount_curve=curve, valuation_date=today)
--0.61960891965599
+-0.641528888054065
 
 Install
 -------

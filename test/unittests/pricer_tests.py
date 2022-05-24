@@ -17,7 +17,8 @@ from businessdate import BusinessDate, BusinessSchedule
 from dcf import DiscountFactorCurve, CashRateCurve, ZeroRateCurve
 from dcf.interpolation import interpolation_scheme
 from dcf import FixedCashFlowList, RateCashFlowList, CashFlowLegList
-from dcf.pricer import get_present_value, get_yield_to_maturity, get_par_rate, get_interest_accrued
+from dcf.pricer import get_present_value, get_yield_to_maturity, \
+    get_fair_rate, get_interest_accrued
 
 
 class PresentValueUnitTests(TestCase):
@@ -77,8 +78,9 @@ class YTMUnitTests(TestCase):
         ytm = get_yield_to_maturity(cfs, present_value=total * 1.2)
         self.assertGreater(-0.05, ytm, 4)
 
-        pv = get_present_value(cfs, self.df)
-        ytm = get_yield_to_maturity(cfs, present_value=pv)
+        pv = get_present_value(cfs, self.df, valuation_date=self.today)
+        ytm = get_yield_to_maturity(
+            cfs, present_value=pv, valuation_date=self.today)
         self.assertAlmostEqual(self.rate, ytm, 4)
 
 
@@ -94,7 +96,7 @@ class ParRateUnitTests(TestCase):
         leg1 = RateCashFlowList(self.schedule, 100., fixed_rate=1.)
         leg2 = RateCashFlowList(self.schedule, 100., forward_curve=self.curve)
         pv2 = get_present_value(leg2, self.df)
-        par = get_par_rate(leg1, self.df, present_value=pv2)
+        par = get_fair_rate(leg1, self.df, present_value=pv2)
         self.assertAlmostEqual(self.rate, par)
         self.assertAlmostEqual(1., leg1.fixed_rate)
         leg1.fixed_rate = par

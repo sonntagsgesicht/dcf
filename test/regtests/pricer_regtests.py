@@ -17,7 +17,7 @@ from regtest import RegressionTestCase
 from businessdate import BusinessDate, BusinessPeriod, BusinessSchedule
 from dcf import ZeroRateCurve, CashRateCurve
 from dcf import CashFlowLegList, FixedCashFlowList, RateCashFlowList
-from dcf import get_present_value, get_par_rate
+from dcf import get_present_value, get_fair_rate
 
 
 pkg = __import__(basename(getcwd()))
@@ -59,7 +59,7 @@ class PricerRegTests(RegressionTestCase):
             float_leg = RateCashFlowList(schedule, notional, forward_curve=fwd_curve_3m)
             float_pv = get_present_value(float_leg, zero_curve, start)
             fixed_leg = RateCashFlowList(schedule, -notional, fixed_rate=0.01)
-            par_rate = get_par_rate(fixed_leg, zero_curve, start, -float_pv)
+            par_rate = get_fair_rate(fixed_leg, zero_curve, start, -float_pv)
             fixed_leg.fixed_rate = par_rate
             swap = CashFlowLegList([float_leg, fixed_leg], start)
 
@@ -74,7 +74,7 @@ class PricerRegTests(RegressionTestCase):
             rate_flows = RateCashFlowList(schedule, notional, fixed_rate=0.01)
             redemption_flows = FixedCashFlowList([end], [notional])
             zero_pv = get_present_value(redemption_flows, zero_curve, start)
-            par_rate = get_par_rate(rate_flows, zero_curve, start, notional - zero_pv)
+            par_rate = get_fair_rate(rate_flows, zero_curve, start, notional - zero_pv)
             rate_flows.fixed_rate = par_rate
             bond = CashFlowLegList([rate_flows, redemption_flows])
 
@@ -90,7 +90,7 @@ class PricerRegTests(RegressionTestCase):
             float_leg = RateCashFlowList(schedule, notional, forward_curve=fwd_curve_3m)
             float_pv = get_present_value(float_leg, zero_curve, start)
             fixed_leg = RateCashFlowList(schedule, -notional, fixed_rate=0.01)
-            par_rate = get_par_rate(fixed_leg, zero_curve, start, -float_pv)
+            par_rate = get_fair_rate(fixed_leg, zero_curve, start, -float_pv)
             fixed_leg.fixed_rate = par_rate
             swap = CashFlowLegList([float_leg, fixed_leg])
 

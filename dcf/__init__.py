@@ -60,5 +60,5 @@ from .cashflows.products import \
 
 from .ratingclass import RatingClass  # noqa E401 E402
 
-from .pricer import get_present_value, get_par_rate, get_interest_accrued, \
+from .pricer import get_present_value, get_fair_rate, get_interest_accrued, \
     get_yield_to_maturity, get_basis_point_value  # noqa E401 E402

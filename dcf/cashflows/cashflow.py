@@ -14,11 +14,32 @@ from collections import OrderedDict
 from inspect import signature
 from warnings import warn
 
-from ..daycount import day_count as _default_day_count
-from dcf.plans import DEFAULT_AMOUNT, same as _same
+from ..plans import DEFAULT_AMOUNT
+
+from .payoffs import FixedCashFlowPayOff, RateCashFlowPayOff
 
 
 class CashFlowList(object):
+    _cashflow_details = 'cashflow', 'pay date'
+
+    @property
+    def table(self):
+        """ cashflow details as list of tuples """
+        # print(tabulate(cf.table, headers='firstrow'))  # for pretty print
+
+        header, table = list(), list()
+        for d in self.domain:
+            payoff = self._flows.get(d, 0.)
+            if hasattr(payoff, 'details'):
+                details = payoff.details(self.forward_curve)
+                details['pay date'] = d
+            else:
+                details = {'cashflow': float(payoff), 'pay date': d}
+            for k in self.__class__._cashflow_details:
+                if k in details and k not in header:
+                    header.append(k)
+            table.append(tuple(details.get(h, '') for h in header))
+        return [tuple(header)] + table
 
     @property
     def domain(self):
@@ -55,6 +76,13 @@ class CashFlowList(object):
                 kw[name] = attr
         return kw
 
+    @property
+    def payoff(self, date):
+        """dictionary of payoffs with pay_date keys"""
+        if isinstance(item, (tuple, list)):
+            return tuple(self.payoff(i) for i in item)
+        return self._flows.get(date, None)
+
     def __init__(self, payment_date_list=(), amount_list=(), origin=None):
         """ basic cashflow list object
 
@@ -87,11 +115,12 @@ class CashFlowList(object):
 
         """
         if isinstance(amount_list, (int, float)):
-            amount_list = _same(len(payment_date_list), amount_list)
+            amount_list = [amount_list] * len(payment_date_list)
 
         if not len(amount_list) == len(payment_date_list):
             msg = f"{self.__class__.__name__} arguments " \
-                  f"`data` and `domain` must have same length."
+                  f"`payment_date_list` and `amount_list` " \
+                  f"must have same length."
             raise ValueError(msg)
 
         self._origin = origin
@@ -102,7 +131,29 @@ class CashFlowList(object):
         if isinstance(item, (tuple, list)):
             return tuple(self[i] for i in item)
         else:
-            return self._flows.get(item, 0.)
+            payoff = self._flows.get(item, 0.)
+            if not isinstance(payoff, (int, float)):
+                _ = None
+                if hasattr(self, 'payoff_model'):
+                    _ = self.payoff_model
+                elif hasattr(self, 'forward_curve'):
+                    _ = self.forward_curve
+                payoff = payoff(_)
+            return payoff
+
+    def __call__(self, _=None):
+        flows = list()
+        for item in self.domain:
+            payoff = self._flows.get(item, 0.)
+            if not isinstance(payoff, (int, float)):
+                if _ is None:
+                    if hasattr(self, 'payoff_model'):
+                        _ = self.payoff_model
+                    elif hasattr(self, 'forward_curve'):
+                        _ = self.forward_curve
+                payoff = payoff(_)
+            flows.append(payoff)
+        return CashFlowList(self.domain, flows, self._origin)
 
     def __add__(self, other):
         for k in self._flows:
@@ -146,156 +197,6 @@ class CashFlowList(object):
         return s
 
 
-class FixedCashFlowList(CashFlowList):
-
-    @property
-    def table(self):
-        """ cashflow details as list of tuples """
-        header = [('cashflow', 'pay date')]
-        table = list((self[d], d,) for d in self.domain)
-        return header + table
-
-    def __init__(self, payment_date_list, amount_list=DEFAULT_AMOUNT,
-                 origin=None):
-        """ basic cashflow list object
-
-        :param payment_date_list: list of cashflow payment dates
-        :param amount_list: list of cashflow amounts
-        :param origin: origin of object,
-            i.e. start date of the cashflow list as a product
-        """
-        if isinstance(payment_date_list, CashFlowList):
-            amount_list = payment_date_list[payment_date_list.domain]
-            origin = origin or payment_date_list.kwargs.get('origin', None)
-            payment_date_list = payment_date_list.domain
-        super().__init__(payment_date_list, amount_list, origin=origin)
-
-
-class RateCashFlowList(CashFlowList):
-    """ list of cashflows by interest rate payments """
-
-    DAY_COUNT = _default_day_count
-
-    def __init__(self, payment_date_list, amount_list=DEFAULT_AMOUNT,
-                 origin=None, day_count=None,
-                 fixing_offset=None, pay_offset=None,
-                 fixed_rate=0., forward_curve=None):
-        r""" list of interest rate cashflows
-
-        :param payment_date_list: pay dates, assuming that pay dates agree
-            with end dates of interest accrued period
-        :param amount_list: notional amounts
-        :param origin: start date of first interest accrued period
-        :param day_count: day count convention
-        :param fixed_rate: agreed fixed rate
-        :param forward_curve: interest rate curve for forward estimation
-        :param fixing_offset: time difference between
-            interest rate fixing date and interest period payment date
-        :param pay_offset: time difference between
-            interest period end date and interest payment date
-
-        Let $t_0$ be the list **origin**
-        and $t_i$ $i=1, \dots n$ the **payment_date_list**
-        with $N_i$ $i=1, \dots n$ the notional **amount_list**.
-
-        Moreover, let $\tau$ be the **day_count** function,
-        $c$ the **fixed_rate** and $f$ the **forward_curve**.
-
-        Then, the rate cashflow $cf_i$ payed at time $t_i$ will be
-        with
-        $s_i = t_{i-1} - \delta$,
-        $e_i = t_i -\delta$
-        as well as
-        $d_i = s_i - \epsilon$
-        for **pay_offset** $\delta$ and **fixing_offset** $\epsilon$,
-
-        $$cf_i = N_i \cdot \tau(s_i,e_i) \cdot (c + f(d_i)).$$
-
-        Note, the **pay_offset** $\delta$ is not applied
-        in case of the first cashflow, then $s_1=t_0$.
-
-        """
-
-        self.day_count = self.__class__.DAY_COUNT \
-            if day_count is None else day_count
-        r""" day count function for rate period calculation $\tau$"""
-
-        self.fixed_rate = fixed_rate
-        r""" cashflow fixed rate $c$ """
-        self.forward_curve = forward_curve
-        r""" cashflow forward curve to derive float rates $f$ """
-
-        self.pay_offset = pay_offset
-        r""" difference $\delta$
-        between rate period end date and payment date """
-        self.fixing_offset = fixing_offset
-        r""" difference $\epsilon$
-        between rate period start date and rate fixing date """
-
-        super().__init__(payment_date_list, amount_list, origin=origin)
-
-    @property
-    def table(self):
-        """ cashflow details as list of tuples """
-        # print(tabulate(cf.table, headers='firstrow'))  # for pretty print
-
-        header = 'cashflow', 'pay date', 'notional', \
-                 'start date', 'end date', 'year fraction', 'fixed rate'
-        if self.forward_curve:
-            header += 'forward rate', 'fixing date', 'tenor'
-        table = list()
-        for d in self.domain:
-            details = self._flow_details(d)
-            table.append(tuple(details.get(h, '') for h in header))
-        return [header] + table
-
-    def _flow_details(self, item):
-        if isinstance(item, (tuple, list)):
-            return tuple(self._flow_details(i) for i in item)
-        else:
-            amount = self._flows.get(item, 0.)
-
-            previous = list(d for d in self.domain if d < item)
-            start = previous[-1] if previous else self.origin
-            end = item
-            if self.pay_offset:
-                if previous:
-                    start -= self.pay_offset
-                end -= self.pay_offset
-            tau = self.day_count(start, end)
-
-            rate = self.fixed_rate
-            details = {
-                'notional': amount,
-                'pay/rec': 'pay' if amount > 0 else 'rec',
-                'fixed rate': rate,
-                'start date': start,
-                'end date': end,
-                'year fraction': tau,
-                'pay date': item,
-            }
-            fwd = 0.0
-            if self.forward_curve is not None:
-                fix = start
-                if self.fixing_offset:
-                    fix -= self.fixing_offset
-                fwd = self.forward_curve.get_cash_rate(fix)
-                details['tenor'] = self.forward_curve.forward_tenor
-                details['fixing date'] = fix
-                details['forward rate'] = fwd
-                details['curve-id'] = id(self.forward_curve)
-
-            details['cashflow'] = (rate + fwd) * amount * tau
-            return details
-
-    def __getitem__(self, item):
-        """ getitem does re-calc float cashflows """
-        if isinstance(item, (tuple, list)):
-            return tuple(self[i] for i in item)
-        else:
-            return self._flow_details(item)['cashflow']
-
-
 class CashFlowLegList(CashFlowList):
     """ MultiCashFlowList """
 
@@ -327,7 +228,8 @@ class CashFlowLegList(CashFlowList):
         if isinstance(item, (tuple, list)):
             return tuple(self[i] for i in item)
         else:
-            return sum(leg[item] for leg in self._legs if item in leg.domain)
+            return sum(
+                float(leg[item]) for leg in self._legs if item in leg.domain)
 
     def __add__(self, other):
         for leg in self._legs:
@@ -344,3 +246,117 @@ class CashFlowLegList(CashFlowList):
     def __truediv__(self, other):
         for leg in self._legs:
             leg.__truediv__(other)
+
+
+class FixedCashFlowList(CashFlowList):
+    _header_keys = 'cashflow', 'pay date'
+
+    def __init__(self, payment_date_list, amount_list=DEFAULT_AMOUNT,
+                 origin=None):
+        """ basic cashflow list object
+
+        :param payment_date_list: list of cashflow payment dates
+        :param amount_list: list of cashflow amounts
+        :param origin: origin of object,
+            i.e. start date of the cashflow list as a product
+        """
+
+        if isinstance(payment_date_list, CashFlowList):
+            amount_list = payment_date_list[payment_date_list.domain]
+            origin = origin or getattr(payment_date_list, '_origin', None)
+            payment_date_list = payment_date_list.domain
+
+        if isinstance(amount_list, (int, float)):
+            amount_list = [amount_list] * len(payment_date_list)
+
+        payoff_list = tuple(FixedCashFlowPayOff(amount=a) for a in amount_list)
+        super().__init__(payment_date_list, payoff_list, origin=origin)
+
+
+class RateCashFlowList(CashFlowList):
+    """ list of cashflows by interest rate payments """
+
+    _cashflow_details = 'cashflow', 'pay date', 'notional', \
+                        'start date', 'end date', 'year fraction', \
+                        'fixed rate', 'forward rate', 'fixing date', 'tenor'
+
+    def __init__(self, payment_date_list, amount_list=DEFAULT_AMOUNT,
+                 origin=None, day_count=None,
+                 fixing_offset=None, pay_offset=None,
+                 fixed_rate=0., forward_curve=None):
+        r""" list of interest rate cashflows
+
+        :param payment_date_list: pay dates, assuming that pay dates agree
+            with end dates of interest accrued period
+        :param amount_list: notional amounts
+        :param origin: start date of first interest accrued period
+        :param day_count: day count convention
+        :param fixing_offset: time difference between
+            interest rate fixing date and interest period payment date
+        :param pay_offset: time difference between
+            interest period end date and interest payment date
+        :param fixed_rate: agreed fixed rate
+        :param forward_curve: interest rate curve for forward estimation
+
+        Let $t_0$ be the list **origin**
+        and $t_i$ $i=1, \dots n$ the **payment_date_list**
+        with $N_i$ $i=1, \dots n$ the notional **amount_list**.
+
+        Moreover, let $\tau$ be the **day_count** function,
+        $c$ the **fixed_rate** and $f$ the **forward_curve**.
+
+        Then, the rate cashflow $cf_i$ payed at time $t_i$ will be
+        with
+        $s_i = t_{i-1} - \delta$,
+        $e_i = t_i -\delta$
+        as well as
+        $d_i = s_i - \epsilon$
+        for **pay_offset** $\delta$ and **fixing_offset** $\epsilon$,
+
+        $$cf_i = N_i \cdot \tau(s_i,e_i) \cdot (c + f(d_i)).$$
+
+        Note, the **pay_offset** $\delta$ is not applied
+        in case of the first cashflow, then $s_1=t_0$.
+
+        """
+
+        if isinstance(amount_list, (int, float)):
+            amount_list = [amount_list] * len(payment_date_list)
+
+        if origin:
+            start_dates = [origin]
+            start_dates.extend(payment_date_list[:-1])
+        elif origin is None and len(payment_date_list) > 1:
+            step = payment_date_list[1] - payment_date_list[0]
+            start_dates = [payment_date_list[0] - step]
+            start_dates.extend(payment_date_list[:-1])
+        elif payment_date_list:
+            start_dates = payment_date_list
+
+        payoff_list = list()
+        for s, e, a in zip(start_dates, payment_date_list, amount_list):
+            if pay_offset:
+                e -= pay_offset
+                s -= pay_offset
+
+            payoff = RateCashFlowPayOff(
+                start=s, end=e, day_count=day_count,
+                fixing_offset=fixing_offset, amount=a,
+                fixed_rate=fixed_rate
+            )
+            payoff_list.append(payoff)
+
+        super().__init__(payment_date_list, payoff_list, origin=origin)
+        self.forward_curve = forward_curve
+        r""" cashflow forward curve to derive float rates $f$ """
+
+    @property
+    def fixed_rate(self):
+        fixed_rates = tuple(cf.fixed_rate for cf in self._flows.values())
+        if len(set(fixed_rates)) == 1:
+            return fixed_rates[0]
+
+    @fixed_rate.setter
+    def fixed_rate(self, value):
+        for cf in self._flows.values():
+            cf.fixed_rate = value
