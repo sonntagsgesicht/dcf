@@ -14,6 +14,7 @@ from .curve import Price, ForwardCurve, RateCurve
 
 
 class FxRate(Price):
+    """price object for foreign currency exchange rates"""
     pass
 
 

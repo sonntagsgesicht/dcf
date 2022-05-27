@@ -76,11 +76,10 @@ class CashFlowList(object):
                 kw[name] = attr
         return kw
 
-    @property
     def payoff(self, date):
         """dictionary of payoffs with pay_date keys"""
-        if isinstance(item, (tuple, list)):
-            return tuple(self.payoff(i) for i in item)
+        if isinstance(date, (tuple, list)):
+            return tuple(self.payoff(i) for i in date)
         return self._flows.get(date, None)
 
     def __init__(self, payment_date_list=(), amount_list=(), origin=None):

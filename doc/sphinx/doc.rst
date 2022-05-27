@@ -82,6 +82,7 @@ Credit Curves
     :top-classes: dcf.curves.curve.RateCurve
 
 .. autoclass:: CreditCurve
+.. autoclass:: ProbabilityCurve
 .. autoclass:: SurvivalProbabilityCurve
 .. autoclass:: DefaultProbabilityCurve
 .. autoclass:: FlatIntensityCurve
@@ -190,8 +191,8 @@ Yield To Maturity
 
 .. autofunction:: dcf.pricer.get_yield_to_maturity
 
-Fair/Par Rate
--------------
+Fair Rate
+---------
 
 .. autofunction:: dcf.pricer.get_fair_rate
 

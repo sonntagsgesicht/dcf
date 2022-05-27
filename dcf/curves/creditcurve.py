@@ -10,7 +10,6 @@
 # License:  Apache License 2.0 (see LICENSE file)
 
 
-from abc import ABC
 from sys import float_info
 
 from .curve import RateCurve
@@ -19,8 +18,20 @@ from dcf.interpolation import constant, linear_scheme, log_linear_scheme, \
     log_linear_rate_scheme
 
 
-class CreditCurve(RateCurve, ABC):
-    """ generic curve for default probabilities (under construction) """
+class CreditCurve(RateCurve):
+    r"""Base class of credit curve classes
+
+    All credit curves share the same three fundamental methodological methods
+
+    * |CreditCurve().get_survival_prob()|
+
+    * |CreditCurve().get_flat_intensity()|
+
+    * |CreditCurve().get_hazard_rate()|
+
+    All subclasses differ only in data types for storage and interpolation.
+
+    """
     _FORWARD_TENOR = '1Y'
 
     def __init__(self, domain=(), data=(), interpolation=None, origin=None,
@@ -37,17 +48,74 @@ class CreditCurve(RateCurve, ABC):
         super(CreditCurve, self).__init__(domain, data, interpolation, origin,
                                           day_count, forward_tenor)
 
-    def get_survival_prob(self, start, stop=None):  # aka get_discount_factor
+    def get_survival_prob(self, start, stop=None):
+        r"""survival probability of credit curve
+
+        :param start: start point in time $t_0$ of period
+        :param stop: end point $t_1$ of period
+            (optional, if not given $t_0$ will be **origin**
+            and $t_1$ taken from **start**)
+        :return: survival probability $sv(t_0, t_1)$
+            for period $t_0$ to $t_1$
+
+        Assume an uncertain event $\chi$,
+        e.g. occurrence of a credit default event
+        such as a loan borrower failing to fulfill the obligation
+        to pay back interest or redemption.
+
+        Let $\iota_\chi$ be the point in time when the event $\chi$ happens.
+
+        Then the survival probability $sv(t_0, t_1)$
+        is the probability of not occurring $\chi$ until $t_1$ if
+        $\chi$ didn't happen until $t_0$, i.e.
+
+        $$sv(t_0, t_1) = 1 - P(t_0 < \iota_\chi \leq t_1)$$
+
+        * similar to |InterestRateCurve().get_discount_factor()|
+
+        """
         if stop is None:
             return self.get_survival_prob(self.origin, start)
         return self._get_compounding_factor(start, stop)
 
-    def get_flat_intensity(self, start, stop=None):  # aka get_zero_rate
+    def get_flat_intensity(self, start, stop=None):
+        r"""intensity value of credit curve
+
+        :param start: start point in time $t_0$ of intensity
+        :param stop: end point $t_1$  of intensity
+            (optional, if not given $t_0$ will be **origin**
+            and $t_1$ taken from **start**)
+        :return: intensity $\lambda(t_0, t_1)$
+
+        The intensity $\lambda(t_0, t_1)$ relates to survival probabilities by
+
+        $$sv(t_0, t_1) = exp(-\lambda(t_0, t_1) \cdot \tau(t_0, t_1)).$$
+
+        * similar to |InterestRateCurve().get_zero_rate()|
+
+        """
         if stop is None:
             return self.get_flat_intensity(self.origin, start)
         return self._get_compounding_rate(start, stop)
 
-    def get_hazard_rate(self, start):  # aka get_short_rate
+    def get_hazard_rate(self, start):
+        r"""hazard rate of credit curve
+
+        :param start: point in time $t$ of hazard rate
+        :return: hazard rate $hz(t)$
+
+        The hazard rate $hz(t)$ relates to intensities by
+
+        $$\lambda(t_0, t_1) = \int_{t_0}^{t_1} hz(t)\ dt.$$
+
+        * similar to |InterestRateCurve().get_short_rate()|
+
+        """
+
+        return self._get_hazard_rate(start)
+
+    def _get_hazard_rate(self, start):  # aka get_short_rate
+
         if start < min(self.domain):
             return self.get_hazard_rate(min(self.domain))
         if max(self.domain) <= start:
@@ -63,7 +131,8 @@ class CreditCurve(RateCurve, ABC):
         return self.get_flat_intensity(previous, follow)
 
 
-class ProbabilityCurve(CreditCurve, ABC):
+class ProbabilityCurve(CreditCurve):
+    r"""base class of probability based credit curve classes"""
 
     def __init__(self, domain=(), data=(), interpolation=None, origin=None,
                  day_count=None, forward_tenor=None):
@@ -90,6 +159,11 @@ class ProbabilityCurve(CreditCurve, ABC):
 
 
 class SurvivalProbabilityCurve(ProbabilityCurve):
+    r"""Interest rate curve storing and interpolating data as discount factor
+
+    $$sv(0, t)=y_t$$
+
+    """
     _INTERPOLATION = log_linear_rate_scheme
 
     @staticmethod
@@ -114,7 +188,12 @@ class SurvivalProbabilityCurve(ProbabilityCurve):
 
 
 class DefaultProbabilityCurve(SurvivalProbabilityCurve):
-    """ wrapper of SurvivalProbabilityCurve """
+    r"""Credit curve storing and interpolating data as default probability
+
+    $$pd(0, t)=1-sv(0, t)=y_t$$
+
+    """
+    _INTERPOLATION = log_linear_rate_scheme
 
     @staticmethod
     def _get_storage_value(curve, x):
@@ -130,6 +209,11 @@ class DefaultProbabilityCurve(SurvivalProbabilityCurve):
 
 
 class FlatIntensityCurve(CreditCurve):
+    r"""Credit curve storing and interpolating data as intensities
+
+    $$\lambda(t)=y_t$$
+
+    """
     _INTERPOLATION = linear_scheme
 
     @staticmethod
@@ -152,6 +236,11 @@ class FlatIntensityCurve(CreditCurve):
 
 
 class HazardRateCurve(CreditCurve):
+    r"""Credit curve storing and interpolating data as hazard rate
+
+    $$hz(t)=y_t$$
+
+    """
     _INTERPOLATION = constant
 
     @staticmethod
@@ -173,11 +262,16 @@ class HazardRateCurve(CreditCurve):
         rate += self(current) * self.day_count(current, stop)
         return rate / self.day_count(start, stop)
 
-    def get_hazard_rate(self, start):  # aka get_short_rate
+    def _get_hazard_rate(self, start):  # aka get_short_rate
         return self(start)
 
 
 class MarginalSurvivalProbabilityCurve(ProbabilityCurve):
+    r"""Credit curve storing and interpolating data as intensities
+
+    $$sv(t, t+\tau^*)=y_t$$
+
+    """
     _INTERPOLATION = log_linear_scheme
 
     @staticmethod
@@ -203,7 +297,7 @@ class MarginalSurvivalProbabilityCurve(ProbabilityCurve):
             df *= 0.
         return df
 
-    def get_hazard_rate(self, start):  # aka get_short_rate
+    def _get_hazard_rate(self, start):  # aka get_short_rate
         if start < min(self.domain):
             return self.get_hazard_rate(min(self.domain))
         if max(self.domain) <= start:
@@ -222,7 +316,13 @@ class MarginalSurvivalProbabilityCurve(ProbabilityCurve):
 
 
 class MarginalDefaultProbabilityCurve(MarginalSurvivalProbabilityCurve):
-    """ wrapper of SurvivalProbabilityCurve """
+    r"""Credit curve storing and interpolating data
+    as marginal default probability
+
+    $$pd(t, t+\tau^*)=1-sv(t, t+\tau^*)=y_t$$
+
+    """
+    _INTERPOLATION = log_linear_scheme
 
     @staticmethod
     def _get_storage_value(curve, x):

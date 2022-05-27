@@ -99,7 +99,7 @@ def rate_table(curve, x_grid=None, y_grid=None):
 
 
 class Price(object):
-    """price object"""
+    """Price object for assets"""
 
     @property
     def value(self):
@@ -112,8 +112,7 @@ class Price(object):
         return self._origin
 
     def __init__(self, value=0., origin=None):
-        """price object
-
+        r"""
         :param value: price value
         :param origin: price date
 
@@ -143,29 +142,34 @@ class Price(object):
 
 
 class Curve(object):
+    """Curve function object"""
     INTERPOLATIONS = dict()
     """mapping (dict) of availiable interpolations
         additional to |dcf.interpolation|"""
-    _INTERPOLATION = linear_scheme
-    """default interpolation"""
+
+    _INTERPOLATION = linear_scheme  # default interpolation
 
     def __init__(self, domain=(), data=(), interpolation=None):
-        r"""curve object to build a function
-
-        :param list(float) domain: source values
-        :param list(float) data: target values
+        r"""
+        :param list(float) domain: source values $x_1 \dots x_n$
+        :param list(float) data: target values $y_1 \dots y_n$
         :param function interpolation:
-            interpolation function on x_list (optional),
-               default is taken from class member **_INTERPOLATION**
+            (optional, default is defined on class level)
 
-               Interpolation functions can be constructed piecewise
-               using via |interpolation_scheme|.
+            Interpolation function $\gamma$
+            such that $\gamma(x_i)=y_i$ for $i=1 \dots n$.
 
-            Curve object to build function
-            :math:`f:R \rightarrow R, x \mapsto y`
-            from finite point vectors :math:`x` and :math:`y`
-            using piecewise various interpolation functions.
+            If **interpolation** is a string,
+            the interpolation function is
+            taken from class member dictionary |Curve.INTERPOLATIONS|.
 
+            Interpolation functions $\gamma$ can be constructed piecewise
+            using via |interpolation_scheme|.
+
+        Curve function object
+        $$f:\mathbb{R} \rightarrow \mathbb{R}, x \mapsto f(x)=y$$
+        build from finite point vectors $x$ and $y$
+        using piecewise various interpolation functions.
 
         """
         # cast/extract inputs from Curve if given as argument
@@ -217,7 +221,10 @@ class Curve(object):
 
     @property
     def table(self):
-        """ table of interpolated rates """
+        r""" table of interpolated rates (pretty printable)
+        given by |rate_table()|.
+        """
+
         # print(tabulate(curve.table, headers='firstrow'))  # for pretty print
         return rate_table(self)
 
@@ -290,7 +297,7 @@ class Curve(object):
 
 
 class DateCurve(Curve):
-    """curve function object with dates as domain (points)"""
+    """Curve function object with dates as domain (points)"""
 
     DAY_COUNT = dict()
     """mapping (dict) of availiable day count functions
@@ -331,12 +338,14 @@ class DateCurve(Curve):
 
     @property
     def domain(self):
-        """ domain of curve as list of dates where curve values are given """
+        r""" domain of curve $t_1 \dots t_n$ as list of dates
+        where curve values are given explicit """
         return self._domain
 
     @property
     def origin(self):
-        """ date of origin (date zero) """
+        """ date of origin (date zero)
+        as curve reference date for time calucations """
         if self._origin is not None:
             return self._origin
         return self._domain[0] if self._domain else None
@@ -392,7 +401,13 @@ class DateCurve(Curve):
         return self._day_count(start, end)
 
     def to_curve(self):
-        """returns unterlying |Curve()| object"""
+        """deprecated method to cast to |Curve()| object"""
+        cls = self.__class__.__name__
+        msg = "\n%s().cast(cast_type, **kwargs) is deprecated.\n" \
+              "Please use for casting an object `curve` of type %s\n" \
+              " cast_type(curve, **kwargs)\n" \
+              "instead." % (cls, cls)
+        warn(msg)
         return Curve(self)
 
     def integrate(self, start, stop):
@@ -438,7 +453,7 @@ class DateCurve(Curve):
         :return: (float) first derivative
 
         If $\gamma$ is this the curve **derivative** returns
-        $$\frac{d\ \gamma(t)}{dt}$$
+        $$\frac{d}{dt}\gamma(t)$$
         where $t$ is **start** but derived numericaly.
 
         if available **derivative** uses
@@ -462,7 +477,7 @@ class DateCurve(Curve):
 
 
 class ForwardCurve(DateCurve):
-    """ forward price curve with yield extrapolation """
+    """Forward price curve with yield extrapolation """
     _INTERPOLATION = log_linear_scheme
 
     def __init__(self, domain=(), data=(), interpolation=None, origin=None,
@@ -477,7 +492,9 @@ class ForwardCurve(DateCurve):
         :param day_count: day count method resp. function $\tau$
             to calculate year fractions
         :param yield_curve: yield $y$ to extrapolate by continous compounding
-            $$p_T = p_{t_n} \cdot \exp(\tau(t_n, T) \cdot y)$$
+            $$p_T = p_{t_n} \cdot \exp(y \cdot \tau(t_n, T))$$
+            or yield curve function $\gamma_c$ to extrapolate by
+            $$p_T = p_{t_n} \cdot \gamma_c(T)/\gamma_c(t_n)$$
             or interest rate curve $c$ extrapolate by
             $$p_T = p_{t_n} \cdot df_{c}^{-1}(t_n, T)$$
 
@@ -530,13 +547,15 @@ class ForwardCurve(DateCurve):
 
 
 class RateCurve(DateCurve):
+    """Interest rate curve and credit curve"""
     _FORWARD_TENOR = '3M'
 
     @staticmethod
     def _get_storage_value(curve, x):
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def cast(self, cast_type, **kwargs):
+        """deprecated method to cast a curve"""
         cls = self.__class__.__name__
         msg = "\n%s().cast(cast_type, **kwargs) is deprecated.\n" \
               "Please use for casting an object `curve` of type %s\n" \
@@ -552,20 +571,33 @@ class RateCurve(DateCurve):
 
     @property
     def forward_tenor(self):
-        """tenor (time period) associated to the rates of the curve """
+        """tenor (time period) associated to the rates of the curve"""
         return self._FORWARD_TENOR \
             if self._forward_tenor is None else self._forward_tenor
 
     def __init__(self, domain=(), data=(), interpolation=None, origin=None,
                  day_count=None, forward_tenor=None):
-        """base class for InterestRateCurve and CreditCurve
-
-        :param domain: either curve points or a RateCurve
-        :param data: either curve values or a RateCurve
+        r"""
+        :param domain: either curve points $t_1 \dots t_n$
+            or a curve object $C$
+        :param data: either curve values $y_1 \dots y_n$
+            or a curve object $C$
         :param interpolation: (optional) interpolation scheme
-        :param origin: (optional) curve points origin
-        :param day_count: (optional) day count convention
-        :param forward_tenor: (optional) forward rate tenor
+        :param origin: (optional) curve points origin $t_0$
+        :param day_count: (optional) day count convention function $\tau(s, t)$
+        :param forward_tenor: (optional) forward rate tenor period $\tau^*$
+
+        If **data** is a |RateCurve| instance $C$,
+        it is casted to this new class type
+        with domain grid given by **domain**.
+
+        If **domain** is a |RateCurve| instance $C$,
+        it is casted to this new class type
+        with domain grid given **domain** property of $C$.
+
+        Further arguments
+        **interpolation**, **origin**, **day_count**, **forward_tenor**
+        will replace the ones given by $C$ if not given explictly.
 
         """
 
@@ -614,6 +646,7 @@ class RateCurve(DateCurve):
         return self.__class__(new, forward_tenor=self._forward_tenor)
 
     def _get_compounding_factor(self, start, stop):
+        # aka discount factor
         if start == stop:
             return 1.
         ir = self._get_compounding_rate(start, stop)
@@ -621,6 +654,7 @@ class RateCurve(DateCurve):
         return continuous_compounding(ir, t)
 
     def _get_compounding_rate(self, start, stop):
+        # aka zero rate
         if start == stop:
             return self._get_compounding_rate(
                 start, start + self._TIME_SHIFT)
