@@ -35,6 +35,9 @@ class InterestRateCurve(RateCurve):
     All subclasses differ only in data types for storage and interpolation.
 
     """
+    @staticmethod
+    def _get_storage_value(curve, x):
+        raise NotImplementedError()
 
     def get_discount_factor(self, start, stop=None):
         r"""discounting factor for future cashflows

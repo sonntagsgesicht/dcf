@@ -166,7 +166,7 @@ class OptionPayOffModel(OptionPricingFormula):
     def _tsfv(self, date, strike=None):
         details = self.details(date, strike)
         keys = 'time to expiry', 'strike', 'forward', 'volatility'
-        return tuple(details[k] for k in keys)
+        return tuple(details.get(k, None) for k in keys)
         # fwd = 0.0
         # if self.forward_curve:
         #     if hasattr(self.forward_curve, 'get_forward_price'):

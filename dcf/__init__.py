@@ -55,6 +55,9 @@ from .cashflows.cashflow import CashFlowList, FixedCashFlowList, \
 from .cashflows.contingent import ContingentCashFlowList, \
     ContingentRateCashFlowList, OptionCashflowList, \
     OptionStrategyCashflowList  # noqa E401 E402
+from .cashflows.payoffs import CashFlowPayOff, FixedCashFlowPayOff, \
+    RateCashFlowPayOff, OptionCashFlowPayOff, OptionStrategyCashFlowPayOff, \
+    ContingentRateCashFlowPayOff  # noqa E401 E402
 from .cashflows.products import \
     bond, interest_rate_swap, asset_swap  # noqa E401 E402
 

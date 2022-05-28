@@ -34,6 +34,10 @@ class CreditCurve(RateCurve):
     """
     _FORWARD_TENOR = '1Y'
 
+    @staticmethod
+    def _get_storage_value(curve, x):
+        raise NotImplementedError()
+
     def __init__(self, domain=(), data=(), interpolation=None, origin=None,
                  day_count=None, forward_tenor=None):
         if isinstance(domain, RateCurve):

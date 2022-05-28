@@ -1,5 +1,6 @@
-from ..plans import DEFAULT_AMOUNT
 from ..daycount import day_count as default_day_count
+from ..models.optionpricing import OptionPayOffModel
+from ..plans import DEFAULT_AMOUNT
 
 # todo:
 #  __call__(model) = self.details(model)
@@ -9,6 +10,7 @@ from ..daycount import day_count as default_day_count
 
 
 class CashFlowPayOff(object):
+    """Cash flow payoff base class"""
 
     def __call__(self, _=None):
         return self.details(_).get('cashflow', 0.0)
@@ -22,6 +24,24 @@ class CashFlowPayOff(object):
 
 class FixedCashFlowPayOff(CashFlowPayOff):
     def __init__(self, amount=DEFAULT_AMOUNT):
+        r"""fixed cashflow payoff
+
+        :param amount: notional amount $N$
+
+        A fixed cashflow payoff $X$
+        is given directly by the notional amount $N$
+
+        Invoking $X()$ or $X(m)$ with a |OptionPayOffModel| object $m$
+        as argument
+        returns the actual expected cashflow payoff amount of $X$
+        which is again just the notional amount $N$.
+
+        >>> from dcf import FixedCashFlowPayOff
+        >>> cf = FixedCashFlowPayOff(123.456)
+        >>> cf()
+        123.456
+
+        """
         self.amount = amount
 
     def details(self, _=None):
@@ -44,7 +64,25 @@ class RateCashFlowPayOff(CashFlowPayOff):
             and interest period payment date $\delta$
         :param fixed_rate: agreed fixed rate $c$
 
-        """
+        A contigent interest rate cashflow payoff $X$
+        is given for a float rate $f$ at $T=s-\delta$
+
+        $$X(f(T)) = (f(T) + c)\ \tau(s,e)\ N$$
+
+        Invoking $X(m)$ with a |OptionPayOffModel| object $m$ as argument
+        returns the actual expected cashflow payoff amount of $X$.
+
+        >>> from dcf import RateCashFlowPayOff, CashRateCurve
+        
+        >>> cf = RateCashFlowPayOff(start=1.25, end=1.5, amount=1.0, fixed_rate=0.005)
+        >>> f = CashRateCurve(domain=[0.0, 1.0, 2.0], data=[-0.005, 0.00, 0.001], forward_tenor=0.25)
+        
+        >>> cf()
+        0.00125
+        >>> cf(f)
+        0.0013125
+
+        """  # noqa 501
         self.start = start
         """interest accrued period start date"""
         self.end = end
@@ -140,7 +178,7 @@ class OptionCashFlowPayOff(CashFlowPayOff):
         This is provided by **payoff_model**
         implementing |OptionPayOffModel|
         and is invoked by calling an
-        |OptionCashflowList.OptionCashFlowPayOff()| object.
+        |OptionCashFlowPayOff()| object.
 
         First, setup a classical log-normal *Black-Scholes* model.
 
@@ -152,15 +190,15 @@ class OptionCashFlowPayOff(CashFlowPayOff):
 
         Then, build a call option payoff.
 
-        >>> from dcf import OptionCashflowList
-        >>> c = OptionCashflowList.OptionCashFlowPayOff(expiry=0.25, strike=110.0)
+        >>> from dcf import OptionCashFlowPayOff
+        >>> c = OptionCashFlowPayOff(expiry=0.25, strike=110.0)
         >>> # get expected option payoff
         >>> c(m)
         0.10726740675017865
 
         And a put option payoff.
 
-        >>> p = OptionCashflowList.OptionCashFlowPayOff(expiry=0.25, strike=110.0, is_put=True)
+        >>> p = OptionCashFlowPayOff(expiry=0.25, strike=110.0, is_put=True)
         >>> # get expected option payoff
         >>> p(m)
         8.849422252686733
@@ -227,10 +265,10 @@ class OptionStrategyCashFlowPayOff(CashFlowPayOff):
 
         Then, setup a *butterlfy* payoff and evaluate it.
 
-        >>> from dcf import OptionStrategyCashflowList
-        >>> call_amounts = 1., -2., 1.
-        >>> call_strikes = 100, 110, 120
-        >>> s = OptionStrategyCashflowList.OptionStrategyCashFlowPayOff(expiry=1., call_amount_list=call_amounts, call_strike_list=call_strikes)
+        >>> from dcf import OptionStrategyCashFlowPayOff
+        >>> call_amount_list = 1., -2., 1.
+        >>> call_strike_list = 100, 110, 120
+        >>> s = OptionStrategyCashFlowPayOff(expiry=1., call_amount_list=call_amount_list, call_strike_list=call_strike_list)
         >>> s(m)
         3.06924777745399
 
@@ -257,7 +295,7 @@ class OptionStrategyCashFlowPayOff(CashFlowPayOff):
         }
         cf = 0.0
         for i, option in enumerate(self._options):
-            for k, v in option.details().items():
+            for k, v in option.details(model).items():
                 details[f"#{i} {k}"] = v
                 if k == 'cashflow':
                     cf += v
@@ -298,13 +336,40 @@ class ContingentRateCashFlowPayOff(RateCashFlowPayOff):
         $$X(f(T)) = [\max(K, \min(f(T), L)) + c]\ \tau(s,e)\ N$$
 
         The foorlet ($\max(K, \dots)$)
-        or resp. the caplet condition ($\min(\dots, L)
+        or resp. the caplet condition ($\min(\dots, L)$)
         will be ignored if $K$ is or resp. $L$ is **None**.
 
         Invoking $X(m)$ with a |OptionPayOffModel| object $m$ as argument
-        returns the acctual expected cashflow payoff amount of $X$.
+        returns the actual expected cashflow payoff amount of $X$.
 
-        """
+        >>> from dcf import ContingentRateCashFlowPayOff, CashRateCurve
+        >>> from dcf.models import NormalOptionPayOffModel, IntrinsicOptionPayOffModel
+
+        evaluate just the fixed rate cashflow
+    
+        >>> cf = ContingentRateCashFlowPayOff(start=1.25, end=1.5, amount=1.0, fixed_rate=0.005, floor_strike=0.002)
+        >>> cf()
+        0.00125
+
+        evaluate the fixed rate and float forward rate cashflow 
+
+        >>> f = CashRateCurve(domain=[0.0, 1.0, 2.0], data=[-0.005, 0.00, 0.001], forward_tenor=0.25)
+        >>> cf(f)
+        0.0013125
+
+        evaluate the fixed rate and float forward rate cashflow plus intrisic option payoff 
+
+        >>> i = IntrinsicOptionPayOffModel(valuation_date=0.0, forward_curve=f)
+        >>> cf(i)
+        0.00175
+
+        evaluate the fixed rate and float forward rate cashflow plus *Bachelier* model payoff 
+
+        >>> m = NormalOptionPayOffModel(valuation_date=0.0, forward_curve=f, volatility_curve=(lambda *_: 0.005))
+        >>> cf(m)
+        0.0021158872175425702
+
+        """  # noqa 501
         super().__init__(start, end,
                          amount, day_count,
                          fixing_offset, fixed_rate)
@@ -317,9 +382,8 @@ class ContingentRateCashFlowPayOff(RateCashFlowPayOff):
         # works even if the model is the forward_curve
         forward_curve = getattr(model, 'forward_curve', model)
         details = super().details(forward_curve)
-
         floorlet = caplet = 0.0
-        if model:
+        if isinstance(model, OptionPayOffModel):
             fixing_date = details['fixing date']
             yf = details['year fraction']
             amount = details['notional']
@@ -329,6 +393,7 @@ class ContingentRateCashFlowPayOff(RateCashFlowPayOff):
             if self.floor_strike is not None:
                 d = model.details(fixing_date, self.floor_strike)
                 floorlet = model.get_put_value(fixing_date, self.floor_strike)
+                # floorlet -= forward_rate
                 floorlet *= yf * amount
                 details.update({
                     'floorlet': floorlet,
@@ -339,6 +404,7 @@ class ContingentRateCashFlowPayOff(RateCashFlowPayOff):
             if self.cap_strike is not None:
                 d = model.details(fixing_date, self.cap_strike)
                 caplet = model.get_call_value(fixing_date, self.cap_strike)
+                # caplet += forward_rate
                 caplet *= yf * amount
                 details.update({
                     'caplet': caplet,
@@ -352,5 +418,4 @@ class ContingentRateCashFlowPayOff(RateCashFlowPayOff):
                     'valuation date': d.get('valuation date', None)
                 })
             details['cashflow'] = cf + floorlet - caplet
-
         return details

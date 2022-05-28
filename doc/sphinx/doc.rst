@@ -150,6 +150,21 @@ Contingent Cashflow Objects (Options)
     :members:
 
 
+Contingent Cashflow PayOffs
+---------------------------
+
+.. py:currentmodule:: dcf.cashflows.payoffs
+
+.. autosummary::
+    :nosignatures:
+
+.. inheritance-diagram:: dcf.cashflows.payoffs
+    :parts: 1
+
+.. automodule:: dcf.cashflows.payoffs
+    :members:
+
+
 Contingent Cashflow Models
 --------------------------
 
