@@ -70,6 +70,7 @@ def rate_table(curve, x_grid=None, y_grid=None):
      20261201 &  0.0014 &  0.0014 &  0.0014 &  0.0014 &  0.0014 &  0.0014 & 0.0014 \\
     \hline
     \end{tabular}
+    
     """  # noqa: E501
     if x_grid is None:
         x_grid = list(curve.domain)
@@ -149,58 +150,6 @@ class Curve(object):
 
     _INTERPOLATION = linear_scheme  # default interpolation
 
-    def __init__(self, domain=(), data=(), interpolation=None):
-        r"""
-        :param list(float) domain: source values $x_1 \dots x_n$
-        :param list(float) data: target values $y_1 \dots y_n$
-        :param function interpolation:
-            (optional, default is defined on class level)
-
-            Interpolation function $\gamma$
-            such that $\gamma(x_i)=y_i$ for $i=1 \dots n$.
-
-            If **interpolation** is a string,
-            the interpolation function is
-            taken from class member dictionary |Curve.INTERPOLATIONS|.
-
-            Interpolation functions $\gamma$ can be constructed piecewise
-            using via |interpolation_scheme|.
-
-        Curve function object
-        $$f:\mathbb{R} \rightarrow \mathbb{R}, x \mapsto f(x)=y$$
-        build from finite point vectors $x$ and $y$
-        using piecewise various interpolation functions.
-
-        """
-        # cast/extract inputs from Curve if given as argument
-        if isinstance(domain, Curve):
-            data = domain
-            domain = data.domain
-        if isinstance(data, Curve):
-            interpolation = \
-                interpolation or data.kwargs.get('interpolation', None)
-            _data = data(domain)  # assuming domain is a list of dates !
-            if isinstance(data, DateCurve):
-                domain = [data.day_count(d) for d in domain]
-            data = _data
-
-        # sort data by domain values
-        if not len(domain) == len(data):
-            raise ValueError('%s requires equal length input '
-                             'for domain and data' % self.__class__.__name__)
-        if domain:
-            domain, data = map(list, zip(*sorted(zip(*(domain, data)))))
-
-        if interpolation in self.INTERPOLATIONS:
-            func = self.INTERPOLATIONS[interpolation]
-        elif interpolation is None:
-            func = self._INTERPOLATION
-        else:
-            func = vars(_interpolations).get(interpolation, interpolation)
-        self._func = func(domain, data)
-        self._interpolation = interpolation
-        self._domain = domain
-
     @property
     def kwargs(self):
         """ returns constructor arguments as ordered dictionary """
@@ -227,6 +176,114 @@ class Curve(object):
 
         # print(tabulate(curve.table, headers='firstrow'))  # for pretty print
         return rate_table(self)
+
+    def __init__(self, domain=(), data=(), interpolation=None):
+        r"""
+        :param list(float) domain: source values $x_1 \dots x_n$
+        :param list(float) data: target values $y_1 \dots y_n$
+        :param function interpolation:
+            (optional, default is defined on class level)
+
+            Interpolation function $\gamma$
+            such that $\gamma(x_i)=y_i$ for $i=1 \dots n$.
+
+            If **interpolation** is a string,
+            the interpolation function is
+            taken from class member dictionary |Curve.INTERPOLATIONS|.
+
+            Interpolation functions $\gamma$ can be constructed piecewise
+            using via |interpolation_scheme|.
+
+        Curve function object
+        $$f:\mathbb{R} \rightarrow \mathbb{R}, x \mapsto f(x)=y$$
+        build from finite point vectors $x$ and $y$
+        using piecewise various interpolation functions.
+
+        >>> from dcf import Curve
+        >>> c = Curve([0, 1, 2], [1, 2, 3])
+
+        get the grid of x values
+
+        >>> c.domain
+        [0, 1, 2]
+
+        get the grid of y values
+
+        >>> c(c.domain)
+        (1.0, 2.0, 3.0)
+
+        get a interpolated curve value
+
+        >>> c(1.5)
+        2.5
+
+        update existing values
+
+        >>> c[2] = 4
+        >>> c(c.domain)
+        (1.0, 2.0, 4.0)
+
+        add new points
+
+        >>> c[3] = 5
+        >>> c(c.domain)
+        (1.0, 2.0, 4.0, 5.0)
+
+        """
+        # cast/extract inputs from Curve if given as argument
+        if isinstance(domain, Curve):
+            data = domain
+            domain = data.domain
+        if isinstance(data, Curve):
+            interpolation = \
+                interpolation or data.kwargs.get('interpolation', None)
+            _data = data(domain)  # assuming domain is a list of dates !
+            if isinstance(data, DateCurve):
+                domain = [data.day_count(d) for d in domain]
+            data = _data
+
+        # sort data by domain values
+        if not len(domain) == len(data):
+            raise ValueError('%s requires equal length input '
+                             'for domain (%d) and data (%d) ' %
+                             (self.__class__.__name__, len(domain), len(data)))
+
+        self._interpolation = interpolation
+        self._update(domain, data)
+
+    def _update(self, domain, data):
+        interpolation = self._interpolation
+        if interpolation in self.INTERPOLATIONS:
+            func = self.INTERPOLATIONS[interpolation]
+        elif interpolation is None:
+            func = self._INTERPOLATION
+        else:
+            func = vars(_interpolations).get(interpolation, interpolation)
+        if domain:
+            domain, data = map(list, zip(*sorted(zip(*(domain, data)))))
+        self._func = func(domain, data)
+        self._domain = domain
+
+    def __contains__(self, item):
+        return item in self.domain
+
+    def __iter__(self):
+        return self.domain
+
+    def __getitem__(self, item):
+        if item in self:
+            return self(item)
+        raise KeyError(item)
+
+    def __setitem__(self, key, value):
+        domain = list(self.domain)
+        data = list(self(domain))
+        if key in domain:
+            data[domain.index(key)] = value
+        else:
+            domain.append(key)
+            data.append(value)
+        self._update(domain, data)
 
     def __call__(self, x):
         if isinstance(x, (tuple, list)):
@@ -318,7 +375,51 @@ class DateCurve(Curve):
             (used to calculate year fractions of poins in domain)
         :param day_count: day count function
             to derive year fractions from time periods
-        """
+
+        >>> from dcf import DateCurve
+
+        **domain** given as date/time measured in year fraction (float)
+
+        >>> domain = 0.5, 1.0, 1.5, 2.0
+        >>> data = 1, 2, 3, 4
+
+        >>> c = DateCurve(domain, data)
+        >>> c.domain
+        (0.5, 1.0, 1.5, 2.0)
+
+        >>> c(0.75)
+        1.5
+
+        **domain** given as date/time measured in dates (date)
+
+        >>> from datetime import date
+
+        >>> domain = date(2022, 8, 12), date(2023, 2, 12), date(2023, 8, 12), date(2024, 2, 12)
+        >>> data = 1, 2, 3, 4
+
+        >>> c = DateCurve(domain, data)
+        >>> c.domain
+        (datetime.date(2022, 8, 12), datetime.date(2023, 2, 12), datetime.date(2023, 8, 12), datetime.date(2024, 2, 12))
+
+        >>> c(date(2022, 11, 12))
+        1.5
+
+        **domain** given as date/time measured in dates (BusinessDate)
+
+        >>> from businessdate import BusinessDate
+        >>> t = BusinessDate(20220212)
+
+        >>> domain = tuple(t + p for p in ('6m', '12m', '18m', '24m'))
+        >>> data = 1, 2, 3, 4
+
+        >>> c = DateCurve(domain, data)
+        >>> c.domain
+        (BusinessDate(20220812), BusinessDate(20230212), BusinessDate(20230812), BusinessDate(20240212))
+
+        >>> c(t + '9m')
+        1.5
+
+        """  # noqa 501
         if isinstance(domain, DateCurve):
             data = domain
             domain = data.domain
@@ -331,9 +432,7 @@ class DateCurve(Curve):
         self._domain = domain
         self._origin = origin
         self._day_count = day_count
-        flt_domain = [self.day_count(x) for x in domain]
-        super(DateCurve, self).__init__(flt_domain, data, interpolation)
-        self._domain = domain  # since super sets domain too
+        super().__init__(domain, data, interpolation)
         self.fixings = dict()
 
     @property
@@ -349,6 +448,11 @@ class DateCurve(Curve):
         if self._origin is not None:
             return self._origin
         return self._domain[0] if self._domain else None
+
+    def _update(self, domain, data):
+        flt_domain = tuple(self.day_count(d) for d in domain)
+        super()._update(flt_domain, data)
+        self._domain = domain
 
     def __call__(self, x):
         if isinstance(x, (list, tuple)):
@@ -461,8 +565,6 @@ class DateCurve(Curve):
 
         """  # noqa E501
 
-        # todo use
-        #  scipy.misc.derivative(self, start, self._TIME_SHIFT)
         try:
             from scipy.misc import derivative
             s = self.day_count(start)
@@ -575,6 +677,19 @@ class RateCurve(DateCurve):
         return self._FORWARD_TENOR \
             if self._forward_tenor is None else self._forward_tenor
 
+    @property
+    def spread(self):
+        """spread curve to add spreads to curve"""
+        return self._spread
+
+    @spread.setter
+    def spread(self, curve):
+        """spread curve to add spreads to curve"""
+        if curve is not None and self._spread is not None:
+            raise TypeError("direct re-setting of spread curve not allowed."
+                            "first re-set spread curve to None.")
+        self._spread = curve
+
     def __init__(self, domain=(), data=(), interpolation=None, origin=None,
                  day_count=None, forward_tenor=None):
         r"""
@@ -628,6 +743,13 @@ class RateCurve(DateCurve):
         super(RateCurve, self).__init__(
             domain, data, interpolation, origin, day_count)
         self._forward_tenor = forward_tenor
+        self._spread = None
+
+    def __call__(self, x):
+        if isinstance(x, (list, tuple)):
+            return tuple(self(xx) for xx in x)
+        s = self._spread(x) if self._spread else 0.0
+        return super().__call__(x) + s
 
     def __add__(self, other):
         new = super(RateCurve, self).__add__(self.__class__(other))

@@ -140,6 +140,19 @@ class DateCurveUnitTests(TestCase):
         for d in self.dates:
             self.assertAlmostEqual(Curve1(d), Curve2(d))
 
+    def test_update(self):
+        d = self.curve.domain[-1]
+        v = self.curve(d)
+        self.curve[d] = v*v
+        self.assertAlmostEqual(v*v, self.curve(d))
+        # self.assertAlmostEqual(v*v, self.curve[d])
+        self.assertRaises(KeyError, self.curve.__getitem__, d + self.period)
+        self.curve[d + self.period] = v*v*v
+        self.assertAlmostEqual(v*v, self.curve(d))
+        self.assertAlmostEqual(v*v, self.curve[d])
+        self.assertAlmostEqual(v*v*v, self.curve(d + self.period))
+        self.assertAlmostEqual(v*v*v, self.curve[d + self.period])
+
 
 class DateCurveUnitTestsBusinessDate(DateCurveUnitTests):
     def setUp(self):
