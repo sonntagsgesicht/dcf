@@ -229,6 +229,11 @@ Bucketed Delta
 .. autofunction:: dcf.pricer.get_bucketed_delta
 
 
+Curve Bootstrapping
+-------------------
+
+.. autofunction:: dcf.pricer.get_curve_fit
+
 
 Fundamentals
 ============
