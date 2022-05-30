@@ -2,12 +2,6 @@ from ..daycount import day_count as default_day_count
 from ..models.optionpricing import OptionPayOffModel
 from ..plans import DEFAULT_AMOUNT
 
-# todo:
-#  __call__(model) = self.details(model)
-#  __float__() = self.details(self.model).get('cashflow')
-#  get_present_value(cf) = sum(df[i] * float(cf[i]) for i in cf.domain)
-# --> each cf object has `model`
-
 
 class CashFlowPayOff(object):
     """Cash flow payoff base class"""

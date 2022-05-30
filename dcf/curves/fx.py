@@ -98,10 +98,11 @@ class FxContainer(dict):
 
     """
 
-    # todo: First, searching for exact matching pair.
-    # todo: Second, matching for swapped pair.
-    # todo: Last, find linked pairs for triangulation,
-    # todo: choosing based on a preference list of base currencies.
+    # todo:
+    #  First, searching for exact matching pair.
+    #  Second, matching for swapped pair.
+    #  Last, find linked pairs for triangulation,
+    #  choosing based on a preference list of base currencies.
 
     def __init__(self, currency, domestic_curve):
         """

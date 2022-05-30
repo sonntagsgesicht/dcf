@@ -27,13 +27,13 @@ __theme__ = 'sphinx_rtd_theme'
 import logging
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 
-"""
-todo
-    better BumpGreeksModelUnitTests and BinaryModelUnitTests
-    use cf_list.origin for valuation date (cf selection and option ttm)
-    add cf_table for contingent cf
-    add sabr model
-"""
+# todo:
+#  better BumpGreeksModelUnitTests and BinaryModelUnitTests
+#  add sabr model
+#  add Nelson-Siegel-Svensson interest rate curve
+#  add Curve.plot()
+#  add global calibration using 'lmfit'
+
 
 from . import daycount, compounding, interpolation, plans, \
     models  # noqa E401 E402

@@ -22,12 +22,6 @@ class ContingentCashFlowList(_CashFlowList):
     """ list of contingent cashflows """
     _cashflow_details = 'cashflow', 'pay date'
 
-    @property
-    def table(self):
-        """cashflow details as list of tuples"""
-        # todo: contigent cashflow tbl
-        raise NotImplementedError()
-
     def __init__(self, payment_date_list, payoff_list=None,
                  origin=None, payoff_model=None):
         r"""generic cashflow list of expected contingent cashflows
@@ -81,15 +75,6 @@ class ContingentCashFlowList(_CashFlowList):
             if isinstance(payoff, (int, float)):
                 return payoff
             return payoff(self.payoff_model)
-
-    @property
-    def forward_curve(self):
-        r"""underlying model forward curve to derive float rates $f$"""
-        return self.payoff_model.forward_curve
-
-    @forward_curve.setter
-    def forward_curve(self, value):
-        self.payoff_model.forward_curve = value
 
 
 class OptionCashflowList(ContingentCashFlowList):
