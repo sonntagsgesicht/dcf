@@ -44,6 +44,7 @@ tenor = '1y'
 
 zero_curve = ZeroRateCurve([today, today + '1y', today + '2y'], [0.01, 0.01, 0.01])
 
+
 class ProductRegTests(RegressionTestCase):
     compression = False
     def test_bond_bpv(self):
@@ -59,5 +60,3 @@ class ProductRegTests(RegressionTestCase):
 
             for b in buckets:
                 self.assertAlmostRegressiveEqual(b)
-
-

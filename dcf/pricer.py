@@ -12,6 +12,7 @@
 
 from .cashflows.cashflow import CashFlowLegList
 from .cashflows.payoffs import RateCashFlowPayOff
+from .curves.curve import DateCurve
 from .curves.interestratecurve import ZeroRateCurve, CashRateCurve
 
 
@@ -48,8 +49,8 @@ def _simple_bracketing(func, a, b, precision=1e-13):
     return _simple_bracketing(f, a, b, precision)
 
 
-def get_present_value(cashflow_list, discount_curve,
-                      valuation_date=None):
+def get_present_value(
+        cashflow_list, discount_curve, valuation_date=None):
     r""" calculates the present value by discounting cashflows
 
     :param cashflow_list: list of cashflows
@@ -89,6 +90,10 @@ def get_present_value(cashflow_list, discount_curve,
     if valuation_date is None:
         valuation_date = discount_curve.origin
 
+    if isinstance(cashflow_list, CashFlowLegList):
+        return sum(get_present_value(
+            leg, discount_curve, valuation_date) for leg in cashflow_list.legs)
+
     # store and set valuation date to payoff_model
     model_valuation_date = valuation_date
     if hasattr(cashflow_list, 'payoff_model'):
@@ -109,8 +114,8 @@ def get_present_value(cashflow_list, discount_curve,
     return sum(values)
 
 
-def get_yield_to_maturity(cashflow_list,
-                          valuation_date=None, present_value=0., **kwargs):
+def get_yield_to_maturity(
+        cashflow_list, valuation_date=None, present_value=0., **kwargs):
     r""" yield-to-maturity or effective interest rate
 
     :param cashflow_list: list of cashflows
@@ -140,9 +145,11 @@ def get_yield_to_maturity(cashflow_list,
     if valuation_date is None:
         valuation_date = cashflow_list.origin
 
+    discount_curve = ZeroRateCurve([valuation_date], [0.0], **kwargs)
+
     # set error function
     def err(current):
-        discount_curve = ZeroRateCurve([valuation_date], [current], **kwargs)
+        discount_curve[valuation_date] = current
         pv = get_present_value(cashflow_list, discount_curve, valuation_date)
         return pv - present_value
 
@@ -191,7 +198,8 @@ def get_interest_accrued(cashflow_list, valuation_date):
 
 
 def get_fair_rate(cashflow_list, discount_curve,
-                  valuation_date=None, present_value=0., precision=1e-7):
+                  valuation_date=None, present_value=0.,
+                  precision=1e-7, bounds=(-0.1, .2)):
     r""" coupon rate to meet given value
 
     :param cashflow_list: list of cashflows
@@ -199,6 +207,9 @@ def get_fair_rate(cashflow_list, discount_curve,
     :param valuation_date: date to discount to
     :param present_value: price to meet by discounting
     :param precision: max distance of present value to par
+        (optional: default is 1e-7)
+    :param bounds: tuple of lower and upper bound of fair rate
+        (optional: default is -0.1 and .2)
     :return: `float` - the fair coupon rate as
         **fixed_rate** of a |RateCashFlowList()|
 
@@ -227,7 +238,7 @@ def get_fair_rate(cashflow_list, discount_curve,
         return pv - present_value
 
     # run bracketing
-    _, par, _ = _simple_bracketing(err, -0.1, .2, precision)
+    _, par, _ = _simple_bracketing(err, *bounds, precision)
 
     # restore fixed rate
     cashflow_list.fixed_rate = fixed_rate
@@ -242,7 +253,7 @@ def get_basis_point_value(cashflow_list, discount_curve, valuation_date=None,
     :param cashflow_list: list of cashflows
     :param discount_curve: discount factors are obtained from this curve
     :param valuation_date: date to discount to
-    :param delta_curve: curve which will be shifted
+    :param delta_curve: curve (or list of curves) which will be shifted
     :param shift: shift size to derive bpv
     :return: `float` - basis point value (bpv)
 
@@ -256,24 +267,29 @@ def get_basis_point_value(cashflow_list, discount_curve, valuation_date=None,
     $$\Delta(t) = 0.0001 \cdot \frac{v(t, r + s) - v(t, r)}{s}$$
 
     """
-    if isinstance(cashflow_list, CashFlowLegList):
-        return sum(get_basis_point_value(
-            leg, discount_curve, valuation_date, delta_curve, shift)
-                   for leg in cashflow_list.legs)
-    buckets = get_bucketed_delta(cashflow_list, discount_curve, valuation_date,
-                                 delta_curve, None, shift)
-    return sum(buckets)
+    pv = get_present_value(cashflow_list, discount_curve, valuation_date)
+    delta_curve = discount_curve if delta_curve is None else delta_curve
+
+    if not isinstance(delta_curve, (list, tuple)):
+        delta_curve = delta_curve,
+
+    for d in delta_curve:
+        d.spread = DateCurve([d.origin], [shift])
+    sh = get_present_value(cashflow_list, discount_curve, valuation_date)
+    for d in delta_curve:
+        d.spread = None
+
+    return (sh - pv) / shift * .0001
 
 
 def get_bucketed_delta(cashflow_list, discount_curve, valuation_date=None,
-                       delta_curve=None, delta_grid=None,
-                       shift=.0001):
+                       delta_curve=None, delta_grid=None, shift=.0001):
     r""" list of bpv delta for partly shifted interest rate curve
 
     :param cashflow_list: list of cashflows
     :param discount_curve: discount factors are obtained from this curve
     :param valuation_date: date to discount to
-    :param delta_curve: curve which will be shifted
+    :param delta_curve: curve (or list of curves) which will be shifted
     :param delta_grid: grid dates to build partly shifts
     :param shift: shift size to derive bpv
     :return: `list(float)` - basis point value for each **delta_grid** point
@@ -347,58 +363,94 @@ def get_bucketed_delta(cashflow_list, discount_curve, valuation_date=None,
         \]
 
     """
-    if isinstance(cashflow_list, CashFlowLegList):
-        buckets = tuple(get_bucketed_delta(
-            leg, discount_curve, valuation_date, delta_curve, delta_grid, shift
-        ) for leg in cashflow_list.legs)
-        buckets = tuple(map(tuple, zip(*buckets)))
-        return tuple(sum(b) for b in buckets)
 
     pv = get_present_value(cashflow_list, discount_curve, valuation_date)
     delta_curve = discount_curve if delta_curve is None else delta_curve
 
-    # check if curve is CashRateCurve
-    basis_point_curve_type = CashRateCurve \
-        if isinstance(delta_curve, CashRateCurve) else ZeroRateCurve
-
-    if delta_grid:
-        if len(delta_grid) == 1:
-            grid = (delta_grid,)
-            shifts = ([shift],)
-        elif len(delta_grid) == 2:
-            grid = (delta_grid, delta_grid)
-            shifts = ([shift, 0.], [0., shift])
-        else:
-            first = [delta_grid[0], delta_grid[1]]
-            mids = list(map(list, zip(
-                delta_grid[0: -2], delta_grid[1: -1], delta_grid[2:])))
-            last = [delta_grid[-2], delta_grid[-1]]
-
-            grid = [first] + mids + [last]
-            shifts = [[shift, 0.]] + \
-                     [[0., shift, 0.]] * len(mids) + [[0., shift]]
-    else:
-        grid = ([delta_curve.origin],)
+    if not delta_grid:
+        grids = ([discount_curve.origin],)
         shifts = ([shift],)
+    elif len(delta_grid) == 1:
+        grids = (delta_grid,)
+        shifts = ([shift],)
+    elif len(delta_grid) == 2:
+        grids = (delta_grid, delta_grid)
+        shifts = ([shift, 0.], [0., shift])
+    else:
+        first = [delta_grid[0], delta_grid[1]]
+        mids = list(map(
+            list, zip(delta_grid[0: -2], delta_grid[1: -1], delta_grid[2:])))
+        last = [delta_grid[-2], delta_grid[-1]]
+        grids = [first] + mids + [last]
+        shifts = [[shift, 0.]] + [[0., shift, 0.]] * len(mids) + [[0., shift]]
+
+    if not isinstance(delta_curve, (list, tuple)):
+        delta_curve = delta_curve,
 
     buckets = list()
-    for g, s in zip(grid, shifts):
-        shifted_curve = delta_curve + basis_point_curve_type(
-            g, s, forward_tenor=delta_curve.forward_tenor)
-        fwd_curve = getattr(cashflow_list, 'forward_curve', None)
-        if fwd_curve == delta_curve:
-            # replace delta_curve by shifted_curve
-            cashflow_list.forward_curve = shifted_curve
-        if delta_curve == discount_curve:
-            sh = get_present_value(cashflow_list, shifted_curve,
-                                   valuation_date)
-        else:
-            sh = get_present_value(cashflow_list, discount_curve,
-                                   valuation_date)
-
-        if fwd_curve == delta_curve:
-            # restore delta_curve by shifted_curve
-            cashflow_list.forward_curve = delta_curve
+    for g, s in zip(grids, shifts):
+        for d in delta_curve:
+            d.spread = DateCurve(g, s)
+        sh = get_present_value(cashflow_list, discount_curve, valuation_date)
+        for d in delta_curve:
+            d.spread = None
 
         buckets.append((sh - pv) / shift * .0001)
     return buckets
+
+
+def get_curve_fit(cashflow_list, discount_curve, valuation_date=None,
+                  fitting_curve=None, fitting_grid=None, present_value=0.0,
+                  precision=1e-7, bounds=(-0.1, .2)):
+    """fit curve to cashflow_list prices (bootstrapping)
+
+    :param cashflow_list: list (!) of cashflow_list. products to match prices
+    :param discount_curve: discount factors are obtained from this curve
+    :param valuation_date: date to discount to
+    :param fitting_curve: curve to fit to match prices
+        (optional; default is **discount_curve**)
+    :param fitting_grid: domain to fit prices to
+        (optional; default **fitting_curve.domain**)
+    :param present_value: tuple of prices for product in **cashflow_list**,
+        each one to be met by discounting
+        (optional; default is list of 0.0)
+    :param precision: max distance of present value to par
+        (optional; default is 1e-7)
+    :param bounds: tuple of lower and upper bound of fair rate
+        (optional; default is -0.1 and .2)
+    :return: tuple(float) **fitting_data** as curve values to build curve
+        together with curve points from **fitting_grid**
+
+    """
+    if isinstance(present_value, (int, float)):
+        present_value = [present_value] * len(cashflow_list)
+
+    fitting_curve = discount_curve if fitting_curve is None else fitting_curve
+    fitting_grid = \
+        fitting_grid if fitting_grid is None else fitting_curve.domain
+
+    # copy fitting_curve but set al values to 0.0
+    fitting_curve.spread = fitting_curve.__class__(fitting_grid, fitting_curve)
+    for d in fitting_curve.spread.domain:
+        fitting_curve.spread[d] = 0.0
+
+    pp_list = tuple(zip(cashflow_list, present_value))
+    for d in fitting_curve.spread.domain:
+        # prepare products and prices
+        filtered_pp_list = list(p for p in pp_list if max(p[0].domain) <= d)
+
+        # set error function
+        def err(current):
+            fitting_curve.spread[d] = current
+            pvs = list()
+            for cf, pv in filtered_pp_list:
+                p = get_present_value(cf, discount_curve, valuation_date)
+                pvs.append(p - pv)
+            return sum(pvs)
+
+        # run bracketing
+        _simple_bracketing(err, *bounds, precision)
+
+    data = fitting_curve(fitting_curve.spread.domain)
+    fitting_curve.spread = None
+    return data
