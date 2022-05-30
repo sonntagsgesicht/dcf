@@ -159,7 +159,7 @@ Add those legs to `CashFlowLegList` provides a smart container for valuation (`g
 >>> curve = ZeroRateCurve([today, today + '2y'], [-.005, .01])
 
 >>> get_present_value(cashflow_list=loan, discount_curve=curve, valuation_date=today)
-4.935421637918779
+4.935421637918839
 
 Moreover, variable interest derived from float rates as given
 by a forward rate curve, e.g. a `CashRateCurve`, are possible, too.

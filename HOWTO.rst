@@ -257,4 +257,4 @@ Add those legs to |CashFlowLegList| provides a smart container for valuation (|g
     >>> curve = ZeroRateCurve([today, today + '2y'], [-.005, .01])
     >>> pv = get_present_value(cashflow_list=loan, discount_curve=curve, valuation_date=today)
     >>> pv
-    4.935421637918779
+    4.935421637918839

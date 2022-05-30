@@ -70,7 +70,7 @@ def rate_table(curve, x_grid=None, y_grid=None):
      20261201 &  0.0014 &  0.0014 &  0.0014 &  0.0014 &  0.0014 &  0.0014 & 0.0014 \\
     \hline
     \end{tabular}
-    
+
     """  # noqa: E501
     if x_grid is None:
         x_grid = list(curve.domain)

@@ -13,7 +13,7 @@
 from .cashflows.cashflow import CashFlowLegList
 from .cashflows.payoffs import RateCashFlowPayOff
 from .curves.curve import DateCurve
-from .curves.interestratecurve import ZeroRateCurve, CashRateCurve
+from .curves.interestratecurve import ZeroRateCurve
 
 
 def _simple_bracketing(func, a, b, precision=1e-13):
