@@ -5,7 +5,7 @@
 # A Python library for generating discounted cashflows.
 #
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
-# Version:  0.7, copyright Wednesday, 11 May 2022
+# Version:  0.7, copyright Sunday, 22 May 2022
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -402,7 +402,7 @@ def get_bucketed_delta(cashflow_list, discount_curve, valuation_date=None,
 def get_curve_fit(cashflow_list, discount_curve, valuation_date=None,
                   fitting_curve=None, fitting_grid=None, present_value=0.0,
                   precision=1e-7, bounds=(-0.1, .2)):
-    """fit curve to cashflow_list prices (bootstrapping)
+    r"""fit curve to cashflow_list prices (bootstrapping)
 
     :param cashflow_list: list (!) of cashflow_list. products to match prices
     :param discount_curve: discount factors are obtained from this curve
@@ -411,7 +411,7 @@ def get_curve_fit(cashflow_list, discount_curve, valuation_date=None,
         (optional; default is **discount_curve**)
     :param fitting_grid: domain to fit prices to
         (optional; default **fitting_curve.domain**)
-    :param present_value: tuple of prices for product in **cashflow_list**,
+    :param present_value: list (!) of prices of products in **cashflow_list**,
         each one to be met by discounting
         (optional; default is list of 0.0)
     :param precision: max distance of present value to par
@@ -421,13 +421,67 @@ def get_curve_fit(cashflow_list, discount_curve, valuation_date=None,
     :return: tuple(float) **fitting_data** as curve values to build curve
         together with curve points from **fitting_grid**
 
-    """
+    Bootstrapping is a sequential approach to set curve values $y_i$
+    in order to match present values of cashflow products $X_j$
+    to given prices $p_j$.
+
+    This is done sequentially, i.e. for a
+    consecutive sequence of curve points $t_i$, $i=1 \dots n$.
+
+    Starting at $i=1$ at curve point $t_1$ the value $y_1$
+    is varied by
+    `simple bracketing <https://en.wikipedia.org/wiki/Nested_intervals>`_
+    such that the present value
+    $$v_0(X_j) = p_j \text{ for $X_j$ maturing before or at $t_j$.}$$
+
+    Here, the **fitting_curve** can be the discount curve
+    but also any forward curve or even a volatility curve.
+
+    Once $y_1$ is found the next dated $t_2$ in **fitting_grid** is handled.
+    This is kept going on until all prices $p_j$ and all points $t_i$ match.
+
+    Note, in order to conclude successfully,
+    the valuations $v_0(X_j)$ must be sensitive
+    to changes of curve value $y_i$, i.e. at least one $j$ must hold
+    $$\frac{d}{dy_i}v_0(X_j) \neq 0$$
+    with in the bracketing bounds of $y_i$ as set by **bounds**.
+
+    Example
+    -------
+
+    First, setup dates and schedule
+
+    >>> from businessdate import BusinessDate, BusinessSchedule
+    >>> today = BusinessDate(20161231)
+    >>> schedule = BusinessSchedule(today + '1y', today + '5y', '1y')
+
+    of products
+
+    >>> from dcf import RateCashFlowList, get_present_value
+    >>> cashflow_list = [RateCashFlowList([s for s in schedule if s <= d], 1e6, origin=today, fixed_rate=0.01) for d in schedule]
+
+    and prices to match to.
+
+    >>> from dcf import ZeroRateCurve
+    >>> rates = [0.01, 0.009, 0.012, 0.014, 0.011]
+    >>> curve = ZeroRateCurve(schedule, rates)
+    >>> present_value = [get_present_value(cfs, curve, today) for cfs in cashflow_list]
+
+    Then fit a plain curve
+
+    >>> from dcf import get_curve_fit
+    >>> target = ZeroRateCurve(schedule, [0.01, 0.01, 0.01, 0.01, 0.01])
+    >>> data = get_curve_fit(cashflow_list, target, today, fitting_curve=target, present_value=present_value)
+    >>> [round(d, 6) for d in data]
+    [0.01, 0.009, 0.012, 0.014, 0.011]
+
+    """  # noqa 501
     if isinstance(present_value, (int, float)):
         present_value = [present_value] * len(cashflow_list)
 
     fitting_curve = discount_curve if fitting_curve is None else fitting_curve
     fitting_grid = \
-        fitting_grid if fitting_grid is None else fitting_curve.domain
+        fitting_curve.domain if fitting_grid is None else fitting_grid
 
     # copy fitting_curve but set al values to 0.0
     fitting_curve.spread = fitting_curve.__class__(fitting_grid, fitting_curve)
@@ -437,6 +491,7 @@ def get_curve_fit(cashflow_list, discount_curve, valuation_date=None,
     pp_list = tuple(zip(cashflow_list, present_value))
     for d in fitting_curve.spread.domain:
         # prepare products and prices
+        # todo: better use sensitivity to current curve point than maturity
         filtered_pp_list = list(p for p in pp_list if max(p[0].domain) <= d)
 
         # set error function

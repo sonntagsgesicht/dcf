@@ -214,7 +214,6 @@ class CurveFittingTests(TestCase):
         self.rate = 0.01
         rates = [(self.rate + 0.001 * i * (-1)**i) for i in range(lens)]
         self.df = ZeroRateCurve(self.schedule, rates)
-        self.curve = ZeroRateCurve(self.schedule, [self.rate] * lens)
 
     def test_discount_curve_fitting(self):
         notional = 1e6
@@ -229,6 +228,9 @@ class CurveFittingTests(TestCase):
             products.append(swp)
             pvs.append(pv)
 
-        data = get_curve_fit(products, self.curve, self.today, self.curve, self.schedule, pvs)
+        curve = ZeroRateCurve(self.schedule, [self.rate] * len(self.schedule))
+        data = get_curve_fit(products, curve, self.today, present_value=pvs)
+        # curve = ZeroRateCurve([self.today], [self.rate])
+        # data = get_curve_fit(products, curve, self.today, curve, self.schedule, pvs)
         for p, q in zip(data, self.df(self.df.domain)):
             self.assertAlmostEqual(p, q)
