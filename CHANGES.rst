@@ -23,7 +23,8 @@ Release date was |today|
 * removed |get_fair_rate()| alias *get_par_rate()*
 * removed submodules *dcf.data*
 * added submodules |dcf.cashflows.payoffs|
-
+* added pricer routine |get_curve_fit()|
+* added |RateCurve().spread|
 
 Release 0.6
 ===========
