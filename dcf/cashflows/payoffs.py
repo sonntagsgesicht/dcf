@@ -1,3 +1,15 @@
+# -*- coding: utf-8 -*-
+
+# dcf
+# ---
+# A Python library for generating discounted cashflows.
+#
+# Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
+# Version:  0.7, copyright Sunday, 22 May 2022
+# Website:  https://github.com/sonntagsgesicht/dcf
+# License:  Apache License 2.0 (see LICENSE file)
+
+
 from ..daycount import day_count as default_day_count
 from ..models.optionpricing import OptionPayOffModel
 from ..plans import DEFAULT_AMOUNT
@@ -67,10 +79,10 @@ class RateCashFlowPayOff(CashFlowPayOff):
         returns the actual expected cashflow payoff amount of $X$.
 
         >>> from dcf import RateCashFlowPayOff, CashRateCurve
-        
+
         >>> cf = RateCashFlowPayOff(start=1.25, end=1.5, amount=1.0, fixed_rate=0.005)
         >>> f = CashRateCurve(domain=[0.0, 1.0, 2.0], data=[-0.005, 0.00, 0.001], forward_tenor=0.25)
-        
+
         >>> cf()
         0.00125
         >>> cf(f)
@@ -340,24 +352,24 @@ class ContingentRateCashFlowPayOff(RateCashFlowPayOff):
         >>> from dcf.models import NormalOptionPayOffModel, IntrinsicOptionPayOffModel
 
         evaluate just the fixed rate cashflow
-    
+
         >>> cf = ContingentRateCashFlowPayOff(start=1.25, end=1.5, amount=1.0, fixed_rate=0.005, floor_strike=0.002)
         >>> cf()
         0.00125
 
-        evaluate the fixed rate and float forward rate cashflow 
+        evaluate the fixed rate and float forward rate cashflow
 
         >>> f = CashRateCurve(domain=[0.0, 1.0, 2.0], data=[-0.005, 0.00, 0.001], forward_tenor=0.25)
         >>> cf(f)
         0.0013125
 
-        evaluate the fixed rate and float forward rate cashflow plus intrisic option payoff 
+        evaluate the fixed rate and float forward rate cashflow plus intrisic option payoff
 
         >>> i = IntrinsicOptionPayOffModel(valuation_date=0.0, forward_curve=f)
         >>> cf(i)
         0.00175
 
-        evaluate the fixed rate and float forward rate cashflow plus *Bachelier* model payoff 
+        evaluate the fixed rate and float forward rate cashflow plus *Bachelier* model payoff
 
         >>> m = NormalOptionPayOffModel(valuation_date=0.0, forward_curve=f, volatility_curve=(lambda *_: 0.005))
         >>> cf(m)
