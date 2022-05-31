@@ -5,7 +5,7 @@
 # A Python library for generating discounted cashflows.
 #
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
-# Version:  0.7, copyright Sunday, 22 May 2022
+# Version:  0.7, copyright Tuesday, 31 May 2022
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -33,6 +33,7 @@ logging.getLogger(__name__).addHandler(logging.NullHandler())
 #  add Nelson-Siegel-Svensson interest rate curve
 #  add Curve.plot()
 #  add global calibration using 'lmfit'
+#  add compounding as property to RateCurve
 
 
 from . import daycount, compounding, interpolation, plans, \
@@ -65,4 +66,4 @@ from .ratingclass import RatingClass  # noqa E401 E402
 
 from .pricer import get_present_value, get_fair_rate, get_interest_accrued, \
     get_yield_to_maturity, get_basis_point_value, \
-    get_curve_fit  # noqa E401 E402
+    get_bucketed_delta, get_curve_fit  # noqa E401 E402

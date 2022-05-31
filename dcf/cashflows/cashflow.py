@@ -5,7 +5,7 @@
 # A Python library for generating discounted cashflows.
 #
 # Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
-# Version:  0.7, copyright Sunday, 22 May 2022
+# Version:  0.7, copyright Tuesday, 31 May 2022
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -31,7 +31,8 @@ class CashFlowList(object):
         for d in self.domain:
             payoff = self._flows.get(d, 0.)
             if hasattr(payoff, 'details'):
-                details = payoff.details(self.forward_curve)
+                fwd = getattr(self, 'forward_curve', None)
+                details = payoff.details(fwd)
                 details['pay date'] = d
             else:
                 details = {'cashflow': float(payoff), 'pay date': d}
@@ -322,7 +323,7 @@ class RateCashFlowList(CashFlowList):
         if isinstance(amount_list, (int, float)):
             amount_list = [amount_list] * len(payment_date_list)
 
-        if origin:
+        if origin is not None:
             start_dates = [origin]
             start_dates.extend(payment_date_list[:-1])
         elif origin is None and len(payment_date_list) > 1:
