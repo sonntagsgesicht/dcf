@@ -15,17 +15,32 @@ from ..models.optionpricing import OptionPayOffModel
 from ..plans import DEFAULT_AMOUNT
 
 
+class CashFlowDetails(dict):
+	
+	def __float__(self):
+		return self.get('cashflow', 0.0)
+        
+    def __ts__(self):
+        return self.get('pay date')
+
+    def __getattr__(self, item):
+		return self.get(item.replace('_', ' '))
+
+
 class CashFlowPayOff(object):
     """Cash flow payoff base class"""
 
-    def __call__(self, _=None):
-        return self.details(_).get('cashflow', 0.0)
-
     def __repr__(self):
-        return str(getattr(self, 'amount', self))
+		cls = self.__class__.__name__
+        return str(getattr(self, 'cashflow', self))
 
-    def details(self, _=None):
-        return {'cashflow': 0.0}
+    def __call__(self, _=None):
+        return CashFlowDetails(cashflow=0.0)
+
+    def __add__(self, other):
+        new = self.__copy__()
+        if isinstance(other, (int, float)):
+            new.amount += other
 
 
 class FixedCashFlowPayOff(CashFlowPayOff):
@@ -50,8 +65,8 @@ class FixedCashFlowPayOff(CashFlowPayOff):
         """
         self.amount = amount
 
-    def details(self, _=None):
-        return {'cashflow': self.amount}
+    def __call__(self, _=None):
+        return CashFlowDetails(cashflow=0.0)
 
 
 class RateCashFlowPayOff(CashFlowPayOff):
@@ -104,7 +119,7 @@ class RateCashFlowPayOff(CashFlowPayOff):
         self.fixed_rate = fixed_rate
         r""" agreed fixed rate $c$ """
 
-    def details(self, forward_curve=None):
+    def __call__(self, forward_curve=None):
         yf = self.day_count(self.start, self.end)
 
         details = {
@@ -142,7 +157,7 @@ class RateCashFlowPayOff(CashFlowPayOff):
             })
 
         details['cashflow'] = (self.fixed_rate + forward) * yf * self.amount
-        return details
+        return CashFlowDetails(**details)
 
 
 class OptionCashFlowPayOff(CashFlowPayOff):
@@ -215,7 +230,7 @@ class OptionCashFlowPayOff(CashFlowPayOff):
         self.strike = strike
         self.is_put = is_put
 
-    def details(self, model=None):
+    def __call__(self, model=None):
         details = {
             'cashflow': 0.0,
             'put/call': 'put' if self.is_put else 'call',
@@ -235,7 +250,7 @@ class OptionCashFlowPayOff(CashFlowPayOff):
                 model.details(self.expiry, self.strike)
             )
 
-        return details
+        return CashFlowDetails(**details)
 
 
 class OptionStrategyCashFlowPayOff(CashFlowPayOff):
@@ -295,7 +310,7 @@ class OptionStrategyCashFlowPayOff(CashFlowPayOff):
         # sort by strike (in-place and stable, i.e. put < call)
         self._options.sort(key=lambda o: o.strike)
 
-    def details(self, model=None):
+    def __call__(self, model=None):
         details = {
             'cashflow': 0.0
         }
@@ -314,7 +329,7 @@ class OptionStrategyCashFlowPayOff(CashFlowPayOff):
         # details['cashflow'] = sum(option(model) for option in self._options)
         details['cashflow'] = cf
 
-        return details
+        return CashFlowDetails(**details)
 
 
 class ContingentRateCashFlowPayOff(RateCashFlowPayOff):
@@ -384,7 +399,7 @@ class ContingentRateCashFlowPayOff(RateCashFlowPayOff):
         self.cap_strike = cap_strike
         """cap strike rate"""
 
-    def details(self, model=None):
+    def __call__(self, model=None):
         # works even if the model is the forward_curve
         forward_curve = getattr(model, 'forward_curve', model)
         details = super().details(forward_curve)
@@ -424,4 +439,4 @@ class ContingentRateCashFlowPayOff(RateCashFlowPayOff):
                     'valuation date': d.get('valuation date', None)
                 })
             details['cashflow'] = cf + floorlet - caplet
-        return details
+        return CashFlowDetails(**details)

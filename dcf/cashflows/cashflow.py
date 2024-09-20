@@ -19,6 +19,21 @@ from ..plans import DEFAULT_AMOUNT
 from .payoffs import FixedCashFlowPayOff, RateCashFlowPayOff
 
 
+class CashflowList(list):
+    
+    def __getitem__(self, key):
+        # todo: add intervall filtering
+        return super().__getitem__(key)
+
+    def __call__(self, _=None):
+        # todo: returns CashflowDetailsList
+        return list(x(_) for x in self)       
+
+    @property
+    def domain(self):
+        return [s.pay_date for s in self]
+
+
 class CashFlowList(object):
     _cashflow_details = 'cashflow', 'pay date'
 
