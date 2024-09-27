@@ -166,7 +166,37 @@ Curve Bootstrapping
 Fundamentals
 ============
 
+Currency
+--------
+
+.. automodule:: dcf.currency
+
+
+Rating Classes
+--------------
+
+.. automodule:: dcf.ratingclass
+
+
 DayCount
 --------
 
-.. automodule:: dcf.daycount
+.. automodule:: dcf.tools.dc
+
+
+Interpolation
+-------------
+
+.. automodule:: dcf.tools.pl
+
+
+Timestamps
+----------
+
+.. automodule:: dcf.tools.ts
+
+
+Numerics
+--------
+
+.. automodule:: dcf.tools.nx

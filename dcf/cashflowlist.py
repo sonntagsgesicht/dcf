@@ -9,108 +9,13 @@
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
-from pprint import pformat
-
 from .payoffs import (FixedCashFlowPayOff, RateCashFlowPayOff,
                       OptionCashFlowPayOff, OptionStrategyCashFlowPayOff,
                       ContingentRateCashFlowPayOff)
 from .payoffmodels import PayOffModel
 from .plans import DEFAULT_AMOUNT
 
-
-class TSList(list):
-
-    def __getitem__(self, key):
-
-        if isinstance(key, int):
-            return super().__getitem__(key)
-
-        cls = self.__class__
-        if not isinstance(key, slice):
-            # t = key.__class__
-            t = lambda v: key.__class__(getattr(v, '__ts__', v))
-            return cls(v for v in self if t(v) == key)
-
-        if isinstance(key.start, int) or isinstance(key.stop, int):
-            # use default slice behavior
-            return cls(super().__getitem__(key))
-
-        if key.start and key.stop:
-            # ts = key.start.__class__
-            ts = lambda v: key.start.__class__(getattr(v, '__ts__', v))
-            # te = key.stop.__class__
-            te = lambda v: key.stop.__class__(getattr(v, '__ts__', v))
-            r = (v for v in self if key.start <= ts(v) and te(v) < key.stop)
-
-        elif key.start:
-            # t = key.start.__class__
-            t = lambda v: key.start.__class__(getattr(v, '__ts__', v))
-            r = (v for v in self if key.start <= t(v))
-
-        elif key.stop:
-            # t = key.stop.__class__
-            t = lambda v: key.stop.__class__(getattr(v, '__ts__', v))
-            r = (v for v in self if t(v) < key.stop)
-
-        else:
-            r = self
-
-        if isinstance(key.step, int):
-            if key.step < 0:
-                return cls(r)[-1::key.step]
-            else:
-                return cls(r)[0::key.step]
-        elif key.step:
-            cls = key.step.__class__.__name__
-            raise ValueError(f"slice steps of type {cls!r} do not work")
-
-        return cls(r)
-
-    def __repr__(self):
-        c = self.__class__.__name__
-        s = pformat(list(self), indent=2, sort_dicts=False)
-        return f"{c}(\n{s}\n)"
-
-    def __call__(self, *_, **__):
-        return self.__class__(v(*_, **__) for v in self)
-
-    def __neg__(self):
-        return self.__class__(v.__neg__() for v in self)
-
-    def __add__(self, other):
-        if isinstance(other, list):
-            return self.__class__(super().__add__(other))
-        return self.__class__(v.__add__(other) for v in self)
-
-    def __sub__(self, other):
-        if isinstance(other, list):
-            # lousy hack since other might just be list and not List
-            return self.__neg__().__add__(other).__neg__()
-        return self.__class__(v.__sub__(other) for v in self)
-
-    def __mul__(self, other):
-        return self.__class__(v.__mul__(other) for v in self)
-
-    def __truediv__(self, other):
-        return self.__class__(v.__truediv__(other) for v in self)
-
-    def __matmul__(self, other):
-        return self.__class__(v.__matmul__(other) for v in self)
-
-    def __abs__(self):
-        return self.__class__(v.__abs__() for v in self)
-
-    def __divmod__(self, other):
-        return self.__class__(v.__divmod__() for v in self)
-
-    def __mod__(self, other):
-        return self.__class__(v.__mod__() for v in self)
-
-    def __floordiv__(self, other):
-        return self.__class__(v.__floordiv__() for v in self)
-
-    def __invert__(self):
-        return self.__class__(v.__invert__() for v in self)
+from .tools.ts import TSList
 
 
 class CashFlowList(TSList):

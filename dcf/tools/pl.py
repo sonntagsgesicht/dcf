@@ -1,13 +1,14 @@
 
 
-from ..daycount import day_count as _default_day_count
+from .dc import day_count as _default_day_count
 
 
-class mdict(dict):
+class _matmul_dict(dict):
+    """"""
 
     def __init__(self, seq, at=None, /, **kwargs):
         self._at = at
-        super(mdict, self).__init__(**kwargs)
+        super(_matmul_dict, self).__init__(**kwargs)
 
     def at(self, item):
         if self._at is None:
@@ -72,10 +73,10 @@ class _piecewise_linear(dict):
         $y_n$ if $x_n <x$.
 
 
-        >>> from dcf.tools.pl import picewise_linear
-        >>> c = picewise_linear([1.,2.,3.], [2.,3.,4.])
+        >>> from dcf.tools.pl import piecewise_linear
+        >>> c = piecewise_linear([1.,2.,3.], [2.,3.,4.])
         >>> c
-        picewise_linear([1.,2.,3.], [2.,3.,4.])
+        piecewise_linear([1.0, 2.0, 3.0], [2.0, 3.0, 4.0])
 
         >>> c(0.)
         2.0
@@ -97,7 +98,7 @@ class _piecewise_linear(dict):
     def __call__(self, x):
         if not self:
             cls = self.__class__.__name__
-            raise ValueError(f"{cls} mist conatin at least one point")
+            raise ValueError(f"{cls} must conain at least one point")
 
         x = float(x)
         if len(self) == 1 or x <= min(self.keys()):

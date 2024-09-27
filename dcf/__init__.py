@@ -29,15 +29,19 @@ logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 
 # todo:
-#  [ ] add ts() to day_count to handle date/datetime __ts__ in TS list
+#  [ ] fix test and qa
+#  [ ] doc with full coverage and updated README / HOWTO
+#  [X] add ts() to day_count to handle date/datetime __ts__ in TS list
+#  [X] TSList[s:e:-1] := TSList[s:e][::-1]
+#  [ ] pricer default arguments (valuation_date, payoff_model, ...)
+#  [ ] add FxContainer for currency (or move to yieldcurves ?)
 #  [ ] add products (Bond, Swap, Cap, Floor, Collar, Option, Swaption)
 #  [ ] better BumpGreeksModelUnitTests and BinaryModelUnitTests
 #  [ ] add sabr model
-#  [ ] add FxContainer for Currency
-#  [X] TSList[s:e:-1] := TSList[s:e][::-1]
 
 
-from . import daycount, plans, optionpricing  # noqa E401 E402
+from . import plans, optionpricing  # noqa E401 E402
+from .tools.dc import day_count  # noqa E401 E402
 
 from .cashflowlist import CashFlowList  # noqa E401 E402
 from .payoffs import (CashFlowPayOff, FixedCashFlowPayOff, RateCashFlowPayOff, # noqa E401 E402

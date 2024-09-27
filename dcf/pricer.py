@@ -11,51 +11,16 @@
 
 from functools import partial
 from math import exp
-from typing import Callable, Tuple, Iterable, Dict
+from typing import Callable, Tuple, Iterable, Dict, Any as DateType
 
-from yieldcurves import AlgebraCurve, DateCurve
-
-from . import CashFlowPayOff
 from .cashflowlist import CashFlowList
-from .daycount import DateType, day_count as _default_day_count
-from .payoffs import RateCashFlowPayOff
+from .payoffs import CashFlowPayOff, RateCashFlowPayOff
 from .payoffmodels import PayOffModel
+
+from .tools.dc import day_count as _default_day_count
+from .tools.nx import simple_bracketing
 from .tools.pl import piecewise_linear
 
-
-def _simple_bracketing(func, a, b, precision=1e-13):
-    """ find root by _simple_bracketing an interval
-
-    :param callable func: function to find root
-    :param float a: lower interval boundary
-    :param float b: upper interval boundary
-    :param float precision: max accepted error
-    :rtype: tuple
-    :return: :code:`(a, m, b)` of last recursion step
-        with :code:`m = a + (b-a) *.5`
-
-    """
-    fa, fb = func(a), func(b)
-    if fb < fa:
-        f = (lambda x: -func(x))
-        fa, fb = fb, fa
-    else:
-        f = func
-
-    if not fa <= 0. <= fb:
-        msg = "_simple_bracketing function must be loc monotone " \
-              f"between {a:0.4f} and {b:0.4f}\n" \
-              f"and 0.0 between  {fa:0.4f} and {fb:0.4f}."
-        raise AssertionError(msg)
-
-    m = a + (b - a) * 0.5
-    if abs(b - a) < precision and abs(fb - fa) < precision:
-        return m
-
-    a, b = (m, b) if f(m) < 0 else (a, m)
-    return _simple_bracketing(f, a, b, precision)
-
-# todo: pricer default arguments (valuation_date, payoff_model, ...)
 
 def ecf(cashflow_list: CashFlowPayOff | CashFlowList,
         valuation_date: DateType,
@@ -229,7 +194,7 @@ def ytm(cashflow_list: CashFlowList,
         return _pv - present_value
 
     # run bracketing
-    return _simple_bracketing(err, *bounds, precision)
+    return simple_bracketing(err, *bounds, precision)
 
 
 def iac(cashflow_list: CashFlowList,
@@ -395,7 +360,7 @@ def fair(cashflow_list: CashFlowList,
         return _pv - present_value
 
     # run bracketing
-    par = _simple_bracketing(err, *bounds, precision)
+    par = simple_bracketing(err, *bounds, precision)
 
     # restore fixed rate
     for cf, _fixed_rate in zip(cashflow_list, _fixed_rates):

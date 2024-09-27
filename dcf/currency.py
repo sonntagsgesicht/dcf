@@ -5,12 +5,16 @@ from urllib.error import URLError
 from csv import reader
 
 
-class Currency:
+class currency:
 
     fx = 0.0
     ccy = []
 
     def __init__(self, value=0.0):
+        """currency class (float subclass)
+
+        :param value:
+        """
         self.value = float(value)
 
     def __str__(self):
@@ -23,31 +27,31 @@ class Currency:
         return self.value
 
     def __add__(self, other):
-        if isinstance(other, Currency) and not type(self) == type(other):
+        if isinstance(other, currency) and not type(self) == type(other):
             s, t = type(self).__name__, type(other).__name__
             m = f"unsupported operand type(s) for +: {s!r} and {t!r}"
             raise TypeError(m)
         return type(self)(float(self) + float(other))
 
     def __radd__(self, other):
-        if isinstance(other, Currency) and not type(self) == type(other):
+        if isinstance(other, currency) and not type(self) == type(other):
             s, t = type(self).__name__, type(other).__name__
             m = f"unsupported operand type(s) for +: {s!r} and {t!r}"
             raise TypeError(m)
         return type(self)(float(self) + float(other))
 
     def __sub__(self, other):
-        if isinstance(other, Currency) and not type(self) == type(other):
+        if isinstance(other, currency) and not type(self) == type(other):
             s, t = type(self).__name__, type(other).__name__
             m = f"unsupported operand type(s) for -: {s!r} and {t!r}"
             raise TypeError(m)
         return type(self)(float(self) - float(other))
 
     def __mul__(self, other):
-        if isinstance(other, type) and issubclass(other, Currency):
+        if isinstance(other, type) and issubclass(other, currency):
             # eur(10) * usd = usd(9)
             return other(float(self) * self.fx / other.fx)
-        if isinstance(other, Currency):
+        if isinstance(other, currency):
             # eur(10) * usd(10) -> TypeError
             s, t = type(self).__name__, type(other).__name__
             m = f"unsupported operand type(s) for *: {s!r} and {t!r}"
@@ -56,14 +60,14 @@ class Currency:
         return type(self)(float(self) * float(other))
 
     def __rmul__(self, other):
-        if isinstance(other, Currency):
+        if isinstance(other, currency):
             s, t = type(self).__name__, type(other).__name__
             m = f"unsupported operand type(s) for *: {s!r} and {t!r}"
             raise TypeError(m)
         return type(self)(float(self) * float(other))
 
     def __truediv__(self, other):
-        if isinstance(other, Currency):
+        if isinstance(other, currency):
             s, t = type(self).__name__, type(other).__name__
             m = f"unsupported operand type(s) for /: {s!r} and {t!r}"
             raise TypeError(m)
@@ -112,19 +116,19 @@ class Currency:
 
 
 try:
-    Currency.update()
+    currency.update()
 except URLError:
     pass
 
-EUR = Currency.get('EUR', create=True)
-USD = Currency.get('USD', create=True)
-GBP = Currency.get('GBP', create=True)
-CHF = Currency.get('CHF', create=True)
-JPY = Currency.get('JYP', create=True)
+EUR = currency.get('EUR', create=True)
+USD = currency.get('USD', create=True)
+GBP = currency.get('GBP', create=True)
+CHF = currency.get('CHF', create=True)
+JPY = currency.get('JYP', create=True)
 
 
 if __name__ == '__main__':
-    INR = Currency.get('INR', create=True)
+    INR = currency.get('INR', create=True)
 
     c = EUR(20.345)
     e = EUR(1)
@@ -135,5 +139,5 @@ if __name__ == '__main__':
 #    EUR.fx = 2
     print(e.fx, c.fx, USD(1).eur, USD(1) * EUR)
     print(INR(12).eur)
-    print(Currency.new('INR', 23.0)(12).eur)
+    print(currency.new('INR', 23.0)(12).eur)
     print(USD.fx)

@@ -136,13 +136,18 @@ class Pretty:
 
 
 def pretty(cls):
-    setattr(cls, '__args__', _args)
-    setattr(cls, '__kwargs__', _kwargs)
     setattr(cls, '__str__', _str)
     setattr(cls, '__repr__', _repr)
-    setattr(cls, '__copy__', _copy)
-    setattr(cls, '__json__', _dumps)
-    setattr(cls, 'from_json', classmethod(_from_json))
+    if not hasattr(cls, '__args__'):
+        setattr(cls, '__args__', _args)
+    if not hasattr(cls, '__kwargs__'):
+        setattr(cls, '__kwargs__', _kwargs)
+    if not hasattr(cls, '__copy__'):
+        setattr(cls, '__copy__', _copy)
+    if not hasattr(cls, '__json__'):
+        setattr(cls, '__json__', _dumps)
+    if not hasattr(cls, 'from_json'):
+        setattr(cls, 'from_json', classmethod(_from_json))
     return cls
 
 

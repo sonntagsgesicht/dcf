@@ -1,7 +1,7 @@
 
 from regtest import RegressionTestCase
 
-from dcf.daycount import day_count
+from dcf import day_count
 from dcf.cashflows.contingent import ContingentCashFlowList, \
     ContingentRateCashFlowList, OptionCashflowList, OptionStrategyCashflowList
 from dcf.curves.interestratecurve import ZeroRateCurve, CashRateCurve

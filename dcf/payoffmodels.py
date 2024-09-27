@@ -9,8 +9,8 @@
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
-from .daycount import day_count as _default_day_count, \
-    DAYS_IN_YEAR as _DAYS_IN_YEAR
+from .tools.dc import \
+    day_count as _default_day_count, DAYS_IN_YEAR as _DAYS_IN_YEAR
 
 from .optionpricing import Intrinsic, Bachelier, Black76, DisplacedBlack76
 from .optionpricing.base import OptionPricingFormula

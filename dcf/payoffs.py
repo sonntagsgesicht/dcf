@@ -12,9 +12,10 @@
 from pprint import pformat
 
 from .payoffmodels import OptionPayOffModel
-from .daycount import day_count as _default_day_count
 from .plans import DEFAULT_AMOUNT
-from .tools.pp import pretty
+
+from .tools.dc import day_count as _default_day_count
+from .tools.pp import pretty, _copy
 
 
 class CashFlowDetails(dict):
@@ -41,25 +42,36 @@ class CashFlowPayOff:
     _FLT = 'pay_date'
     _OP = 'amount'
 
-    @property
-    def __ts__(self):
-        return getattr(self, self._TS)
-
-    def __float__(self):
-        return getattr(self, self._FLT)
+    def details(self, model=None):
+        return CashFlowDetails()
 
     def __call__(self, model=None):
         return self.details(model=model)
 
-    def details(self, model=None):
-        return CashFlowDetails()
-
     def __copy__(self):
-        ...
+        return _copy(self)  # added for editor code check
+
+    @property
+    def __ts__(self):
+        attr = self._TS
+        return getattr(self, attr)
+
+    def __float__(self):
+        attr = self._FLT
+        return getattr(self, attr)
+
+    def __abs__(self):
+        new = self.__copy__()
+        attr = self._OP
+        value = getattr(new, attr).__abs__()
+        setattr(new, attr, value)
+        return new
 
     def __neg__(self):
         new = self.__copy__()
-        setattr(new, self._OP, getattr(new, self._OP).__neg__())
+        attr = self._OP
+        value = getattr(new, attr).__neg__()
+        setattr(new, attr, value)
         return new
 
     def __add__(self, other):
@@ -97,17 +109,10 @@ class CashFlowPayOff:
         setattr(new, attr, value)
         return new
 
-    def __abs__(self):
+    def __floordiv__(self, other):
         new = self.__copy__()
         attr = self._OP
-        value = getattr(new, attr).__abs__()
-        setattr(new, attr, value)
-        return new
-
-    def __divmod__(self, other):
-        new = self.__copy__()
-        attr = self._OP
-        value = getattr(new, attr).__divmod__(other)
+        value = getattr(new, attr).__floordiv__(other)
         setattr(new, attr, value)
         return new
 
@@ -118,17 +123,10 @@ class CashFlowPayOff:
         setattr(new, attr, value)
         return new
 
-    def __floordiv__(self, other):
+    def __divmod__(self, other):
         new = self.__copy__()
         attr = self._OP
-        value = getattr(new, attr).__floordiv__(other)
-        setattr(new, attr, value)
-        return new
-
-    def __invert__(self):
-        new = self.__copy__()
-        attr = self._OP
-        value = getattr(new, attr).__invert__()
+        value = getattr(new, attr).__divmod__(other)
         setattr(new, attr, value)
         return new
 

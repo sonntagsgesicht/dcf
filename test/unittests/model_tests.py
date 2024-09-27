@@ -12,7 +12,7 @@
 
 from unittest.case import TestCase
 
-from dcf.daycount import day_count
+from dcf import day_count
 from dcf.models.optionpricing import BinaryOptionPayOffModel
 from dcf.models.bachelier import NormalOptionPayOffModel, \
     BinaryNormalOptionPayOffModel
