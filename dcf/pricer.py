@@ -9,11 +9,18 @@
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
+from functools import partial
+from math import exp
+from typing import Callable, Tuple, Iterable, Dict
 
-from .cashflows.cashflow import CashFlowLegList
-from .cashflows.payoffs import RateCashFlowPayOff
-from .curves.curve import DateCurve
-from .curves.interestratecurve import ZeroRateCurve
+from yieldcurves import AlgebraCurve, DateCurve
+
+from . import CashFlowPayOff
+from .cashflowlist import CashFlowList
+from .daycount import DateType, day_count as _default_day_count
+from .payoffs import RateCashFlowPayOff
+from .payoffmodels import PayOffModel
+from .tools.pl import piecewise_linear
 
 
 def _simple_bracketing(func, a, b, precision=1e-13):
@@ -37,26 +44,59 @@ def _simple_bracketing(func, a, b, precision=1e-13):
 
     if not fa <= 0. <= fb:
         msg = "_simple_bracketing function must be loc monotone " \
-              "between %0.4f and %0.4f \n" % (a, b)
-        msg += "and _simple_bracketing 0. between  %0.4f and %0.4f." % (fa, fb)
+              f"between {a:0.4f} and {b:0.4f}\n" \
+              f"and 0.0 between  {fa:0.4f} and {fb:0.4f}."
         raise AssertionError(msg)
 
     m = a + (b - a) * 0.5
     if abs(b - a) < precision and abs(fb - fa) < precision:
-        return a, m, b
+        return m
 
     a, b = (m, b) if f(m) < 0 else (a, m)
     return _simple_bracketing(f, a, b, precision)
 
+# todo: pricer default arguments (valuation_date, payoff_model, ...)
 
-def get_present_value(
-        cashflow_list, discount_curve, valuation_date=None):
+def ecf(cashflow_list: CashFlowPayOff | CashFlowList,
+        valuation_date: DateType,
+        payoff_model: PayOffModel | None = None):
+    r"""expected cashflow payoffs
+
+        :param cashflow_list: list of cashflows
+        :param valuation_date: date to discount to
+        :param payoff_model: payoff model
+            (optional; default: **None**, i.e. model attached to **cashflow_list**)
+        :return: `dict` of expected cashflow payoffs with **pay_date** keys
+        
+        >>> from dcf import ecf, CashFlowList
+        
+        >>> cf_list = CashFlowList.from_fixed_cashflows([0., 3.], amount_list=[-100., 100.])
+        >>> cf_list += CashFlowList.from_rate_cashflows([0., 1., 2., 3.], amount_list=100., fixed_rate=0.05)
+        >>> ecf(cf_list, valuation_date=0.0)
+        {0.0: -95.0, 1.0: 5.0, 2.0: 5.0, 3.0: 105.0}
+        
+    """   # noqa 501
+    payoff_model = payoff_model or PayOffModel(lambda *_: 0.0)
+    if isinstance(cashflow_list, CashFlowPayOff):
+        cashflow_list = CashFlowList([cashflow_list])
+    details_list = payoff_model(cashflow_list[valuation_date:], valuation_date)
+    r = {}
+    for d in details_list:
+        r[d.__ts__] = r.get(d.__ts__, 0.0) + float(d)
+    return dict(sorted(r.items()))
+
+
+def pv(cashflow_list: CashFlowPayOff | CashFlowList,
+       discount_curve: Callable | float,
+       valuation_date: DateType,
+       payoff_model: PayOffModel | None = None):
     r""" calculates the present value by discounting cashflows
 
     :param cashflow_list: list of cashflows
     :param discount_curve: discount factors are obtained from this curve
     :param valuation_date: date to discount to
-        (optional; default: **discount_curve.origin**)
+    :param payoff_model: payoff model
+        (optional; default: **None**, i.e. model attached to **cashflow_list**)
     :return: `float` - as the sum of all discounted future cashflows
 
     Let $cf_1 \dots cf_n$ be the list of cashflows
@@ -75,47 +115,35 @@ def get_present_value(
     Therefor it represents a *start-of-day* valuation
     than a *end-of-day* valuation.
 
-    >>> from dcf import CashFlowList, ZeroRateCurve, get_present_value
-    >>> cfs = CashFlowList([0, 1, 2, 3],[100, 100, 100, 100])
-    >>> curve = ZeroRateCurve([0], [0.05])
-    >>> valuation_date = 0
-    >>> sod = get_present_value(cfs, curve, valuation_date)
-    >>> sod
-    371.67748189617316
-    >>> eod = sod - cfs[valuation_date]
-    >>> eod
-    271.67748189617316
+    >>> from yieldcurves import YieldCurve
+    >>> from dcf import ecf, pv, CashFlowList
 
-    """
-    if valuation_date is None:
-        valuation_date = discount_curve.origin
+    >>> curve = YieldCurve.from_interpolation([0.0], [0.05]).df
+    >>> cf_list = CashFlowList.from_fixed_cashflows([0, 1, 2, 3], [100, 100, 100, 100])
 
-    if isinstance(cashflow_list, CashFlowLegList):
-        return sum(get_present_value(
-            leg, discount_curve, valuation_date) for leg in cashflow_list.legs)
+    >>> sod = pv(cf_list, curve, valuation_date=0.0)
+    >>> sod  
+    371.677...
 
-    # store and set valuation date to payoff_model
-    model_valuation_date = valuation_date
-    if hasattr(cashflow_list, 'payoff_model'):
-        model_valuation_date = cashflow_list.payoff_model.valuation_date
-        cashflow_list.payoff_model.valuation_date = valuation_date
+    >>> eod = sod - ecf(cf_list, 0.0)[0.0]
+    >>> eod  
+    271.677...
 
-    # filter flows
-    pay_dates = list(d for d in cashflow_list.domain if valuation_date <= d)
-
-    # discount flows
-    value_flows = zip(pay_dates, cashflow_list[pay_dates])
-    values = (discount_curve.get_discount_factor(valuation_date, t) * float(a)
-              for t, a in value_flows)
-
-    # re-store model_valuation_date
-    if hasattr(cashflow_list, 'payoff_model'):
-        cashflow_list.payoff_model.valuation_date = model_valuation_date
-    return sum(values)
+    """  # noqa 501
+    ecf_dict = ecf(cashflow_list, valuation_date, payoff_model)
+    df, vd = discount_curve, valuation_date
+    if isinstance(discount_curve, float):
+        # todo: review discount_curve as float
+        df = lambda s, t: exp(-float(t - s) * discount_curve)
+    return sum(df(vd, t) * float(cf) for t, cf in ecf_dict.items())
 
 
-def get_yield_to_maturity(cashflow_list, valuation_date=None, present_value=0.,
-                          precision=1e-7, bounds=(-0.1, .2), **kwargs):
+def ytm(cashflow_list: CashFlowList,
+        valuation_date: DateType,
+        present_value: float = 0.0,
+        payoff_model: PayOffModel | None = None,
+        precision: float = 1e-7,
+        bounds: Tuple[float, float] = (-0.1, 0.2)):
     r""" yield-to-maturity or effective interest rate
 
     :param cashflow_list: list of cashflows
@@ -123,11 +151,12 @@ def get_yield_to_maturity(cashflow_list, valuation_date=None, present_value=0.,
         (optional; default: **cashflow_list.origin**)
     :param present_value: price to meet by discounting
         (optional; default: 0.0)
+    :param payoff_model: payoff model
+        (optional; default: **None**, i.e. model attached to **cashflow_list**)
     :param precision: max distance of present value to par
         (optional: default is 1e-7)
     :param bounds: tuple of lower and upper bound of yield to maturity
         (optional: default is -0.1 and .2)
-    :param kwargs: additional keyword used for constructing |ZeroRateCurve()|
     :return: `float` - as flat interest rate to discount all future cashflows
         in order to meet given **present_value**
 
@@ -150,70 +179,69 @@ def get_yield_to_maturity(cashflow_list, valuation_date=None, present_value=0.,
 
     yield-to-matrurity of 5y fixed coupon bond
 
-    >>> from dcf import RateCashFlowList, FixedCashFlowList, CashFlowLegList
-    >>> from dcf import get_present_value, get_yield_to_maturity
-    >>> from dcf import ZeroRateCurve
+    >>> from tabulate import tabulate
+    >>> from yieldcurves import YieldCurve
+    >>> from yieldcurves.interpolation import linear
+    >>> from dcf import CashFlowList
+    >>> from dcf import pv, ytm
 
-    >>> n, df = 1e6, ZeroRateCurve([0], [0.015])
-    >>> coupon_leg = RateCashFlowList([1,2,3,4,5], amount_list=n, origin=0, fixed_rate=0.001)
-    >>> redemption_leg = FixedCashFlowList([5], amount_list=n)
-    >>> bond = CashFlowLegList((redemption_leg, coupon_leg))
+    >>> curve = YieldCurve.from_interpolation([0.0], [0.05]).df
+    >>> n = 1_000_000
+    >>> coupon_leg = CashFlowList.from_rate_cashflows([1.,2.,3.,4.,5.], amount_list=n, origin=0.0, fixed_rate=0.001)
+    >>> redemption_leg = CashFlowList.from_fixed_cashflows([5.], amount_list=n)
+    >>> bond = coupon_leg + redemption_leg
 
     bond with cashflow tables
 
-    >>> print(tabulate(coupon_leg.table, headers='firstrow'))
-      cashflow    pay date    notional    start date    end date    year fraction    fixed rate
-    ----------  ----------  ----------  ------------  ----------  ---------------  ------------
-          1000           1       1e+06             0           1                1         0.001
-          1000           2       1e+06             1           2                1         0.001
-          1000           3       1e+06             2           3                1         0.001
-          1000           4       1e+06             3           4                1         0.001
-          1000           5       1e+06             4           5                1         0.001
+    >>> coupon_leg.print()
+      pay date    cashflow    notional  pay rec      fixed rate    start date    end date    year fraction
+    ----------  ----------  ----------  ---------  ------------  ------------  ----------  ---------------
+           1.0     1_000.0   1_000_000  pay               0.001           0.0         1.0              1.0
+           2.0     1_000.0   1_000_000  pay               0.001           1.0         2.0              1.0
+           3.0     1_000.0   1_000_000  pay               0.001           2.0         3.0              1.0
+           4.0     1_000.0   1_000_000  pay               0.001           3.0         4.0              1.0
+           5.0     1_000.0   1_000_000  pay               0.001           4.0         5.0              1.0
 
-    >>> print(tabulate(redemption_leg.table, headers='firstrow'))
-      cashflow    pay date
+    >>> redemption_leg.print()
+      pay date    cashflow
     ----------  ----------
-         1e+06           5
+           5.0   1_000_000 
 
     get yield-to-maturity at par (gives coupon rate)
 
-    >>> ytm = get_yield_to_maturity(bond, valuation_date=0, present_value=n)
-    >>> round(ytm, 6)
-    0.001
+    >>> ytm(bond, valuation_date=0, present_value=n)  
+    0.0009...
 
     get current yield-to-maturity as given by 1.5% risk free rate (gives risk free rate)
 
-    >>> pv = get_present_value(bond, df, valuation_date=0)
-    >>> pv
-    932524.5493034503
-    >>>
-    >>> ytm = get_yield_to_maturity(bond, valuation_date=0, present_value=pv)
-    >>> round(ytm, 6)
-    0.015
+    >>> present_value = pv(bond, curve, valuation_date=0.0)
+    >>> present_value  
+    783115.0894...
+
+    >>> ytm(bond, valuation_date=0, present_value=present_value)  
+    0.0499...
 
     """  # noqa 501
-    if valuation_date is None:
-        valuation_date = cashflow_list.origin
-
-    discount_curve = ZeroRateCurve([valuation_date], [0.0], **kwargs)
 
     # set error function
     def err(current):
-        discount_curve[valuation_date] = current
-        pv = get_present_value(cashflow_list, discount_curve, valuation_date)
-        return pv - present_value
+        _pv = pv(cashflow_list, current, valuation_date, payoff_model)
+        return _pv - present_value
 
     # run bracketing
-    _, ytm, _ = _simple_bracketing(err, *bounds, precision)
-    return ytm
+    return _simple_bracketing(err, *bounds, precision)
 
 
-def get_interest_accrued(cashflow_list, valuation_date):
+def iac(cashflow_list: CashFlowList,
+        valuation_date: DateType,
+        payoff_model: PayOffModel | None = None):
     r""" calculates interest accrued for rate cashflows
 
-    :param cashflow_list: requires a `day_count` property
-    :param valuation_date: calculation date
-    :return: `float` - proportion of interest in current interest period
+        :param cashflow_list: requires a `day_count` property
+        :param valuation_date: calculation date
+        :param payoff_model: payoff model
+            (optional; default: **None**, i.e. model attached to **cashflow_list**)
+        :return: `float` - proportion of interest in current interest period
 
     Let $t$ be the valuation date
     and $s, e$ start resp. end date of current rate period,
@@ -233,77 +261,84 @@ def get_interest_accrued(cashflow_list, valuation_date):
     Example
     -------
 
-    >>> from dcf import RateCashFlowList, FixedCashFlowList, CashFlowLegList
-    >>> from dcf import get_interest_accrued
+    >>> from tabulate import tabulate
+    >>> from dcf import iac, CashFlowList
 
     setup 5y coupon bond
 
-    >>> n = 1e6
-    >>> coupon_leg = RateCashFlowList([1,2,3,4,5], amount_list=n, origin=0, fixed_rate=0.001)
-    >>> redemption_leg = FixedCashFlowList([5], amount_list=n)
-    >>> bond = CashFlowLegList((redemption_leg, coupon_leg))
+    >>> n = 1_000_000
+    >>> coupon_leg = CashFlowList.from_rate_cashflows([1.,2.,3.,4.,5.], amount_list=n, origin=0., fixed_rate=0.001)
+    >>> redemption_leg = CashFlowList.from_fixed_cashflows([5.], amount_list=n)
+    >>> bond = coupon_leg + redemption_leg
 
     bond with cashflow tables
 
-    >>> print(tabulate(coupon_leg.table, headers='firstrow'))
-      cashflow    pay date    notional    start date    end date    year fraction    fixed rate
-    ----------  ----------  ----------  ------------  ----------  ---------------  ------------
-          1000           1       1e+06             0           1                1         0.001
-          1000           2       1e+06             1           2                1         0.001
-          1000           3       1e+06             2           3                1         0.001
-          1000           4       1e+06             3           4                1         0.001
-          1000           5       1e+06             4           5                1         0.001
+    >>> coupon_leg.print()
+      pay date    cashflow    notional  pay rec      fixed rate    start date    end date    year fraction
+    ----------  ----------  ----------  ---------  ------------  ------------  ----------  ---------------
+           1.0     1_000.0   1_000_000  pay               0.001           0.0         1.0              1.0
+           2.0     1_000.0   1_000_000  pay               0.001           1.0         2.0              1.0
+           3.0     1_000.0   1_000_000  pay               0.001           2.0         3.0              1.0
+           4.0     1_000.0   1_000_000  pay               0.001           3.0         4.0              1.0
+           5.0     1_000.0   1_000_000  pay               0.001           4.0         5.0              1.0
 
-    >>> print(tabulate(redemption_leg.table, headers='firstrow'))
-      cashflow    pay date
+
+    >>> redemption_leg.print()
+      pay date    cashflow
     ----------  ----------
-         1e+06           5
+           5.0   1_000_000
 
-    calculate accrued interest
 
-    >>> get_interest_accrued(bond, valuation_date=3.25)
+    >>> iac(bond, valuation_date=3.25)
     250.0
 
-    >>> get_interest_accrued(bond, valuation_date=3.5)
+    >>> iac(bond, valuation_date=3.5)
+    500.0
+
+    >>> iac(bond, valuation_date=4.5)
     500.0
 
     >>> # doesn't take fixed cashflows into account
-    >>> get_interest_accrued(bond, valuation_date=4.5)
-    500.0
-
+    >>> iac(redemption_leg, valuation_date=3.25)
+    0.0
+    
     """  # noqa 501
-    if isinstance(cashflow_list, CashFlowLegList):
-        return sum(get_interest_accrued(leg, valuation_date)
-                   for leg in cashflow_list.legs)
-    # only interest cash flows entitle to accrued interest
+    payoff_model = payoff_model or cashflow_list.payoff_model
     ac = 0.0
-    for pay_date in cashflow_list.domain:
-        if valuation_date <= pay_date:
-            cf = cashflow_list.payoff(pay_date)
-            if isinstance(cf, RateCashFlowPayOff):
-                if cf.start < valuation_date:
-                    remaining = cf.day_count(valuation_date, cf.end)
-                    total = cf.day_count(cf.start, cf.end)
-                    flow = cf(cashflow_list.forward_curve)
-                    ac += flow * (1. - remaining / total)
+    for cf in cashflow_list:
+        if isinstance(cf, RateCashFlowPayOff):
+            # only interest cash flows entitle to accrued interest
+            if cf.start < valuation_date <= cf.end:
+                day_count = cf.day_count or _default_day_count
+                remaining = day_count(valuation_date, cf.end)
+                total = day_count(cf.start, cf.end)
+                flow = float(cf(payoff_model))
+                ac += flow * (1. - remaining / total)
     return ac
 
 
-def get_fair_rate(cashflow_list, discount_curve,
-                  valuation_date=None, present_value=0.,
-                  precision=1e-7, bounds=(-0.1, .2)):
+def fair(cashflow_list: CashFlowList,
+         discount_curve: Callable | float,
+         valuation_date: DateType,
+         present_value: float = 0.0,
+         payoff_model: PayOffModel | None = None,
+         precision: float = 1e-7,
+         bounds: Tuple[float, float] = (-0.1, 0.2)):
     r""" coupon rate to meet given value
 
     :param cashflow_list: list of cashflows
     :param discount_curve: discount factors are obtained from this curve
     :param valuation_date: date to discount to
     :param present_value: price to meet by discounting
+        (optional: default: 0.0)
+    :param payoff_model: payoff model
+        (optional; default: **None**, i.e. model attached to **cashflow_list**)
     :param precision: max distance of present value to par
         (optional: default is 1e-7)
     :param bounds: tuple of lower and upper bound of fair rate
         (optional: default is -0.1 and .2)
     :return: `float` - the fair coupon rate as
-        **fixed_rate** of a |RateCashFlowList()|
+        **fixed_rate** of a |RateCashFlowPayOff()|
 
     Let $cf_i(c) = N_i \cdot \tau(s_i,e_i) \cdot (c + f(d_i))$
     be the $i$-th cashflow in the **cashflow_list**.
@@ -322,59 +357,71 @@ def get_fair_rate(cashflow_list, discount_curve,
     Example
     -------
 
-    >>> from dcf import RateCashFlowList, FixedCashFlowList, CashFlowLegList
-    >>> from dcf import get_present_value, get_fair_rate
-    >>> from dcf import ZeroRateCurve
+    >>> from yieldcurves import YieldCurve
+    >>> from dcf import pv, fair, CashFlowList
 
     setup 5y coupon bond
 
-    >>> n, df = 1e6, ZeroRateCurve([0], [0.015])
-    >>> coupon_leg = RateCashFlowList([1,2,3,4,5], amount_list=n, origin=0, fixed_rate=0.001)
-    >>> redemption_leg = FixedCashFlowList([5], amount_list=n)
-    >>> bond = CashFlowLegList((redemption_leg, coupon_leg))
+    >>> curve = YieldCurve.from_interpolation([0.], [0.015]).df
+    >>> n = 1_000_000
+    >>> coupon_leg = CashFlowList.from_rate_cashflows([1.,2.,3.,4.,5.], amount_list=n, origin=0., fixed_rate=0.001)
+    >>> redemption_leg = CashFlowList.from_fixed_cashflows([5.], amount_list=n)
+    >>> bond = coupon_leg + redemption_leg
 
     find fair rate to give par bond
 
-    >>> pv = get_present_value(redemption_leg, df)
-    >>> fair_rate = get_fair_rate(coupon_leg, df, present_value=n-pv)
-    >>> fair_rate
-    0.015113064615715653
+    >>> present_value = pv(redemption_leg, curve, 0.0)
+    >>> fair_rate = fair(coupon_leg, curve, 0.0, present_value=n-present_value)
+    >>> fair_rate  
+    0.0151...
 
     check it's a par bond (pv=notional)
 
-    >>> coupon_leg.fixed_rate = fair_rate
-    >>> pv = get_present_value(bond, df)
-    >>> round(pv, 6)
-    1000000.0
+    >>> for cf in coupon_leg: 
+    ...     cf.fixed_rate = fair_rate
+    >>> pv(bond, curve, 0.0)  
+    999999.9999...
 
     """  # noqa 501
+
     # store fixed rate
-    fixed_rate = cashflow_list.fixed_rate
+    _fixed_rates = [cf.fixed_rate for cf in cashflow_list]
 
     # set error function
     def err(current):
-        cashflow_list.fixed_rate = current
-        pv = get_present_value(cashflow_list, discount_curve, valuation_date)
-        return pv - present_value
+        for cf in cashflow_list:
+            cf.fixed_rate = current
+        _pv = pv(cashflow_list, discount_curve, valuation_date, payoff_model)
+        return _pv - present_value
 
     # run bracketing
-    _, par, _ = _simple_bracketing(err, *bounds, precision)
+    par = _simple_bracketing(err, *bounds, precision)
 
     # restore fixed rate
-    cashflow_list.fixed_rate = fixed_rate
+    for cf, _fixed_rate in zip(cashflow_list, _fixed_rates):
+        cf.fixed_rate = _fixed_rate
+
     return par
 
 
-def get_basis_point_value(cashflow_list, discount_curve, valuation_date=None,
-                          delta_curve=None, shift=.0001):
+def bpv(cashflow_list: CashFlowList,
+        discount_curve: Callable | float,
+        valuation_date: DateType,
+        payoff_model: PayOffModel | None = None,
+        delta_curve: Callable | Iterable[Callable] | None = None,
+        shift: float = 0.0001):
     r""" basis point value (bpv),
     i.e. value change by one interest rate shifted one basis point
 
     :param cashflow_list: list of cashflows
     :param discount_curve: discount factors are obtained from this curve
     :param valuation_date: date to discount to
+    :param payoff_model: payoff model
+        (optional; default: model attached to **cashflow_list**)
     :param delta_curve: curve (or list of curves) which will be shifted
+        (optional; default: **default_curve**)
     :param shift: shift size to derive bpv
+        (optional; default: 0.0001)
     :return: `float` - basis point value (bpv)
 
     Let $v(t, r)$ be the present value of the given **cashflow_list**
@@ -389,55 +436,68 @@ def get_basis_point_value(cashflow_list, discount_curve, valuation_date=None,
     Example
     -------
 
-    >>> from dcf import RateCashFlowList, FixedCashFlowList, CashFlowLegList
-    >>> from dcf import get_present_value, get_basis_point_value
-    >>> from dcf import ZeroRateCurve
+    >>> from yieldcurves import YieldCurve, AlgebraCurve
+    >>> from dcf import pv, bpv, CashFlowList
 
     setup 5y coupon bond
 
-    >>> n, df = 1e6, ZeroRateCurve([0], [0.015])
-    >>> coupon_leg = RateCashFlowList([1,2,3,4,5], amount_list=n, origin=0, fixed_rate=0.001)
-    >>> redemption_leg = FixedCashFlowList([5], amount_list=n)
-    >>> bond = CashFlowLegList((redemption_leg, coupon_leg))
-
+    >>> n = 1_000_000
+    >>> coupon_leg = CashFlowList.from_rate_cashflows([1.,2.,3.,4.,5.], amount_list=n, origin=0., fixed_rate=0.001)
+    >>> redemption_leg = CashFlowList.from_fixed_cashflows([5.], amount_list=n)
+    >>> bond = coupon_leg + redemption_leg
+    
+    together with a flat yield curve
+    
+    >>> curve = YieldCurve(0.015)
+    >>> pv(bond, curve.df, 0.0)
+    932524.5493034504
+    
     calculate bpv as bond delta
 
-    >>> bpv = get_basis_point_value(bond, df)
-    >>> bpv
-    -465.1755130274687
+    >>> yc = YieldCurve(AlgebraCurve(curve, inplace=True))
+    >>> bpv(bond, yc.df, 0.0, delta_curve=yc.curve)  
+    -465.1755...
 
-    check by direct valuation
+    double check by direct valuation
 
-    >>> pv = get_present_value(bond, df)
-    >>> df[0] += 0.0001
-    >>> shifted = get_present_value(bond, df)
-    >>> shifted-pv
-    -465.1755130274687
+    >>> present_value = pv(bond, curve.df, 0.0)
+    >>> shifted = YieldCurve(0.015 + 0.0001)
+    >>> pv(bond, shifted.df, 0.0) - present_value  
+    -465.1755...
 
     """  # noqa 501
-    pv = get_present_value(cashflow_list, discount_curve, valuation_date)
-    delta_curve = discount_curve if delta_curve is None else delta_curve
+    _pv = pv(cashflow_list, discount_curve, valuation_date, payoff_model)
 
+    delta_curve = discount_curve if delta_curve is None else delta_curve
     if not isinstance(delta_curve, (list, tuple)):
         delta_curve = delta_curve,
 
     for d in delta_curve:
-        d.spread = DateCurve([d.origin], [shift])
-    sh = get_present_value(cashflow_list, discount_curve, valuation_date)
+        d += shift
+
+    sh = pv(cashflow_list, discount_curve, valuation_date, payoff_model)
+
     for d in delta_curve:
-        d.spread = None
+        d -= shift
 
-    return (sh - pv) / shift * .0001
+    return (sh - _pv) / shift * .0001
 
 
-def get_bucketed_delta(cashflow_list, discount_curve, valuation_date=None,
-                       delta_curve=None, delta_grid=None, shift=.0001):
-    r""" list of bpv delta for partly shifted interest rate curve
+def delta(cashflow_list: CashFlowList,
+          discount_curve: Callable | float,
+          valuation_date: DateType,
+          payoff_model: PayOffModel | None = None,
+          delta_curve: Callable | Iterable[Callable] | None = None,
+          delta_grid: Iterable[DateType] | None = None,
+          shift: float = .0001):
+    r""" list of bpv delta for partly (bucketed) shifted interest rate curve
 
     :param cashflow_list: list of cashflows
     :param discount_curve: discount factors are obtained from this curve
     :param valuation_date: date to discount to
         (optional; default is **discount_curve.origin**)
+    :param payoff_model: payoff model
+        (optional; default: model attached to **cashflow_list**)
     :param delta_curve: curve (or list of curves) which will be shifted
         (optional; default is **discount_curve**)
     :param delta_grid: grid dates to build partly shifts
@@ -517,37 +577,43 @@ def get_bucketed_delta(cashflow_list, discount_curve, valuation_date=None,
     Example
     -------
 
-    same example as |get_basis_point_value()| but with buckets
+    same example as |bpv()| but with buckets
 
-    >>> from dcf import RateCashFlowList, FixedCashFlowList, CashFlowLegList
-    >>> from dcf import get_present_value, get_bucketed_delta, get_basis_point_value
-    >>> from dcf import ZeroRateCurve
+    >>> from yieldcurves import YieldCurve, AlgebraCurve
+    >>> from dcf import pv, bpv, delta, CashFlowList
 
     setup 5y coupon bond
 
-    >>> n, df = 1e6, ZeroRateCurve([0,1,2,3,4,5], [0.01, 0.011, 0.014, 0.012, 0.01, 0.013])
-    >>> coupon_leg = RateCashFlowList([1,2,3,4,5], amount_list=n, origin=0, fixed_rate=0.001)
-    >>> redemption_leg = FixedCashFlowList([5], amount_list=n)
-    >>> bond = CashFlowLegList((redemption_leg, coupon_leg))
+    >>> curve = YieldCurve.from_interpolation([0.,1.,2.,3.,4.,5.], [0.01, 0.011, 0.014, 0.012, 0.01, 0.013])
+    >>> n = 1_000_000
+    >>> coupon_leg = CashFlowList.from_rate_cashflows([1.,2.,3.,4.,5.], amount_list=n, origin=0., fixed_rate=0.001)
+    >>> redemption_leg = CashFlowList.from_fixed_cashflows([5.], amount_list=n)
+    >>> bond = coupon_leg + redemption_leg
 
     calculate bpv as bond delta
 
-    >>> bpv = get_bucketed_delta(bond, df)
-    >>> bpv
-    (0.0, -0.09890108276158571, -0.19445822690613568, -0.2893486835528165, -0.38423892273567617, -468.88503439340275)
+    >>> yc = YieldCurve(AlgebraCurve(curve, inplace=True))
+    >>> bucked_bpv = delta(bond, yc.df, 0.0, delta_curve=yc.curve, delta_grid=[0.,1.,2.,3.,4.,5.])  
+    >>> bucked_bpv
+    (0.0, -0.098901..., -0.194458..., -0.289348..., -0.384238..., -468.885034...)
 
     check by summing up (should give flat bpv)
 
-    >>> sum(bpv)
-    -469.85198130935896
-    >>> get_basis_point_value(bond, df)
-    -469.85198130935896
+    >>> sum(bucked_bpv)  
+    -469.851981...
+    
+    >>> bpv(bond, yc.df, 0.0, delta_curve=yc.curve)  
+    -469.851981...
 
     """  # noqa 501
+    _pv = pv(cashflow_list, discount_curve, valuation_date, payoff_model)
 
-    pv = get_present_value(cashflow_list, discount_curve, valuation_date)
     delta_curve = discount_curve if delta_curve is None else delta_curve
-    delta_grid = delta_grid if delta_grid else discount_curve.domain
+    if not isinstance(delta_curve, (list, tuple)):
+        delta_curve = delta_curve,
+
+    # todo: delta_grid from discount_curve
+    delta_grid = delta_grid if delta_grid else (0., 1., 3., 5., 10., 20.)
 
     if len(delta_grid) == 1:
         grids = (delta_grid,)
@@ -557,183 +623,194 @@ def get_bucketed_delta(cashflow_list, discount_curve, valuation_date=None,
         shifts = ([shift, 0.], [0., shift])
     else:
         first = [delta_grid[0], delta_grid[1]]
-        mids = list(map(
-            list, zip(delta_grid[0: -2], delta_grid[1: -1], delta_grid[2:])))
+        mids = list(map(list, zip(delta_grid[0: -2], delta_grid[1: -1], delta_grid[2:])))
         last = [delta_grid[-2], delta_grid[-1]]
         grids = [first] + mids + [last]
         shifts = [[shift, 0.]] + [[0., shift, 0.]] * len(mids) + [[0., shift]]
 
-    if not isinstance(delta_curve, (list, tuple)):
-        delta_curve = delta_curve,
-
     buckets = list()
     for g, s in zip(grids, shifts):
+        sh = piecewise_linear(g, s)
         for d in delta_curve:
-            d.spread = DateCurve(g, s)
-        sh = get_present_value(cashflow_list, discount_curve, valuation_date)
+            d += sh
+        sh_pv = pv(cashflow_list, discount_curve, valuation_date, payoff_model)
         for d in delta_curve:
-            d.spread = None
+            d -= sh
+        buckets.append((sh_pv - _pv) / shift * .0001)
 
-        buckets.append((sh - pv) / shift * .0001)
     return tuple(buckets)
 
 
-def get_curve_fit(cashflow_list, discount_curve, valuation_date=None,
-                  fitting_curve=None, fitting_grid=None, present_value=0.0,
-                  precision=1e-7, bounds=(-0.1, .2)):
-    r"""fit curve to cashflow_list prices (bootstrapping)
+def fit(cashflow_list: Iterable[CashFlowList],
+        discount_curve: Callable | float,
+        valuation_date: DateType,
+        payoff_model: PayOffModel | None = None,
+        price_list: Iterable[float] | None = None,
+        fitting_curve: Callable | None = None,
+        fitting_grid: Iterable[float] | None = None,
+        interpolation_type: str | Callable | None = None,
+        method: str = 'secant_method',
+        bounds: Tuple[float, float] = (-0.1, 0.2),
+        tolerance: float = 1e-10
+        ) -> Dict[float, float]:
+    """fit interpolated curve to prices
 
-    :param cashflow_list: list (!) of cashflow_list. products to match prices
+    :param cashflow_list: list of cashflows instruments,
+        i.e. list of lists of cashflows
     :param discount_curve: discount factors are obtained from this curve
     :param valuation_date: date to discount to
-    :param fitting_curve: curve to fit to match prices
-        (optional; default is **discount_curve**)
-    :param fitting_grid: domain to fit prices to
-        (optional; default **fitting_curve.domain**)
-    :param present_value: list (!) of prices of products in **cashflow_list**,
-        each one to be met by discounting
-        (optional; default is list of 0.0)
-    :param precision: max distance of present value to par
-        (optional; default is 1e-7)
-    :param bounds: tuple of lower and upper bound of fair rate
-        (optional; default is -0.1 and .2)
-    :return: tuple(float) **fitting_data** as curve values to build curve
-        together with curve points from **fitting_grid**
+    :param payoff_model: payoff model
+        (optional; default: **None**, i.e. model attached to **cashflow_list**)
+    :param price_list: list of prices to match
+        (optional; default assumes all prices to be 0.0)
+    :param fitting_curve: curve to fit by inplace adding another curve,
+        e.g. see `yieldcurves.AlgebraCurve()`
+        (otional; default is a yield curve derived from **discount_curve**)
+    :param fitting_grid: list of year fractions (float)
+        which define the interpolation grid
+        (optional; default: year fraction to last pay date
+        of cashflow list in **cashflow_list**. to caluculate year fraction
+        either **discount_curve** or |day_count()| is used.)
+    :param interpolation_type: function used for interpolation
+        (optional; default: **piecewise_linear** as defined
+        in `yieldcurves.interpolation` package,
+        i.e. constant extrapolation and linear interpolation)
+    :param method: root finding method,
+        for details see `yieldcurves.tools.numerics`.
+        (optional; default: **secant_method**)
+    :param bounds: inital or bounday values (depending on **method**)
+        for details see `yieldcurves.tools.numerics`.
+        (optional; default: (-0.1, 0.2))
+    :param tolerance: zero tolerance
+        for details see `yieldcurves.tools.numerics`.
+        (optional; default: 1e-10)
+    :return: dictionary of curve point and value
 
-    Bootstrapping is a sequential approach to set curve values $y_i$
-    in order to match present values of cashflow products $X_j$
-    to given prices $p_j$.
+    |fit()| uses the **fit** function in `yieldcurves.interpolation`.
 
-    This is done sequentially, i.e. for a
-    consecutive sequence of curve points $t_i$, $i=1 \dots n$.
+    Example (with Year Fractions)
+    -----------------------------
 
-    Starting at $i=1$ at curve point $t_1$ the value $y_1$
-    is varied by
-    `simple bracketing <https://en.wikipedia.org/wiki/Nested_intervals>`_
-    such that the present value
-    $$v_0(X_j) = p_j \text{ for $X_j$ maturing before or at $t_j$.}$$
+    >>> from dcf import pv, fit, CashFlowList
+    >>> from yieldcurves import YieldCurve, AlgebraCurve, DateCurve
 
-    Here, the **fitting_curve** can be the discount curve
-    but also any forward curve or even a volatility curve.
+    build cashflow instruments
 
-    Once $y_1$ is found the next dated $t_2$ in **fitting_grid** is handled.
-    This is kept going on until all prices $p_j$ and all points $t_i$ match.
+    >>> today = 0.0
+    >>> schedule = [1., 2., 3., 4., 5. ]
+    >>> cashflow_list = []
+    >>> for d in schedule:
+    ...     pay_dates = [s for s in schedule if s <= d]
+    ...     cashflow_list.append(CashFlowList.from_fixed_cashflows(pay_dates))
 
-    Note, in order to conclude successfully,
-    the valuations $v_0(X_j)$ must be sensitive
-    to changes of curve value $y_i$, i.e. at least one $j$ must hold
-    $$\frac{d}{dy_i}v_0(X_j) \neq 0$$
-    with in the bracketing bounds of $y_i$ as set by **bounds**.
+    setup curve to derive target values and generate data for calibration
 
-    Example
-    -------
+    >>> curve = YieldCurve.from_interpolation(schedule, [0.01, 0.009, 0.012, 0.014, 0.011])
+    >>> targets = [pv(c, curve.df, 0.0) for c in cashflow_list]  # target values to match
 
-    Yield curve calibration.
+    invoke curve fitting
 
-    First, setup dates and schedule
+    >>> fit(cashflow_list, 1.0, today, price_list=targets)
+    {1.0: 0.009999999999989299, 2.0: 0.008999999998175629, 3.0: 0.011999999986343402, 4.0: 0.013999999946028392, 5.0: 0.011000000052247317}
+
+    or
+
+    >>> yc = YieldCurve(AlgebraCurve(0.0, inplace=True))  # curve to calibrate to
+    >>> rates = fit(cashflow_list, yc.df, today, price_list=targets)  # curve fitting
+    >>> rates
+    {1.0: 0.009999999999989299, 2.0: 0.008999999998175629, 3.0: 0.011999999986343402, 4.0: 0.013999999946028392, 5.0: 0.011000000052247317}
+
+    setup new curve
+
+    >>> yc2 = YieldCurve.from_interpolation(rates.keys(), rates.values())
+    >>> yc2
+    YieldCurve(piecewise_linear([1.0, 2.0, 3.0, 4.0, 5.0], [0.009999999999989299, 0.008999999998175629, 0.011999999986343402, 0.013999999946028392, 0.011000000052247317]))
+
+    double check results
+
+    >>> err = [abs(pv(cf, yc2.df, 0.0) - v) for cf, v in zip(cashflow_list, targets)]
+    >>> max(err) < 1e-7
+    True
+
+    The abouve is acctually the same as
+
+    >>> yc = DateCurve(YieldCurve(AlgebraCurve(0.0, inplace=True)), origin=0.0)
+    >>> grid = [yc.year_fraction(max(cf.domain)) for cf in cashflow_list]
+    >>> fit(cashflow_list, yc.df, today, price_list=targets, fitting_curve=yc.curve.curve, fitting_grid=grid)
+    {1.0: 0.009999999999989299, 2.0: 0.008999999998175629, 3.0: 0.011999999986343402, 4.0: 0.013999999946028392, 5.0: 0.011000000052247317}
+
+    Example (with `BusinessDate()`)
+    -------------------------------
 
     >>> from businessdate import BusinessDate, BusinessSchedule
-    >>> today = BusinessDate(20161231)
-    >>> schedule = BusinessSchedule(today + '1y', today + '5y', '1y')
 
-    of products
+    build cashflow instruments
 
-    >>> from dcf import RateCashFlowList, get_present_value
-    >>> cashflow_list = [RateCashFlowList([s for s in schedule if s <= d], 1e6, origin=today, fixed_rate=0.01) for d in schedule]
+    >>> today = BusinessDate(20240101)
+    >>> schedule = BusinessSchedule(today + '1y', today + '5y', step='1y')
+    >>> cashflow_list = []
+    >>> for i, d in enumerate(schedule):
+    ...     pay_dates = [s for s in schedule if s <= d]
+    ...     cashflow_list.append(CashFlowList.from_fixed_cashflows(pay_dates))
 
-    and prices to match to.
+    setup curve to derive target values and generate data for calibration
 
-    >>> from dcf import ZeroRateCurve
-    >>> rates = [0.01, 0.009, 0.012, 0.014, 0.011]
-    >>> curve = ZeroRateCurve(schedule, rates)
-    >>> present_value = [get_present_value(cfs, curve, today) for cfs in cashflow_list]
+    >>> curve = DateCurve(YieldCurve.from_interpolation(schedule, [0.01, 0.009, 0.012, 0.014, 0.011]), origin=today)
+    >>> targets = [pv(c, curve.df, today) for c in cashflow_list]
 
-    Then fit a plain curve
+    invoke curve fitting
 
-    >>> from dcf import get_curve_fit
-    >>> target = ZeroRateCurve(schedule, [0.01, 0.01, 0.01, 0.01, 0.01])
-    >>> data = get_curve_fit(cashflow_list, target, today, fitting_curve=target, present_value=present_value)
-    >>> [round(d, 6) for d in data]
-    [0.01, 0.009, 0.012, 0.014, 0.011]
+    >>> yc = DateCurve(YieldCurve(AlgebraCurve(0.0, inplace=True)), origin=today)
+    >>> fit(cashflow_list, yc.df, today, price_list=targets)
+    {1.002053388090349: 0.009261635865832207, 2.001368925393566: 0.011213039013339773, 3.0006844626967832: 0.013473990408407546, 4.0: 0.011791067769224518, 5.002053388090349: 0.011000000000002251}
 
-    Example
-    -------
+    The abouve is acctually the same as
 
-    Option implied volatility calibration.
+    >>> yc = DateCurve(YieldCurve(AlgebraCurve(0.0, inplace=True)), origin=today)
+    >>> grid = [yc.year_fraction(max(cf.domain)) for cf in cashflow_list]
+    >>> fit(cashflow_list, yc.df, today, price_list=targets, fitting_curve=yc.curve.curve, fitting_grid=grid)
+    {1.002053388090349: 0.009261635865832207, 2.001368925393566: 0.011213039013339773, 3.0006844626967832: 0.013473990408407546, 4.0: 0.011791067769224518, 5.002053388090349: 0.011000000000002251}
 
-    First, setup dates and schedule
 
-    >>> from businessdate import BusinessDate, BusinessSchedule
-    >>> today = BusinessDate(20161231)
-    >>> expiry = today + '3m'
+    """
+    try:
+        from yieldcurves import YieldCurve, AlgebraCurve, DateCurve
+        from yieldcurves.interpolation import fit as _fit
+    except ImportError:
+        raise ImportError("fit() requires yieldcurves package. "
+                          "try `pip install yieldcurves`")
 
-    curves
+    if fitting_grid is None:
+        if isinstance(getattr(discount_curve, '__self__', ''), DateCurve):
+            yf = discount_curve.__self__.year_fraction
+        else:
+            origin = getattr(discount_curve, 'origin', valuation_date)
+            yf = lambda x: _default_day_count(origin, x)
+        fitting_grid = [yf(max(cf.domain)) for cf in cashflow_list]
 
-    >>> from dcf import ZeroRateCurve, ForwardCurve, TerminalVolatilityCurve
-    >>> c = ZeroRateCurve([today], [0.05])   # risk free rate of 5%
-    >>> f = ForwardCurve([today], [100.0], yield_curve=c)  # spot price 100 and yield of 5%
-    >>> v = TerminalVolatilityCurve([today], [0.1])  # flat volatility of 10%
+    if fitting_curve is None:
+        if isinstance(discount_curve, (int, float)):
+            if discount_curve - 1:
+                raise ValueError(f"constant discount_curve be 1.0 as"
+                                 f"a value of {discount_curve} is ambiguous")
 
-    and model with parameters
+            fitting_curve = AlgebraCurve(0.0, inplace=True)
+            discount_curve = YieldCurve(fitting_curve).df
+        elif isinstance(getattr(discount_curve, '__self__', ''), DateCurve):
+            date_curve = discount_curve.__self__
+            fitting_curve = AlgebraCurve(date_curve.curve, inplace=True)
+            origin = date_curve.origin
+            discount_curve = \
+                DateCurve(YieldCurve(fitting_curve), origin=origin).df
+        else:
+            fitting_curve = \
+                AlgebraCurve(YieldCurve.from_df(discount_curve), inplace=True)
+            discount_curve = YieldCurve(fitting_curve).df
 
-    >>> from dcf.models import LogNormalOptionPayOffModel
-    >>> m = LogNormalOptionPayOffModel(valuation_date=today, forward_curve=f, volatility_curve=v)
-
-    of call option products
-
-    >>> from dcf import OptionCashflowList, get_present_value
-    >>> cashflow_list = OptionCashflowList([expiry], strike_list=110., origin=today, payoff_model=m)
-    >>> cashflow_list[expiry]
-    0.1025451675720177
-    >>> get_present_value(cashflow_list, curve, today)
-    0.1022928005931384
-
-    and fit volatility by
-
-    >>> from dcf import get_curve_fit
-    >>> pv = 0.25
-    >>> data = get_curve_fit([cashflow_list], curve, today, fitting_curve=v, fitting_grid=[expiry], present_value=[pv])
-    >>> data
-    (0.12207840979099276,)
-
-    check result
-
-    >>> v[expiry] = data[0]
-    >>> pv = get_present_value(cashflow_list, curve, today)
-    >>> round(pv, 6)
-    0.25
-
-    """  # noqa 501
-    if isinstance(present_value, (int, float)):
-        present_value = [present_value] * len(cashflow_list)
-
-    fitting_curve = discount_curve if fitting_curve is None else fitting_curve
-    fitting_grid = \
-        fitting_curve.domain if fitting_grid is None else fitting_grid
-
-    # copy fitting_curve but set al values to 0.0
-    fitting_curve.spread = fitting_curve.__class__(fitting_grid, fitting_curve)
-    for d in fitting_curve.spread.domain:
-        fitting_curve.spread[d] = 0.0
-
-    pp_list = tuple(zip(cashflow_list, present_value))
-    for d in fitting_curve.spread.domain:
-        # prepare products and prices
-        # todo: better use sensitivity to current curve point than maturity
-        filtered_pp_list = list(p for p in pp_list if max(p[0].domain) <= d)
-
-        # set error function
-        def err(current):
-            fitting_curve.spread[d] = current
-            pvs = list()
-            for cf, pv in filtered_pp_list:
-                p = get_present_value(cf, discount_curve, valuation_date)
-                pvs.append(p - pv)
-            return sum(pvs)
-
-        # run bracketing
-        _simple_bracketing(err, *bounds, precision)
-
-    data = fitting_curve(fitting_curve.spread.domain)
-    fitting_curve.spread = None
-    return data
+    args = discount_curve, valuation_date, payoff_model
+    err_funcs = [partial(pv, cf, *args) for cf in cashflow_list]
+    if price_list is None:
+        price_list = [0.0] * len(fitting_grid)
+    return _fit(fitting_curve, fitting_grid, err_funcs, price_list,
+                interpolation_type=interpolation_type,
+                method=method, bounds=bounds, tolerance=tolerance)

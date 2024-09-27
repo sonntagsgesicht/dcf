@@ -25,4 +25,5 @@ __pycache__/
 .vs/
 *.json
 *.zip
+my/
 

@@ -15,7 +15,7 @@ try:
 except ImportError:
     bd = None
 
-from .cashflow import CashFlowLegList, FixedCashFlowList, RateCashFlowList
+from . import CashFlowList
 
 TODAY = 0.0
 MATURITY = 10
@@ -227,3 +227,72 @@ def asset_swap(coupon_leg, forward_curve, spread=0.0,
     )
     legs = pay_leg, rec_leg
     return CashFlowLegList(legs)
+
+
+def xrange(start, stop=None, step=None):
+    step = 1 if step is None else step
+    start, stop = (0, start) if stop is None else (start, stop)
+    if stop < stop - step:
+        if start < stop:
+            raise ValueError(f"increment of {step} requires stop < start")
+    else:
+        if stop < start:
+            raise ValueError(f"increment of {step} requires start < stop")
+
+    rng = [start]
+    cnt = 1
+    nxt = stop - step
+    while start <= nxt:
+        rng.append(nxt)
+        cnt += 1
+        nxt = start - cnt * step
+    return rng
+
+
+def payer_swap(payment_date_list_maturity, amount_list=1.0,
+               origin=None, day_count=None,
+               fixing_offset=None, pay_offset=None, fixed_rate=0.,
+               forward_curve=None, payer_swap=True, **kwargs):
+
+    _origin = 0 if origin is None else origin
+    fix_payment_date_list = [t for t in
+                             xrange(_origin, payment_date_list_maturity)]
+    flt_payment_date_list = [t for t in
+                             xrange(_origin, payment_date_list_maturity,
+                                    forward_curve.forward_tenor)]
+
+    if payer_swap:
+        kwargs['pay_payment_date_list'] = kwargs.get(
+            'pay_payment_date_list', fix_payment_date_list)
+        kwargs['rec_payment_date_list'] = kwargs.get(
+            'rec_payment_date_list', flt_payment_date_list)
+    else:
+        kwargs['pay_payment_date_list'] = kwargs.get(
+            'pay_payment_date_list', flt_payment_date_list)
+        kwargs['rec_payment_date_list'] = kwargs.get(
+            'rec_payment_date_list', fix_payment_date_list)
+
+    args = 'payment_date_list', 'amount_list', 'origin', 'day_count', \
+        'fixing_offset', 'pay_offset', 'fixed_rate', 'forward_curve'
+
+    print(locals())
+    pay_dates = ()
+    pay_kwargs = {k[4:]: v for k, v in kwargs.items() if
+                  k.startswith('pay_') and not k == 'pay_offset'}
+    for k in args:
+        if (payer_swap and k == 'forward_curve') or (
+                not payer_swap and k == 'fixed_rate'):
+            continue
+        pay_kwargs[k] = pay_kwargs.get(k, locals()[k])
+    pay = RateCashFlowList(pay_dates, amount_list, **pay_kwargs)
+
+    rec_dates = ()
+    rec_kwargs = {k[4:]: v for k, v in kwargs.items() if
+                  k.startswith('rec_')}
+    for k in args:
+        if (payer_swap and k == 'fixed_rate') or (
+                not payer_swap and k == 'forward_curve'):
+            continue
+        rec_kwargs[k] = rec_kwargs.get(k, locals()[k])
+    rec = RateCashFlowList(rec_dates, amount_list, **rec_kwargs)
+    return CashFlowLegList([pay, rec])

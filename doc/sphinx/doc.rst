@@ -7,110 +7,6 @@ API Documentation
 
 .. toctree::
 
-Curve Objects
-=============
-
-Basic Curves
-------------
-
-.. module:: dcf.curves.curve
-
-.. autosummary::
-    :nosignatures:
-
-    Price
-    Curve
-    DateCurve
-    ForwardCurve
-    RateCurve
-
-.. inheritance-diagram:: dcf.curves.curve
-    :top-classes: dcf.curves.curve.Curve
-    :parts: 1
-
-.. autoclass:: Price
-.. autoclass:: Curve
-.. autoclass:: DateCurve
-.. autoclass:: ForwardCurve
-.. autoclass:: RateCurve
-
-.. autofunction:: rate_table
-
-
-Interest Rate Curves
---------------------
-
-.. module:: dcf.curves.interestratecurve
-
-.. autosummary::
-    :nosignatures:
-
-    InterestRateCurve
-    ZeroRateCurve
-    DiscountFactorCurve
-    CashRateCurve
-    ShortRateCurve
-
-.. inheritance-diagram:: dcf.curves.interestratecurve
-    :parts: 1
-    :top-classes: dcf.curves.curve.RateCurve
-
-.. autoclass:: InterestRateCurve
-.. autoclass:: ZeroRateCurve
-.. autoclass:: DiscountFactorCurve
-.. autoclass:: CashRateCurve
-.. autoclass:: ShortRateCurve
-
-
-Credit Curves
--------------
-
-.. module:: dcf.curves.creditcurve
-
-.. autosummary::
-    :nosignatures:
-
-    CreditCurve
-    SurvivalProbabilityCurve
-    FlatIntensityCurve
-    HazardRateCurve
-    MarginalSurvivalProbabilityCurve
-    MarginalDefaultProbabilityCurve
-
-.. inheritance-diagram:: dcf.curves.creditcurve
-    :parts: 1
-    :top-classes: dcf.curves.curve.RateCurve
-
-.. autoclass:: CreditCurve
-.. autoclass:: ProbabilityCurve
-.. autoclass:: SurvivalProbabilityCurve
-.. autoclass:: DefaultProbabilityCurve
-.. autoclass:: FlatIntensityCurve
-.. autoclass:: HazardRateCurve
-.. autoclass:: MarginalSurvivalProbabilityCurve
-.. autoclass:: MarginalDefaultProbabilityCurve
-
-
-Fx Curve
---------
-
-.. module:: dcf.curves.fx
-
-.. autosummary::
-    :nosignatures:
-
-    FxForwardCurve
-
-.. inheritance-diagram:: dcf.curves.fx.FxForwardCurve
-    :parts: 1
-    :top-classes: dcf.curves.curve.DateCurve
-
-.. autoclass:: FxRate
-    :inherited-members:
-
-.. autoclass:: FxForwardCurve
-
-
 Cashflow Objects
 ================
 
@@ -120,135 +16,155 @@ Build Functions
 .. automodule:: dcf.plans
 
 
-Cashflow Objects
+Cashflow Payoffs
 ----------------
 
-.. py:currentmodule:: dcf.cashflows.cashflow
+.. py:currentmodule:: dcf.payoffs
 
 .. autosummary::
     :nosignatures:
 
-.. inheritance-diagram:: dcf.cashflows.cashflow
-    :parts: 1
+    FixedCashFlowPayOff
+    RateCashFlowPayOff
+    ContingentRateCashFlowPayOff
 
-.. automodule:: dcf.cashflows.cashflow
-    :members:
+    OptionCashFlowPayOff
+    OptionStrategyCashFlowPayOff
 
+.. autoclass:: FixedCashFlowPayOff
 
-Contingent Cashflow Objects (Options)
--------------------------------------
+.. autoclass:: RateCashFlowPayOff
 
-.. py:currentmodule:: dcf.cashflows.contingent
+.. autoclass:: ContingentRateCashFlowPayOff
 
-.. autosummary::
-    :nosignatures:
+.. autoclass:: OptionCashFlowPayOff
 
-.. inheritance-diagram:: dcf.cashflows.contingent
-    :parts: 1
+.. autoclass:: OptionStrategyCashFlowPayOff
 
-.. automodule:: dcf.cashflows.contingent
-    :members:
+.. autoclass:: CashFlowPayOff
 
 
-Contingent Cashflow PayOffs
----------------------------
+CashFlowList
+------------
 
-.. py:currentmodule:: dcf.cashflows.payoffs
+.. py:currentmodule:: dcf.cashflowlist
 
 .. autosummary::
     :nosignatures:
 
-.. inheritance-diagram:: dcf.cashflows.payoffs
-    :parts: 1
-
-.. automodule:: dcf.cashflows.payoffs
-    :members:
+.. autoclass:: CashFlowList
 
 
-Contingent Cashflow Models
---------------------------
+PayOff Models and Option Pricing
+================================
 
-.. py:currentmodule:: dcf.models
+PayOff Models
+-------------
+
+.. py:currentmodule:: dcf.payoffmodels
 
 .. autosummary::
     :nosignatures:
 
-    dcf.models.intrinsic.IntrinsicOptionPayOffModel
-    dcf.models.bachelier.NormalOptionPayOffModel
-    dcf.models.black76.LogNormalOptionPayOffModel
-    dcf.models.displaced.DisplacedLogNormalOptionPayOffModel
+    PayOffModel
+    OptionPayOffModel
 
-.. automodule:: dcf.models.optionpricing
-    :members:
+.. autoclass:: PayOffModel
 
-.. automodule:: dcf.models.intrinsic
-    :members:
+.. autoclass:: OptionPayOffModel
 
-.. automodule:: dcf.models.bachelier
-    :members:
 
-.. automodule:: dcf.models.black76
-    :members:
 
-.. automodule:: dcf.models.displaced
-    :members:
+Option Pricing Formulas
+-----------------------
+
+.. py:currentmodule:: dcf.optionpricing
+
+.. autosummary::
+    :nosignatures:
+
+    Intrinsic
+    Bachelier
+    Black76
+    DisplacedBlack76
+
+.. autoclass:: Intrinsic
+
+.. autoclass:: Bachelier
+
+.. autoclass:: Black76
+
+.. autoclass:: DisplacedBlack76
+
+
+Basics on Option Pricing Formulas
+---------------------------------
+
+.. py:currentmodule:: dcf.optionpricing.base
+
+.. autosummary::
+    :nosignatures:
+
+    OptionPricingFormula
+    FunctionalOptionPricingFormula
+    DisplacedOptionPricingFormula
+
+.. autoclass:: OptionPricingFormula
+
+.. autoclass:: FunctionalOptionPricingFormula
+
+.. autoclass:: DisplacedOptionPricingFormula
+
 
 Valuation Routines
 ==================
 
+Expected Payoff
+---------------
+
+.. autofunction:: dcf.pricer.ecf
+
 Present Value
 -------------
 
-.. autofunction:: dcf.pricer.get_present_value
+.. autofunction:: dcf.pricer.pv
 
 Yield To Maturity
 -----------------
 
-.. autofunction:: dcf.pricer.get_yield_to_maturity
+.. autofunction:: dcf.pricer.ytm
 
 Fair Rate
 ---------
 
-.. autofunction:: dcf.pricer.get_fair_rate
+.. autofunction:: dcf.pricer.fair
 
 Interest Accrued
 ----------------
 
-.. autofunction:: dcf.pricer.get_interest_accrued
+.. autofunction:: dcf.pricer.iac
 
 
 Basis Point Value
 -----------------
 
-.. autofunction:: dcf.pricer.get_basis_point_value
+.. autofunction:: dcf.pricer.bpv
 
 
 Bucketed Delta
 --------------
 
-.. autofunction:: dcf.pricer.get_bucketed_delta
+.. autofunction:: dcf.pricer.delta
 
 
 Curve Bootstrapping
 -------------------
 
-.. autofunction:: dcf.pricer.get_curve_fit
+.. autoclass:: dcf.pricer.fit
 
 
 Fundamentals
 ============
-
-Interpolation
--------------
-
-.. automodule:: dcf.interpolation
-
-
-Compounding
------------
-
-.. automodule:: dcf.compounding
-
 
 DayCount
 --------

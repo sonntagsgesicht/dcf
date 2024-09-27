@@ -12,11 +12,11 @@
 
 from math import sqrt
 
-from .distibutions import normal_pdf, normal_cdf
-from .optionpricing import OptionPayOffModel
+from .base import OptionPricingFormula
+from .math import normal_pdf, normal_cdf
 
 
-class NormalOptionPayOffModel(OptionPayOffModel):
+class Bachelier(OptionPricingFormula):
     r""" Bachelier option pricing formula
 
     implemented for call options
@@ -44,72 +44,57 @@ class NormalOptionPayOffModel(OptionPayOffModel):
         * call gamma: $$\frac{\phi(d)}{\sigma \cdot \sqrt{\tau}}$$
 
         * call vega: $$\sqrt{\tau} \cdot \phi(d)$$
+
+        * binary call price: $$\Phi(d)$$
+
+        * binary call delta: $$\frac{\phi(d)}{\sigma \cdot \sqrt{\tau}}$$
+
+        * binary call gamma: $$d \cdot \frac{\phi(d)}{\sigma^2 \cdot \tau}$$
+
+        * binary call vega: $$\sqrt{\tau} \cdot \phi(d)$$
+
     """
 
-    def _call_price(self, time, strike, forward, volatility):
+    ### vanilla
+
+    def __call__(self, time, strike, forward, volatility):
         vol = volatility * sqrt(time)
         d = (forward - strike) / vol
         return (forward - strike) * normal_cdf(d) + vol * normal_pdf(d)
 
-    def _call_delta(self, time, strike, forward, volatility):
+    def delta(self, time, strike, forward, volatility):
         vol = volatility * sqrt(time)
         d = (forward - strike) / vol
         return normal_cdf(d)
 
-    def _call_gamma(self, time, strike, forward, volatility):
+    def gamma(self, time, strike, forward, volatility):
         vol = volatility * sqrt(time)
         d = (forward - strike) / vol
         return normal_pdf(d) / vol
 
-    def _call_vega(self, time, strike, forward, volatility):
+    def vega(self, time, strike, forward, volatility):
         vol = volatility * sqrt(time)
         d = (forward - strike) / vol
         return sqrt(time) * normal_pdf(d)
 
+    ### binary
 
-class BinaryNormalOptionPayOffModel(OptionPayOffModel):
-    r""" Bachelier option pricing formula for binary calls
-    (see also |NormalOptionPayOffModel()|)
-
-    Let $f$ be a normaly distributed random variable
-    with expectation $F=E[f]$, the current forward value
-    and $\Phi$ the standard normal cummulative distribution function
-    s.th. $\phi=\Phi'$ is its density function.
-
-    Let $K$ be the option strike value,
-    $\tau$ the time to matruity, i.e. the option expitry date, and
-    $\sigma$ the volatility parameter,
-    i.e. the stanard deviation of $f$.
-    Moreover, let $$d = \frac{F-K}{\sigma \cdot \sqrt{\tau}}$$
-
-    Then
-
-        * call price: $$\Phi(d)$$
-
-        * call delta: $$\frac{\phi(d)}{\sigma \cdot \sqrt{\tau}}$$
-
-        * call gamma: $$d \cdot \frac{\phi(d)}{\sigma^2 \cdot \tau}$$
-
-        * call vega: $$\sqrt{\tau} \cdot \phi(d)$$
-
-    """
-
-    def _call_price(self, time, strike, forward, volatility):
+    def binary(self, time, strike, forward, volatility):
         vol = volatility * sqrt(time)
         d = (forward - strike) / vol
         return normal_cdf(d)
 
-    def _call_delta(self, time, strike, forward, volatility):
+    def binary_delta(self, time, strike, forward, volatility):
         vol = volatility * sqrt(time)
         d = (forward - strike) / vol
         return normal_pdf(d) / vol
 
-    def _call_gamma(self, time, strike, forward, volatility):
+    def binary_gamma(self, time, strike, forward, volatility):
         vol = volatility * sqrt(time)
         d = (forward - strike) / vol
         return d * normal_pdf(d) / (vol * vol * time)
 
-    def _call_vega(self, time, strike, forward, volatility):
+    def binary_vega(self, time, strike, forward, volatility):
         vol = volatility * sqrt(time)
         d = (forward - strike) / vol
         return sqrt(time) * normal_pdf(d)

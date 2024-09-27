@@ -3,3 +3,5 @@ businessdate
 auxilium
 sphinx>=4.3.0
 tabulate
+yieldcurves
+pandas
