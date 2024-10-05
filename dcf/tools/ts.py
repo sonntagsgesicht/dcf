@@ -78,7 +78,8 @@ class TSList(list):
 
         elif key.stop:
             # t = key.stop.__class__
-            t = lambda v: key.stop.__class__(getattr(v, '__ts__', v))
+            # t = lambda v: key.stop.__class__(getattr(v, '__ts__', v))
+            t = TS(key.stop.__class__)
             r = (v for v in self if t(v) < key.stop)
 
         else:

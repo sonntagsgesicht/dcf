@@ -42,6 +42,7 @@ logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 from . import plans, optionpricing  # noqa E401 E402
 from .tools.dc import day_count  # noqa E401 E402
+from .tools.ts import TS, TSList  # noqa E401 E402
 
 from .cashflowlist import CashFlowList  # noqa E401 E402
 from .payoffs import (CashFlowPayOff, FixedCashFlowPayOff, RateCashFlowPayOff, # noqa E401 E402
