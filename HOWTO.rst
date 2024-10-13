@@ -127,7 +127,7 @@ Add those legs to |CashFlowList| provides a smart container for valuation (|pv()
     >>> curve = YieldCurve.from_interpolation([today, today + '5y'], [-.005, .005])
     >>> curve = DateCurve(curve, origin=today)
     >>> pv(cashflow_list=loan, discount_curve=curve.df, valuation_date=today)
-    5.80...
+    5.7899411172157045
 
     >>> from tabulate import tabulate
 

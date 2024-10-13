@@ -9,13 +9,34 @@
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
+from warnings import warn
+from pprint import pformat
+
+try:
+    from tslist import TSList
+except ImportError:
+    class TSList(list):
+        def __init__(self, seq=()):
+            msg = ("tslist not found. consider 'pip install tslist' "
+                   "for more flexible datetime list operations")
+            warn(msg)
+            super().__init__(seq)
+
+try:
+    from tabulate import tabulate
+except ImportError:
+    def tabulate(x, *_, **__):
+        msg = ("tabulate not found. consider 'pip install tabulate' "
+               "for more flexible table representation")
+        warn(msg)
+        return pformat(x, indent=2, sort_dicts=False)
+
+
 from .payoffs import (FixedCashFlowPayOff, RateCashFlowPayOff,
                       OptionCashFlowPayOff, OptionStrategyCashFlowPayOff,
                       ContingentRateCashFlowPayOff)
 from .payoffmodels import PayOffModel
 from .plans import DEFAULT_AMOUNT
-
-from .tools.ts import TSList
 
 
 class CashFlowList(TSList):
@@ -311,13 +332,12 @@ class CashFlowList(TSList):
         return rows
 
     def print(self, *seq, sep='\n', end='\n', file=None):
-        from tabulate import tabulate
         s = tabulate(self.table, headers="firstrow", floatfmt="_", intfmt="_")
         print(*seq, s, sep=sep, end=end, file=file)
 
     def html(self):
-        from tabulate import tabulate
-        return tabulate(self.table, tablefmt="html", headers="firstrow")
+        s = tabulate(self.table, tablefmt="html", headers="firstrow")
+        return s
 
     def _repr_html_(self):
         return self.html()
@@ -349,4 +369,42 @@ class CashFlowList(TSList):
 
     def __call__(self, model=None):
         model = model or self.payoff_model
-        return TSList(super().__call__(model))
+        return TSList(v(model) for v in self)
+
+    def __neg__(self):
+        return self.__class__(v.__neg__() for v in self)
+
+    def __add__(self, other):
+        if isinstance(other, list):
+            return self.__class__(super().__add__(other))
+        return self.__class__(v.__add__(other) for v in self)
+
+    def __sub__(self, other):
+        if isinstance(other, list):
+            # lousy hack since other might just be list and not List
+            return self.__neg__().__add__(other).__neg__()
+        return self.__class__(v.__sub__(other) for v in self)
+
+    def __mul__(self, other):
+        return self.__class__(v.__mul__(other) for v in self)
+
+    def __truediv__(self, other):
+        return self.__class__(v.__truediv__(other) for v in self)
+
+    def __matmul__(self, other):
+        return self.__class__(v.__matmul__(other) for v in self)
+
+    def __abs__(self):
+        return self.__class__(v.__abs__() for v in self)
+
+    def __divmod__(self, other):
+        return self.__class__(v.__divmod__() for v in self)
+
+    def __mod__(self, other):
+        return self.__class__(v.__mod__() for v in self)
+
+    def __floordiv__(self, other):
+        return self.__class__(v.__floordiv__() for v in self)
+
+    def __invert__(self):
+        return self.__class__(v.__invert__() for v in self)

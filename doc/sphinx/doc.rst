@@ -181,22 +181,4 @@ Rating Classes
 DayCount
 --------
 
-.. automodule:: dcf.tools.dc
-
-
-Interpolation
--------------
-
-.. automodule:: dcf.tools.pl
-
-
-Timestamps
-----------
-
-.. automodule:: dcf.tools.ts
-
-
-Numerics
---------
-
-.. automodule:: dcf.tools.nx
+.. automodule:: dcf.daycount

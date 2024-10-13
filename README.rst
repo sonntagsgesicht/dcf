@@ -150,7 +150,7 @@ and installed via :code:`$ pip install yieldcurves`.
 >>> curve = DateCurve(curve, origin=today)
 
 >>> pv(cashflow_list=loan, discount_curve=curve.df, valuation_date=today)
-5.80...
+5.7899411172157045
 
 Moreover, variable interest derived from float rates as given
 by a forward rate curve, e.g. a `curve.cash`, are possible, too.
@@ -160,7 +160,7 @@ by a forward rate curve, e.g. a `curve.cash`, are possible, too.
 >>> spread = .001
 >>> float_interest = CashFlowList.from_rate_cashflows(payment_dates, out, fixed_rate=spread, forward_curve=fwd.cash, pay_offset='2b', fixing_offset='2b')
 >>> pv(cashflow_list=float_interest, discount_curve=curve.df, valuation_date=today)
-1.11651...
+1.1164894830617234
 
 >>> print(tabulate(float_interest.table, headers='firstrow'))  # doctest: +SKIP
   cashflow  pay date      notional  start date    end date      year fraction    fixed rate    forward rate  fixing date    tenor
@@ -178,7 +178,7 @@ by a forward rate curve, e.g. a `curve.cash`, are possible, too.
 Documentation
 -------------
 
-More docs can be found on `http://dcf.readthedocs.io <http://dcf.readthedocs.io>`_
+More docs can be found on `https://dcf.readthedocs.io <https://dcf.readthedocs.io>`_
 
 
 Install

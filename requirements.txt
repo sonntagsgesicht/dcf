@@ -3,11 +3,13 @@ businessdate
 auxilium
 sphinx>=4.3.0
 tabulate
+curves
 yieldcurves
 pandas
 dcf
 regtest
 matplotlib
 numpy
-setuptools
+tslist
+prettyclass
 python-dateutil

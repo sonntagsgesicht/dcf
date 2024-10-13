@@ -9,16 +9,16 @@
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
-from .tools.dc import \
-    day_count as _default_day_count, DAYS_IN_YEAR as _DAYS_IN_YEAR
+from prettyclass import prettyclass
 
+
+from .daycount import (day_count as _default_day_count,
+                       DAYS_IN_YEAR as _DAYS_IN_YEAR)
 from .optionpricing import Intrinsic, Bachelier, Black76, DisplacedBlack76
 from .optionpricing.base import OptionPricingFormula
 
-from .tools.pp import pretty
 
-
-@pretty
+@prettyclass(init=False)
 class PayOffModel:
     """base payoff model to derive expected payoff cashflows"""
 

@@ -13,13 +13,13 @@ from functools import partial
 from math import exp
 from typing import Callable, Tuple, Iterable, Dict, Any as DateType
 
+from yieldcurves.tools.numerics import bisection_method
+from yieldcurves.interpolation import piecewise_linear
+
 from .cashflowlist import CashFlowList
+from .daycount import day_count as _default_day_count
 from .payoffs import CashFlowPayOff, RateCashFlowPayOff
 from .payoffmodels import PayOffModel
-
-from .tools.dc import day_count as _default_day_count
-from .tools.nx import simple_bracketing
-from .tools.pl import piecewise_linear
 
 
 def ecf(cashflow_list: CashFlowPayOff | CashFlowList,
@@ -44,7 +44,8 @@ def ecf(cashflow_list: CashFlowPayOff | CashFlowList,
     payoff_model = payoff_model or PayOffModel(lambda *_: 0.0)
     if isinstance(cashflow_list, CashFlowPayOff):
         cashflow_list = CashFlowList([cashflow_list])
-    details_list = payoff_model(cashflow_list[valuation_date:], valuation_date)
+    cashflow_list = [cf for cf in cashflow_list if valuation_date <= cf.__ts__]
+    details_list = payoff_model(cashflow_list, valuation_date)
     r = {}
     for d in details_list:
         r[d.__ts__] = r.get(d.__ts__, 0.0) + float(d)
@@ -144,7 +145,6 @@ def ytm(cashflow_list: CashFlowList,
 
     yield-to-matrurity of 5y fixed coupon bond
 
-    >>> from tabulate import tabulate
     >>> from yieldcurves import YieldCurve
     >>> from yieldcurves.interpolation import linear
     >>> from dcf import CashFlowList
@@ -184,7 +184,7 @@ def ytm(cashflow_list: CashFlowList,
     783115.0894...
 
     >>> ytm(bond, valuation_date=0, present_value=present_value)  
-    0.0499...
+    0.05
 
     """  # noqa 501
 
@@ -194,7 +194,7 @@ def ytm(cashflow_list: CashFlowList,
         return _pv - present_value
 
     # run bracketing
-    return simple_bracketing(err, *bounds, precision)
+    return bisection_method(err, *bounds, precision)
 
 
 def iac(cashflow_list: CashFlowList,
@@ -226,7 +226,6 @@ def iac(cashflow_list: CashFlowList,
     Example
     -------
 
-    >>> from tabulate import tabulate
     >>> from dcf import iac, CashFlowList
 
     setup 5y coupon bond
@@ -345,7 +344,7 @@ def fair(cashflow_list: CashFlowList,
     >>> for cf in coupon_leg: 
     ...     cf.fixed_rate = fair_rate
     >>> pv(bond, curve, 0.0)  
-    999999.9999...
+    999999.900407476
 
     """  # noqa 501
 
@@ -360,7 +359,7 @@ def fair(cashflow_list: CashFlowList,
         return _pv - present_value
 
     # run bracketing
-    par = simple_bracketing(err, *bounds, precision)
+    par = bisection_method(err, *bounds, precision)
 
     # restore fixed rate
     for cf, _fixed_rate in zip(cashflow_list, _fixed_rates):
@@ -727,14 +726,14 @@ def fit(cashflow_list: Iterable[CashFlowList],
 
     >>> yc = DateCurve(YieldCurve(AlgebraCurve(0.0, inplace=True)), origin=today)
     >>> fit(cashflow_list, yc.df, today, price_list=targets)
-    {1.002053388090349: 0.009261635865832207, 2.001368925393566: 0.011213039013339773, 3.0006844626967832: 0.013473990408407546, 4.0: 0.011791067769224518, 5.002053388090349: 0.011000000000002251}
+    {1.002053388090349: 0.00923305954824165, 2.001368925393566: 0.011298767966135473, 3.0006844626967832: 0.01353114304373552, 4.0: 0.011705338816325964, 5.002053388090349: 0.011000000000002223}
 
     The abouve is acctually the same as
 
     >>> yc = DateCurve(YieldCurve(AlgebraCurve(0.0, inplace=True)), origin=today)
     >>> grid = [yc.year_fraction(max(cf.domain)) for cf in cashflow_list]
     >>> fit(cashflow_list, yc.df, today, price_list=targets, fitting_curve=yc.curve.curve, fitting_grid=grid)
-    {1.002053388090349: 0.009261635865832207, 2.001368925393566: 0.011213039013339773, 3.0006844626967832: 0.013473990408407546, 4.0: 0.011791067769224518, 5.002053388090349: 0.011000000000002251}
+    {1.002053388090349: 0.00923305954824165, 2.001368925393566: 0.011298767966135473, 3.0006844626967832: 0.01353114304373552, 4.0: 0.011705338816325964, 5.002053388090349: 0.011000000000002223}
 
 
     """

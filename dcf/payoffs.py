@@ -11,11 +11,12 @@
 
 from pprint import pformat
 
+from prettyclass import prettyclass
+
+from .daycount import day_count as _default_day_count
 from .payoffmodels import OptionPayOffModel
 from .plans import DEFAULT_AMOUNT
 
-from .tools.dc import day_count as _default_day_count
-from .tools.pp import pretty, _copy
 
 
 class CashFlowDetails(dict):
@@ -35,7 +36,8 @@ class CashFlowDetails(dict):
         s = pformat(dict(self.items()), indent=2, sort_dicts=False)
         return f"{c}(\n{s}\n)"
 
-@pretty
+
+@prettyclass(init=False)
 class CashFlowPayOff:
     """Cash flow payoff base class"""
     _TS = 'pay_date'
@@ -49,7 +51,7 @@ class CashFlowPayOff:
         return self.details(model=model)
 
     def __copy__(self):
-        return _copy(self)  # added for editor code check
+        return self  # added for editor code check
 
     @property
     def __ts__(self):
