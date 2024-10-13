@@ -335,12 +335,9 @@ class CashFlowList(TSList):
         s = tabulate(self.table, headers="firstrow", floatfmt="_", intfmt="_")
         print(*seq, s, sep=sep, end=end, file=file)
 
-    def html(self):
+    def _repr_html_(self):
         s = tabulate(self.table, tablefmt="html", headers="firstrow")
         return s
-
-    def _repr_html_(self):
-        return self.html()
 
     @property
     def domain(self):
