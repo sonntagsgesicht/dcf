@@ -9,6 +9,8 @@
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
+from typing import Any as DateType  # noqa E401 E402
+
 
 DAYS_IN_YEAR = 365.25
 
