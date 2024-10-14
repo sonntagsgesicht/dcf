@@ -27,9 +27,7 @@ Cashflow Payoffs
     FixedCashFlowPayOff
     RateCashFlowPayOff
     ContingentRateCashFlowPayOff
-
     OptionCashFlowPayOff
-    OptionStrategyCashFlowPayOff
 
 .. autoclass:: FixedCashFlowPayOff
 
@@ -38,8 +36,6 @@ Cashflow Payoffs
 .. autoclass:: ContingentRateCashFlowPayOff
 
 .. autoclass:: OptionCashFlowPayOff
-
-.. autoclass:: OptionStrategyCashFlowPayOff
 
 .. autoclass:: CashFlowPayOff
 
@@ -165,18 +161,6 @@ Curve Bootstrapping
 
 Fundamentals
 ============
-
-Currency
---------
-
-.. automodule:: dcf.currency
-
-
-Rating Classes
---------------
-
-.. automodule:: dcf.ratingclass
-
 
 DayCount
 --------

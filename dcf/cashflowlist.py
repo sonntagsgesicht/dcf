@@ -33,9 +33,7 @@ except ImportError:
 
 
 from .payoffs import (FixedCashFlowPayOff, RateCashFlowPayOff,
-                      OptionCashFlowPayOff, OptionStrategyCashFlowPayOff,
-                      ContingentRateCashFlowPayOff)
-from .payoffmodels import PayOffModel
+                      OptionCashFlowPayOff, ContingentRateCashFlowPayOff)
 from .plans import DEFAULT_AMOUNT
 
 
@@ -127,21 +125,18 @@ class CashFlowList(TSList):
                 pay_date=pay_date,
                 start=s, end=e, day_count=day_count,
                 fixing_offset=fixing_offset, amount=a,
-                fixed_rate=fixed_rate
+                fixed_rate=fixed_rate,
+                forward_curve=forward_curve
             )
             payoff_list.append(payoff)
-
-        self = cls(payoff_list)
-        if forward_curve is not None:
-            self._payoff_model = PayOffModel(forward_curve=forward_curve)
-        return self
+        return cls(payoff_list)
 
     @classmethod
     def from_option_cashflows(
             cls,
             payment_date_list,
             amount_list=DEFAULT_AMOUNT,
-            strike_list=(),
+            strike_list=None,
             is_put_list=False,
             fixing_offset=None,
             pay_offset=None,
@@ -164,7 +159,7 @@ class CashFlowList(TSList):
         """
         if isinstance(amount_list, (int, float)):
             amount_list = [amount_list] * len(payment_date_list)
-        if isinstance(strike_list, (int, float)):
+        if isinstance(strike_list, (int, float)) or strike_list is None:
             strike_list = [strike_list] * len(payment_date_list)
         if isinstance(is_put_list, (bool, int, float)):
             is_put_list = [is_put_list] * len(payment_date_list)
@@ -182,69 +177,11 @@ class CashFlowList(TSList):
                 expiry=expiry,
                 amount=amount,
                 strike=strike,
-                is_put=is_put
+                is_put=is_put,
+                payoff_model=payoff_model
             )
             payoff_list.append(option)
-        self = cls(payoff_list)
-        self._payoff_model = payoff_model
-        return self
-
-    @classmethod
-    def from_option_strategy_cashflows(
-            cls,
-            payment_date_list,
-            call_amount_list=DEFAULT_AMOUNT,
-            call_strike_list=(),
-            put_amount_list=DEFAULT_AMOUNT,
-            put_strike_list=(),
-            fixing_offset=None,
-            pay_offset=None,
-            payoff_model=None):
-        r"""series of identical option strategies
-
-        :param payment_date_list: list of cashflow payment dates $t_k$
-        :param call_amount_list: list of call option notional amounts $N_{i}$
-        :param call_strike_list: list of call option strikes $K_{i}$
-        :param put_amount_list: list of put option notional amounts $N_{j}$
-        :param put_strike_list: list of put option strikes $L_{j}$
-        :param fixing_offset: offset $\delta$ between
-            underlying fixing date and cashflow end date
-        :param pay_offset: offset $\epsilon$ between
-            cashflow end date and payment date
-        :param payoff_model: payoff model to derive the expected payoff
-
-        This class method provides a list of
-        |OptionStrategyCashFlowPayOff()| $X_k$ objects
-        with payment date $t_k$.
-
-        Adjusted by offset $X_k$ has expiry date $T_k=t_k-\delta-\epsilon$
-        and for all $k$ the same $N_i$, $K_i$, $N_j$, $L_j$ are used.
-
-        """
-
-        if 10 < len(put_strike_list) + len(call_strike_list):
-            raise KeyError('OptionStrategyCashflowList are limited '
-                           'to 10 options per strategy payoff not '
-                           f"{len(put_strike_list) + len(call_strike_list)}")
-        payoff_list = list()
-        for pay_date in payment_date_list:
-            expiry = pay_date
-            if pay_offset:
-                expiry -= pay_offset
-            if fixing_offset:
-                expiry -= fixing_offset
-            strategy = OptionStrategyCashFlowPayOff(
-                pay_date=pay_date,
-                expiry=expiry,
-                call_amount_list=call_amount_list,
-                call_strike_list=call_strike_list,
-                put_amount_list=put_amount_list,
-                put_strike_list=put_strike_list
-            )
-            payoff_list.append(strategy)
-        self = cls(payoff_list)
-        self._payoff_model = payoff_model
-        return self
+        return cls(payoff_list)
 
     @classmethod
     def from_contingent_rate_cashflows(
@@ -310,12 +247,11 @@ class CashFlowList(TSList):
                 pay_date=pay_date,
                 start=s, end=e, day_count=day_count,
                 fixing_offset=fixing_offset, amount=a, fixed_rate=fixed_rate,
-                cap_strike=cap_strike, floor_strike=floor_strike
+                cap_strike=cap_strike, floor_strike=floor_strike,
+                payoff_model=payoff_model
             )
             payoff_list.append(payoff)
-        self = cls(payoff_list)
-        self._payoff_model = payoff_model
-        return self
+        return cls(payoff_list)
 
     @property
     def table(self):
@@ -337,8 +273,6 @@ class CashFlowList(TSList):
         :param iterable:
         """
         super().__init__(iterable)
-        self.payoff_model = None
-        """payoff model"""
 
     @property
     def domain(self):
@@ -352,6 +286,22 @@ class CashFlowList(TSList):
         origin = \
             min((getattr(v, 'origin', None) for v in self), default=origin)
         return origin
+
+    @property
+    def fixed_rate(self):
+        fixed_rates = (getattr(cf, 'fixed_rate', None) for cf in self)
+        fixed_rates = set(fr for fr in fixed_rates if fr is not None)
+        if len(fixed_rates) == 1:
+            return max(fixed_rates)
+        raise ValueError(f"list contains various fixed rates:"
+                         f" {', '.join(map(str, fixed_rates))}")
+
+    @fixed_rate.setter
+    def fixed_rate(self, value):
+        if not self.fixed_rate == value:
+            for cf in self:
+                if getattr(cf, 'fixed_rate', None) is not None:
+                    cf.fixed_rate = value
 
     def details(self, model=None):
         return self(model)
@@ -370,9 +320,8 @@ class CashFlowList(TSList):
     def __neg__(self):
         return self.__class__(v.__neg__() for v in self)
 
-    def __call__(self, model=None):
-        model = model or self.payoff_model
-        return self.__class__(v(model) for v in self)
+    def __call__(self, valuation_date=None):
+        return TSList(v(valuation_date) for v in self)
 
     def __add__(self, other):
         if isinstance(other, list):

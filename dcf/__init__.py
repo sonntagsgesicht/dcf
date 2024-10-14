@@ -29,14 +29,11 @@ logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 
 # todo:
-#  [ ] fix changing doctest results in README an HOWTO !!!
-#  [ ] fix test and qa
+#  [ ] test and doc with full coverage and updated README / HOWTO
 #  [ ] take numerics for curves
-#  [ ] doc with full coverage and updated README / HOWTO
 #  [ ] pricer default arguments (valuation_date, payoff_model, ...)
-#  [ ] add FxContainer for currency (or move to yieldcurves ?)
+#  [ ] better ModelUnitTests w/- bumps
 #  [ ] add products (Bond, Swap, Cap, Floor, Collar, Option, Swaption)
-#  [ ] better BumpGreeksModelUnitTests and BinaryModelUnitTests
 #  [ ] add sabr model
 
 
@@ -47,7 +44,6 @@ from .payoffs import (CashFlowPayOff, # noqa E401 E402
                       FixedCashFlowPayOff, # noqa E401 E402
                       RateCashFlowPayOff, # noqa E401 E402
                       OptionCashFlowPayOff, # noqa E401 E402
-                      OptionStrategyCashFlowPayOff, # noqa E401 E402
                       ContingentRateCashFlowPayOff)  # noqa E401 E402
 from .payoffmodels import PayOffModel, OptionPayOffModel  # noqa E401 E402
 from .pricer import ecf, pv, ytm, iac, fair, bpv, delta, fit  # noqa E401 E402

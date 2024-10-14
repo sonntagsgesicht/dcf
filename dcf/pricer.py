@@ -24,7 +24,7 @@ from .payoffmodels import PayOffModel
 
 
 def ecf(cashflow_list: CashFlowPayOff | CashFlowList,
-        valuation_date: DateType,
+        valuation_date: DateType | None = None,
         payoff_model: PayOffModel | None = None):
     r"""expected cashflow payoffs
 
@@ -42,20 +42,25 @@ def ecf(cashflow_list: CashFlowPayOff | CashFlowList,
         {0.0: -95.0, 1.0: 5.0, 2.0: 5.0, 3.0: 105.0}
         
     """   # noqa 501
-    payoff_model = payoff_model or PayOffModel(lambda *_: 0.0)
     if isinstance(cashflow_list, CashFlowPayOff):
         cashflow_list = CashFlowList([cashflow_list])
-    cashflow_list = [cf for cf in cashflow_list if valuation_date <= cf.__ts__]
-    details_list = payoff_model(cashflow_list, valuation_date)
+    cashflow_list = \
+        CashFlowList(cf for cf in cashflow_list if valuation_date <= cf.__ts__)
+    if payoff_model:
+        details_list = payoff_model(cashflow_list, valuation_date)
+    else:
+        details_list = cashflow_list(valuation_date)
+
     r = {}
     for d in details_list:
+        # merge multiple cf with same ts
         r[d.__ts__] = r.get(d.__ts__, 0.0) + float(d)
     return dict(sorted(r.items()))
 
 
 def pv(cashflow_list: CashFlowPayOff | CashFlowList,
-       discount_curve: Callable | float,
-       valuation_date: DateType,
+       discount_curve: Callable | float = 0.0,
+       valuation_date: DateType | None = None,
        payoff_model: PayOffModel | None = None):
     r""" calculates the present value by discounting cashflows
 
@@ -106,7 +111,7 @@ def pv(cashflow_list: CashFlowPayOff | CashFlowList,
 
 
 def ytm(cashflow_list: CashFlowList,
-        valuation_date: DateType,
+        valuation_date: DateType | None = None,
         present_value: float = 0.0,
         payoff_model: PayOffModel | None = None,
         precision: float = 1e-7,
@@ -199,7 +204,7 @@ def ytm(cashflow_list: CashFlowList,
 
 
 def iac(cashflow_list: CashFlowList,
-        valuation_date: DateType,
+        valuation_date: DateType | None = None,
         payoff_model: PayOffModel | None = None):
     r""" calculates interest accrued for rate cashflows
 
@@ -268,7 +273,6 @@ def iac(cashflow_list: CashFlowList,
     0.0
     
     """  # noqa 501
-    payoff_model = payoff_model or cashflow_list.payoff_model
     ac = 0.0
     for cf in cashflow_list:
         if isinstance(cf, RateCashFlowPayOff):
@@ -283,8 +287,8 @@ def iac(cashflow_list: CashFlowList,
 
 
 def fair(cashflow_list: CashFlowList,
-         discount_curve: Callable | float,
-         valuation_date: DateType,
+         discount_curve: Callable | float = 0.0,
+         valuation_date: DateType | None = None,
          present_value: float = 0.0,
          payoff_model: PayOffModel | None = None,
          precision: float = 1e-7,
@@ -370,8 +374,8 @@ def fair(cashflow_list: CashFlowList,
 
 
 def bpv(cashflow_list: CashFlowList,
-        discount_curve: Callable | float,
-        valuation_date: DateType,
+        discount_curve: Callable | float = 0.0,
+        valuation_date: DateType | None = None,
         payoff_model: PayOffModel | None = None,
         delta_curve: Callable | Iterable[Callable] | None = None,
         shift: float = 0.0001):
@@ -449,8 +453,8 @@ def bpv(cashflow_list: CashFlowList,
 
 
 def delta(cashflow_list: CashFlowList,
-          discount_curve: Callable | float,
-          valuation_date: DateType,
+          discount_curve: Callable | float = 0.0,
+          valuation_date: DateType | None = None,
           payoff_model: PayOffModel | None = None,
           delta_curve: Callable | Iterable[Callable] | None = None,
           delta_grid: Iterable[DateType] | None = None,
@@ -608,8 +612,8 @@ def delta(cashflow_list: CashFlowList,
 
 
 def fit(cashflow_list: Iterable[CashFlowList],
-        discount_curve: Callable | float,
-        valuation_date: DateType,
+        discount_curve: Callable | float = 0.0,
+        valuation_date: DateType | None = None,
         payoff_model: PayOffModel | None = None,
         price_list: Iterable[float] | None = None,
         fitting_curve: Callable | None = None,

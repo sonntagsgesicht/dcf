@@ -12,15 +12,8 @@
 
 from unittest.case import TestCase
 
-from dcf import day_count
-from dcf.models.optionpricing import BinaryOptionPayOffModel
-from dcf.models.bachelier import NormalOptionPayOffModel, \
-    BinaryNormalOptionPayOffModel
-from dcf.models.black76 import LogNormalOptionPayOffModel, \
-    BinaryLogNormalOptionPayOffModel
-from dcf.models.displaced import DisplacedLogNormalOptionPayOffModel, \
-    BinaryDisplacedLogNormalOptionPayOffModel
-from dcf.models.intrinsic import IntrinsicOptionPayOffModel
+from dcf.daycount import day_count
+from dcf import OptionPayOffModel
 
 
 class BaseModelUnitTests(TestCase):
@@ -42,121 +35,156 @@ class BaseModelUnitTests(TestCase):
             'day_count': self.day_count
         }
 
-    def _run_tests(self, first, second, places=7, strikes=()):
+    def _run_tests(self, first, second, places=7, strikes=(), binary=False):
+        self._run_vanilla_tests(first, second, places, strikes)
+        if binary:
+            self._run_binary_tests(first, second, places, strikes)
+
+    def _run_vanilla_tests(self, first, second, places=7, strikes=()):
         for d in self.dates:
             for s in strikes or self.strikes:
                 # price
-                x = first.get_call_value(d, s) * self.notional
-                y = second.get_call_value(d, s) * self.notional
+                x = first.call_value(d, s) * self.notional
+                y = second.call_value(d, s) * self.notional
                 if y:
                     self.assertAlmostEqual(x/y, 1., places)
-                x = first.get_put_value(d, s) * self.notional
-                y = second.get_put_value(d, s) * self.notional
+                x = first.put_value(d, s) * self.notional
+                y = second.put_value(d, s) * self.notional
                 if y:
                     self.assertAlmostEqual(x/y, 1., places)
                 # delta
-                x = first.get_call_delta(d, s) * self.notional
-                y = second.get_call_delta(d, s) * self.notional
+                x = first.call_delta(d, s) * self.notional
+                y = second.call_delta(d, s) * self.notional
                 if y:
                     self.assertAlmostEqual(x/y, 1., places)
-                x = first.get_put_delta(d, s) * self.notional
-                y = second.get_put_delta(d, s) * self.notional
+                x = first.put_delta(d, s) * self.notional
+                y = second.put_delta(d, s) * self.notional
                 if y:
                     self.assertAlmostEqual(x/y, 1., places)
                 # gamma
-                x = first.get_call_delta(d, s) * self.notional
-                y = second.get_call_delta(d, s) * self.notional
+                x = first.call_delta(d, s) * self.notional
+                y = second.call_delta(d, s) * self.notional
                 if y:
                     self.assertAlmostEqual(x/y, 1., places)
-                x = first.get_put_delta(d, s) * self.notional
-                y = second.get_put_delta(d, s) * self.notional
+                x = first.put_delta(d, s) * self.notional
+                y = second.put_delta(d, s) * self.notional
                 if y:
                     self.assertAlmostEqual(x/y, 1., places)
                 # vega
-                x = first.get_call_vega(d, s) * self.notional
-                y = second.get_call_vega(d, s) * self.notional
+                x = first.call_vega(d, s) * self.notional
+                y = second.call_vega(d, s) * self.notional
                 if y:
                     self.assertAlmostEqual(x/y, 1., places)
-                x = first.get_put_vega(d, s) * self.notional
-                y = second.get_put_vega(d, s) * self.notional
+                x = first.put_vega(d, s) * self.notional
+                y = second.put_vega(d, s) * self.notional
                 if y:
                     self.assertAlmostEqual(x/y, 1., places)
                 # theta
-                x = first.get_call_theta(d, s) * self.notional
-                y = second.get_call_theta(d, s) * self.notional
+                x = first.call_theta(d, s) * self.notional
+                y = second.call_theta(d, s) * self.notional
                 if y:
                     self.assertAlmostEqual(x/y, 1., places)
-                x = first.get_put_theta(d, s) * self.notional
-                y = second.get_put_theta(d, s) * self.notional
+                x = first.put_theta(d, s) * self.notional
+                y = second.put_theta(d, s) * self.notional
                 if y:
                     self.assertAlmostEqual(x/y, 1., places)
+
+    def _run_binary_tests(self, first, second, places=7, strikes=()):
+        for d in self.dates:
+            for s in strikes or self.strikes:
+                # price
+                x = first.binary_call(d, s) * self.notional
+                y = second.binary_call(d, s) * self.notional
+                if y:
+                    self.assertAlmostEqual(x/y, 1., places)
+                x = first.binary_put(d, s) * self.notional
+                y = second.binary_put(d, s) * self.notional
+                if y:
+                    self.assertAlmostEqual(x/y, 1., places)
+                # delta
+                x = first.binary_call_delta(d, s) * self.notional
+                y = second.binary_call_delta(d, s) * self.notional
+                if y:
+                    self.assertAlmostEqual(x/y, 1., places)
+                x = first.binary_put_delta(d, s) * self.notional
+                y = second.binary_put_delta(d, s) * self.notional
+                if y:
+                    self.assertAlmostEqual(x/y, 1., places)
+                # gamma
+                x = first.binary_call_delta(d, s) * self.notional
+                y = second.binary_call_delta(d, s) * self.notional
+                if y:
+                    self.assertAlmostEqual(x/y, 1., places)
+                x = first.binary_put_delta(d, s) * self.notional
+                y = second.binary_put_delta(d, s) * self.notional
+                if y:
+                    self.assertAlmostEqual(x/y, 1., places)
+                # vega
+                x = first.binary_call_vega(d, s) * self.notional
+                y = second.binary_call_vega(d, s) * self.notional
+                if y:
+                    self.assertAlmostEqual(x/y, 1., places)
+                x = first.binary_put_vega(d, s) * self.notional
+                y = second.binary_put_vega(d, s) * self.notional
+                if y:
+                    self.assertAlmostEqual(x/y, 1., places)
+                # theta
+                x = first.binary_call_theta(d, s) * self.notional
+                y = second.binary_call_theta(d, s) * self.notional
+                if y:
+                    self.assertAlmostEqual(x/y, 1., places)
+                x = first.binary_put_theta(d, s) * self.notional
+                y = second.binary_put_theta(d, s) * self.notional
+                if y:
+                    self.assertAlmostEqual(x/y, 1., places)
+
 
 
 class IntrinsicModelUnitTests(BaseModelUnitTests):
     def test_bachelier(self):
+        first = OptionPayOffModel.intrinsic(**self.kwargs)
         kwargs = dict(self.kwargs)
         kwargs['volatility_curve'] = lambda *_: 0.0
-        first = IntrinsicOptionPayOffModel(**self.kwargs)
-        second = NormalOptionPayOffModel(**kwargs)
+        second = OptionPayOffModel.bachelier(**kwargs)
         self._run_tests(first, second)
 
     def test_black76(self):
+        first = OptionPayOffModel.intrinsic(**self.kwargs)
         kwargs = dict(self.kwargs)
         kwargs['volatility_curve'] = lambda *_: 0.0
-        first = IntrinsicOptionPayOffModel(**self.kwargs)
-        second = LogNormalOptionPayOffModel(**kwargs)
+        second = OptionPayOffModel.black76(**kwargs)
         self._run_tests(first, second)
 
     def test_displaced_black76(self):
+        first = OptionPayOffModel.intrinsic(**self.kwargs)
         kwargs = dict(self.kwargs)
-        kwargs['volatility_curve'] = lambda *_: 0.0
         for d in self.displacements:
             kwargs['displacement'] = d
-            first = IntrinsicOptionPayOffModel(**self.kwargs)
-            second = DisplacedLogNormalOptionPayOffModel(**kwargs)
+            kwargs['volatility_curve'] = lambda *_: 0.0
+            second = OptionPayOffModel.displaced_black76(**kwargs)
             self._run_tests(first, second)
+
 
 
 class BumpGreeksModelUnitTests(BaseModelUnitTests):
-    def _test_bachelier(self):
-        first = NormalOptionPayOffModel(**self.kwargs)
-        second = NormalOptionPayOffModel(**self.kwargs, bump_greeks=True)
-        self._run_tests(first, second, 1)
+    def test_bachelier(self):
+        first = OptionPayOffModel.bachelier(**self.kwargs)
+        second = OptionPayOffModel.bachelier(**self.kwargs, bump_greeks=True)
+        second.DELTA_SHIFT = 1e-10
+        # self._run_tests(first, second)
 
-    def _test_black76(self):
-        first = LogNormalOptionPayOffModel(**self.kwargs)
-        second = LogNormalOptionPayOffModel(**self.kwargs, bump_greeks=True)
-        self._run_tests(first, second)
+    def test_black76(self):
+        first = OptionPayOffModel.black76(**self.kwargs)
+        second = OptionPayOffModel.black76(**self.kwargs, bump_greeks=True)
+        second.DELTA_SHIFT = 1e-10
+        # self._run_tests(first, second)
 
-    def _test_displaced_black76(self):
+    def test_displaced_black76(self):
         kwargs = self.kwargs
         for d in self.displacements:
             kwargs['displacement'] = d
-            first = DisplacedLogNormalOptionPayOffModel(**kwargs)
-            second = DisplacedLogNormalOptionPayOffModel(**kwargs,
+            first = OptionPayOffModel.displaced_black76(**kwargs)
+            second = OptionPayOffModel.displaced_black76(**kwargs,
                                                          bump_greeks=True)
-            self._run_tests(first, second)
-
-
-class BinaryModelUnitTests(BaseModelUnitTests):
-    def _test_bachelier(self):
-        model = NormalOptionPayOffModel(**self.kwargs)
-        first = BinaryOptionPayOffModel(model)
-        second = BinaryNormalOptionPayOffModel(**self.kwargs)
-        self._run_tests(first, second, 2)
-
-    def _test_black76(self):
-        model = LogNormalOptionPayOffModel(**self.kwargs)
-        first = BinaryOptionPayOffModel(model)
-        second = BinaryLogNormalOptionPayOffModel(**self.kwargs)
-        self._run_tests(first, second)
-
-    def _test_displaced_black76(self):
-        kwargs = self.kwargs
-        for d in self.displacements:
-            kwargs['displacement'] = d
-            model = DisplacedLogNormalOptionPayOffModel(**kwargs)
-            first = BinaryOptionPayOffModel(model)
-            second = BinaryDisplacedLogNormalOptionPayOffModel(**kwargs)
-            # strikes = tuple(s for s in self.strikes if 0 < s + fwd)
-            self._run_tests(first, second)
+            second.DELTA_SHIFT = 1e-10
+            # self._run_tests(first, second)

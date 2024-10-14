@@ -48,9 +48,9 @@ class PayOffModel:
             self.valuation_date = valuation_date
         if isinstance(cashflow_payoff, list):
             cls = cashflow_payoff.__class__
-            result = cls(cf(model=self) for cf in cashflow_payoff)
+            result = cls(cf.details(model=self) for cf in cashflow_payoff)
         else:
-            result = cashflow_payoff(model=self)
+            result = cashflow_payoff.details(model=self)
         self.valuation_date = _valuation_date
         return result
 
@@ -216,7 +216,9 @@ class OptionPayOffModel(PayOffModel):
         super().__init__(
             forward_curve, valuation_date=valuation_date, day_count=day_count)
         self.option_pricing_formula = option_pricing_formula
-        r"""option pricing formula, either simple pricing function or |OptionPricingFormula|. The later provides attributes for Greeks like `delta` etc. """  # noqa E501
+        r"""option pricing formula,
+        either simple pricing function or |OptionPricingFormula|.
+        The later provides attributes for Greeks like `delta` etc. """
         self.volatility_curve = volatility_curve
         r"""parameter curve of option pricing formulas $\nu(t)$"""
         self.bump_greeks = bump_greeks
