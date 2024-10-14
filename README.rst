@@ -104,35 +104,36 @@ Finally, create for each leg a `CashFlowList`.
 
 >>> principal = CashFlowList.from_fixed_cashflows([start_date], [notional])
 >>> print(principal)
-CashFlowList(
-[FixedCashFlowPayOff(BusinessDate(20201031), 1000.0)]
-)
+pay date      cashflow
+----------  ----------
+20201031       1_000.0
 
 >>> redemption = CashFlowList.from_fixed_cashflows(payment_dates, plan)
 >>> print(redemption)
-CashFlowList(
-[ FixedCashFlowPayOff(BusinessDate(20210131), 125.0),
-  FixedCashFlowPayOff(BusinessDate(20210430), 125.0),
-  FixedCashFlowPayOff(BusinessDate(20210731), 125.0),
-  FixedCashFlowPayOff(BusinessDate(20211031), 125.0),
-  FixedCashFlowPayOff(BusinessDate(20220131), 125.0),
-  FixedCashFlowPayOff(BusinessDate(20220430), 125.0),
-  FixedCashFlowPayOff(BusinessDate(20220731), 125.0),
-  FixedCashFlowPayOff(BusinessDate(20221031), 125.0)]
-)
+pay date      cashflow
+----------  ----------
+20210131         125.0
+20210430         125.0
+20210731         125.0
+20211031         125.0
+20220131         125.0
+20220430         125.0
+20220731         125.0
+20221031         125.0
 
 >>> interest = CashFlowList.from_rate_cashflows(payment_dates, out, fixed_rate=interest_rate)
 >>> print(interest)
-CashFlowList(
-[ RateCashFlowPayOff(BusinessDate(20210131), BusinessDate(20201031), BusinessDate(20210131), 1000.0, fixed_rate=0.01),
-  RateCashFlowPayOff(BusinessDate(20210430), BusinessDate(20210131), BusinessDate(20210430), 875.0, fixed_rate=0.01),
-  RateCashFlowPayOff(BusinessDate(20210731), BusinessDate(20210430), BusinessDate(20210731), 750.0, fixed_rate=0.01),
-  RateCashFlowPayOff(BusinessDate(20211031), BusinessDate(20210731), BusinessDate(20211031), 625.0, fixed_rate=0.01),
-  RateCashFlowPayOff(BusinessDate(20220131), BusinessDate(20211031), BusinessDate(20220131), 500.0, fixed_rate=0.01),
-  RateCashFlowPayOff(BusinessDate(20220430), BusinessDate(20220131), BusinessDate(20220430), 375.0, fixed_rate=0.01),
-  RateCashFlowPayOff(BusinessDate(20220731), BusinessDate(20220430), BusinessDate(20220731), 250.0, fixed_rate=0.01),
-  RateCashFlowPayOff(BusinessDate(20221031), BusinessDate(20220731), BusinessDate(20221031), 125.0, fixed_rate=0.01)]
-)
+pay date              cashflow    notional  pay rec      fixed rate  start date    end date         year fraction
+----------  ------------------  ----------  ---------  ------------  ------------  ----------  ------------------
+20210131    2.5188227241615326     1_000.0  pay                0.01  20201031      20210131    0.2518822724161533
+20210430    2.132101300479124        875.0  pay                0.01  20210131      20210430    0.243668720054757
+20210731    1.8891170431211497       750.0  pay                0.01  20210430      20210731    0.2518822724161533
+20211031    1.574264202600958        625.0  pay                0.01  20210731      20211031    0.2518822724161533
+20220131    1.2594113620807663       500.0  pay                0.01  20211031      20220131    0.2518822724161533
+20220430    0.9137577002053389       375.0  pay                0.01  20220131      20220430    0.243668720054757
+20220731    0.6297056810403832       250.0  pay                0.01  20220430      20220731    0.2518822724161533
+20221031    0.3148528405201916       125.0  pay                0.01  20220731      20221031    0.2518822724161533
+
 
 Add those legs to one `CashFlowList` provides a common container for valuation (`pv()`).
 
@@ -146,11 +147,11 @@ and installed via :code:`$ pip install yieldcurves`.
 >>> from dcf import pv
 >>> from yieldcurves import YieldCurve, DateCurve
 
->>> curve = YieldCurve.from_interpolation([today, today + '5y'], [-.005, .005])
->>> curve = DateCurve(curve, origin=today)
+>>> yield_curve = YieldCurve.from_interpolation([0.0, 5.0], [0.01, 0.005])
+>>> curve = DateCurve(yield_curve, origin=today)
 
 >>> pv(cashflow_list=loan, discount_curve=curve.df, valuation_date=today)
-5.7899411172157045
+1.5625685624667653
 
 Moreover, variable interest derived from float rates as given
 by a forward rate curve, e.g. a `curve.cash`, are possible, too.
@@ -160,7 +161,7 @@ by a forward rate curve, e.g. a `curve.cash`, are possible, too.
 >>> spread = .001
 >>> float_interest = CashFlowList.from_rate_cashflows(payment_dates, out, fixed_rate=spread, forward_curve=fwd.cash, pay_offset='2b', fixing_offset='2b')
 >>> pv(cashflow_list=float_interest, discount_curve=curve.df, valuation_date=today)
-1.1164894830617234
+1.1125652177121212
 
 >>> print(tabulate(float_interest.table, headers='firstrow'))  # doctest: +SKIP
   cashflow  pay date      notional  start date    end date      year fraction    fixed rate    forward rate  fixing date    tenor

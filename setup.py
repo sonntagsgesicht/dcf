@@ -17,26 +17,22 @@ try:
 except ImportError:
     from distutils.core import setup
 
-pkg = __import__('dcf')
 
 setup(
-    name=pkg.__name__,
-    description=pkg.__doc__,
-    version=pkg.__version__,
-    author=pkg.__author__,
-    author_email=pkg.__email__,
-    url=pkg.__url__,
-    license=pkg.__license__,
+    name='dcf',
+    description='A Python library for generating discounted cashflows.',
+    version='0.8',
+    author='sonntagsgesicht',
+    author_email='sonntagsgesicht@icloud.com',
+    url='https://github.com/sonntagsgesicht/dcf',
+    license='Apache License 2.0',
     packages=find_packages(),
-    package_data={pkg.__name__: list(pkg.__data__)},
-    scripts=pkg.__scripts__,
-    install_requires=pkg.__dependencies__,
-    dependency_links=pkg.__dependency_links__,
+    install_requires=('prettyclass', 'curves', 'yieldcurves'),
     long_description='\n' + codecs.open('README.rst', encoding='utf-8').read(),
     long_description_content_type='text/x-rst',
     platforms='any',
     classifiers=[
-        'Development Status :: ' + pkg.__dev_status__,
+        'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'Intended Audience :: Education',
         'Intended Audience :: Financial and Insurance Industry',

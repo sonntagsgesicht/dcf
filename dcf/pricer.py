@@ -13,8 +13,9 @@ from functools import partial
 from math import exp
 from typing import Callable, Tuple, Iterable, Dict, Any as DateType
 
-from yieldcurves.tools.numerics import bisection_method
-from yieldcurves.interpolation import piecewise_linear
+from curves.numerics import bisection_method
+from yieldcurves import YieldCurve, DateCurve
+from yieldcurves.interpolation import piecewise_linear, fit as _fit
 
 from .cashflowlist import CashFlowList
 from .daycount import day_count as _default_day_count
@@ -100,7 +101,7 @@ def pv(cashflow_list: CashFlowPayOff | CashFlowList,
     df, vd = discount_curve, valuation_date
     if isinstance(discount_curve, float):
         # todo: review discount_curve as float
-        df = lambda s, t: exp(-float(t - s) * discount_curve)
+        df = (lambda s, t: exp(-float(t - s) * discount_curve))
     return sum(df(vd, t) * float(cf) for t, cf in ecf_dict.items())
 
 
@@ -158,7 +159,7 @@ def ytm(cashflow_list: CashFlowList,
 
     bond with cashflow tables
 
-    >>> coupon_leg.print()
+    >>> print(coupon_leg)
       pay date    cashflow    notional  pay rec      fixed rate    start date    end date    year fraction
     ----------  ----------  ----------  ---------  ------------  ------------  ----------  ---------------
            1.0     1_000.0   1_000_000  pay               0.001           0.0         1.0              1.0
@@ -167,7 +168,7 @@ def ytm(cashflow_list: CashFlowList,
            4.0     1_000.0   1_000_000  pay               0.001           3.0         4.0              1.0
            5.0     1_000.0   1_000_000  pay               0.001           4.0         5.0              1.0
 
-    >>> redemption_leg.print()
+    >>> print(redemption_leg)
       pay date    cashflow
     ----------  ----------
            5.0   1_000_000 
@@ -237,7 +238,7 @@ def iac(cashflow_list: CashFlowList,
 
     bond with cashflow tables
 
-    >>> coupon_leg.print()
+    >>> print(coupon_leg)
       pay date    cashflow    notional  pay rec      fixed rate    start date    end date    year fraction
     ----------  ----------  ----------  ---------  ------------  ------------  ----------  ---------------
            1.0     1_000.0   1_000_000  pay               0.001           0.0         1.0              1.0
@@ -247,7 +248,7 @@ def iac(cashflow_list: CashFlowList,
            5.0     1_000.0   1_000_000  pay               0.001           4.0         5.0              1.0
 
 
-    >>> redemption_leg.print()
+    >>> print(redemption_leg)
       pay date    cashflow
     ----------  ----------
            5.0   1_000_000
@@ -400,7 +401,7 @@ def bpv(cashflow_list: CashFlowList,
     Example
     -------
 
-    >>> from yieldcurves import YieldCurve, AlgebraCurve
+    >>> from yieldcurves import YieldCurve
     >>> from dcf import pv, bpv, CashFlowList
 
     setup 5y coupon bond
@@ -418,7 +419,7 @@ def bpv(cashflow_list: CashFlowList,
     
     calculate bpv as bond delta
 
-    >>> yc = YieldCurve(AlgebraCurve(curve, inplace=True))
+    >>> yc = YieldCurve(curve)
     >>> bpv(bond, yc.df, 0.0, delta_curve=yc.curve)  
     -465.1755...
 
@@ -543,7 +544,7 @@ def delta(cashflow_list: CashFlowList,
 
     same example as |bpv()| but with buckets
 
-    >>> from yieldcurves import YieldCurve, AlgebraCurve
+    >>> from yieldcurves import YieldCurve
     >>> from dcf import pv, bpv, delta, CashFlowList
 
     setup 5y coupon bond
@@ -556,7 +557,7 @@ def delta(cashflow_list: CashFlowList,
 
     calculate bpv as bond delta
 
-    >>> yc = YieldCurve(AlgebraCurve(curve, inplace=True))
+    >>> yc = YieldCurve(curve)
     >>> bucked_bpv = delta(bond, yc.df, 0.0, delta_curve=yc.curve, delta_grid=[0.,1.,2.,3.,4.,5.])  
     >>> bucked_bpv
     (0.0, -0.098901..., -0.194458..., -0.289348..., -0.384238..., -468.885034...)
@@ -587,7 +588,8 @@ def delta(cashflow_list: CashFlowList,
         shifts = ([shift, 0.], [0., shift])
     else:
         first = [delta_grid[0], delta_grid[1]]
-        mids = list(map(list, zip(delta_grid[0: -2], delta_grid[1: -1], delta_grid[2:])))
+        mids = zip(delta_grid[0: -2], delta_grid[1: -1], delta_grid[2:])
+        mids = list(map(list, mids))
         last = [delta_grid[-2], delta_grid[-1]]
         grids = [first] + mids + [last]
         shifts = [[shift, 0.]] + [[0., shift, 0.]] * len(mids) + [[0., shift]]
@@ -628,7 +630,7 @@ def fit(cashflow_list: Iterable[CashFlowList],
     :param price_list: list of prices to match
         (optional; default assumes all prices to be 0.0)
     :param fitting_curve: curve to fit by inplace adding another curve,
-        e.g. see `yieldcurves.AlgebraCurve()`
+        e.g. see `curves.Curve()`
         (otional; default is a yield curve derived from **discount_curve**)
     :param fitting_grid: list of year fractions (float)
         which define the interpolation grid
@@ -656,7 +658,7 @@ def fit(cashflow_list: Iterable[CashFlowList],
     -----------------------------
 
     >>> from dcf import pv, fit, CashFlowList
-    >>> from yieldcurves import YieldCurve, AlgebraCurve, DateCurve
+    >>> from yieldcurves import YieldCurve, DateCurve
 
     build cashflow instruments
 
@@ -679,7 +681,7 @@ def fit(cashflow_list: Iterable[CashFlowList],
 
     or
 
-    >>> yc = YieldCurve(AlgebraCurve(0.0, inplace=True))  # curve to calibrate to
+    >>> yc = YieldCurve(0.0)  # curve to calibrate to
     >>> rates = fit(cashflow_list, yc.df, today, price_list=targets)  # curve fitting
     >>> rates
     {1.0: 0.009999999999989299, 2.0: 0.008999999998175629, 3.0: 0.011999999986343402, 4.0: 0.013999999946028392, 5.0: 0.011000000052247317}
@@ -698,7 +700,7 @@ def fit(cashflow_list: Iterable[CashFlowList],
 
     The abouve is acctually the same as
 
-    >>> yc = DateCurve(YieldCurve(AlgebraCurve(0.0, inplace=True)), origin=0.0)
+    >>> yc = DateCurve(YieldCurve(0.0), origin=0.0)
     >>> grid = [yc.year_fraction(max(cf.domain)) for cf in cashflow_list]
     >>> fit(cashflow_list, yc.df, today, price_list=targets, fitting_curve=yc.curve.curve, fitting_grid=grid)
     {1.0: 0.009999999999989299, 2.0: 0.008999999998175629, 3.0: 0.011999999986343402, 4.0: 0.013999999946028392, 5.0: 0.011000000052247317}
@@ -724,32 +726,26 @@ def fit(cashflow_list: Iterable[CashFlowList],
 
     invoke curve fitting
 
-    >>> yc = DateCurve(YieldCurve(AlgebraCurve(0.0, inplace=True)), origin=today)
+    >>> yc = DateCurve(YieldCurve(0.0), origin=today)
     >>> fit(cashflow_list, yc.df, today, price_list=targets)
-    {1.002053388090349: 0.00923305954824165, 2.001368925393566: 0.011298767966135473, 3.0006844626967832: 0.01353114304373552, 4.0: 0.011705338816325964, 5.002053388090349: 0.011000000000002223}
+    {1.002053388090349: 0.009213894592731425, 2.001368925393566: 0.011356262832681076, 3.0006844626967832: 0.013569472954852658, 4.0: 0.011647843949712244, 5.002053388090349: 0.011000000000002444}
 
-    The abouve is acctually the same as
+    The above is acctually the same as
 
-    >>> yc = DateCurve(YieldCurve(AlgebraCurve(0.0, inplace=True)), origin=today)
+    >>> yc = DateCurve(YieldCurve(0.0), origin=today)
     >>> grid = [yc.year_fraction(max(cf.domain)) for cf in cashflow_list]
     >>> fit(cashflow_list, yc.df, today, price_list=targets, fitting_curve=yc.curve.curve, fitting_grid=grid)
-    {1.002053388090349: 0.00923305954824165, 2.001368925393566: 0.011298767966135473, 3.0006844626967832: 0.01353114304373552, 4.0: 0.011705338816325964, 5.002053388090349: 0.011000000000002223}
+    {1.002053388090349: 0.009213894592731425, 2.001368925393566: 0.011356262832681076, 3.0006844626967832: 0.013569472954852658, 4.0: 0.011647843949712244, 5.002053388090349: 0.011000000000002444}
 
 
-    """
-    try:
-        from yieldcurves import YieldCurve, AlgebraCurve, DateCurve
-        from yieldcurves.interpolation import fit as _fit
-    except ImportError:
-        raise ImportError("fit() requires yieldcurves package. "
-                          "try `pip install yieldcurves`")
+    """  # noqa E501
 
     if fitting_grid is None:
         if isinstance(getattr(discount_curve, '__self__', ''), DateCurve):
             yf = discount_curve.__self__.year_fraction
         else:
             origin = getattr(discount_curve, 'origin', valuation_date)
-            yf = lambda x: _default_day_count(origin, x)
+            yf = (lambda x: _default_day_count(origin, x))
         fitting_grid = [yf(max(cf.domain)) for cf in cashflow_list]
 
     if fitting_curve is None:
@@ -757,19 +753,19 @@ def fit(cashflow_list: Iterable[CashFlowList],
             if discount_curve - 1:
                 raise ValueError(f"constant discount_curve be 1.0 as"
                                  f"a value of {discount_curve} is ambiguous")
-
-            fitting_curve = AlgebraCurve(0.0, inplace=True)
-            discount_curve = YieldCurve(fitting_curve).df
+            yield_curve = YieldCurve(0.0)
+            discount_curve = yield_curve.df
+            fitting_curve = yield_curve.curve
         elif isinstance(getattr(discount_curve, '__self__', ''), DateCurve):
             date_curve = discount_curve.__self__
-            fitting_curve = AlgebraCurve(date_curve.curve, inplace=True)
             origin = date_curve.origin
-            discount_curve = \
-                DateCurve(YieldCurve(fitting_curve), origin=origin).df
+            yield_curve = YieldCurve(date_curve.curve)
+            discount_curve = DateCurve(yield_curve, origin=origin).df
+            fitting_curve = yield_curve.curve
         else:
-            fitting_curve = \
-                AlgebraCurve(YieldCurve.from_df(discount_curve), inplace=True)
-            discount_curve = YieldCurve(fitting_curve).df
+            yield_curve = YieldCurve(YieldCurve.from_df(discount_curve))
+            discount_curve = yield_curve.df
+            fitting_curve = yield_curve.curve
 
     args = discount_curve, valuation_date, payoff_model
     err_funcs = [partial(pv, cf, *args) for cf in cashflow_list]

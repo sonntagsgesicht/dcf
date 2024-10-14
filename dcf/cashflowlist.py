@@ -40,6 +40,7 @@ from .plans import DEFAULT_AMOUNT
 
 
 class CashFlowList(TSList):
+    """cashflow payoff container"""
 
     @classmethod
     def from_fixed_cashflows(
@@ -265,14 +266,13 @@ class CashFlowList(TSList):
         :param amount_list: notional amounts
         :param origin: start date of first interest accrued period
         :param day_count: day count convention
-        :param fixed_rate: agreed fixed rate
-        :param forward_curve:
         :param fixing_offset: time difference between
             interest rate fixing date and interest period payment date
         :param pay_offset: time difference between
             interest period end date and interest payment date
-        :param floor_strike: lower interest rate boundary $K$
+        :param fixed_rate: agreed fixed rate
         :param cap_strike: upper interest rate boundary $L$
+        :param floor_strike: lower interest rate boundary $K$
         :param payoff_model: option valuation model to derive the
             expected cashflow of option payoffs
 
@@ -331,13 +331,14 @@ class CashFlowList(TSList):
             rows.append(list(r.values()))
         return rows
 
-    def print(self, *seq, sep='\n', end='\n', file=None):
-        s = tabulate(self.table, headers="firstrow", floatfmt="_", intfmt="_")
-        print(*seq, s, sep=sep, end=end, file=file)
+    def __init__(self, iterable=(), /):
+        """cashflow payoff container
 
-    def _repr_html_(self):
-        s = tabulate(self.table, tablefmt="html", headers="firstrow")
-        return s
+        :param iterable:
+        """
+        super().__init__(iterable)
+        self.payoff_model = None
+        """payoff model"""
 
     @property
     def domain(self):
@@ -352,24 +353,26 @@ class CashFlowList(TSList):
             min((getattr(v, 'origin', None) for v in self), default=origin)
         return origin
 
-    @property
-    def payoff_model(self):
-        """model to derive the expected cashflow"""
-        return getattr(self, '_payoff_model', None)
-
-    @payoff_model.setter
-    def payoff_model(self, value):
-        setattr(self, '_payoff_model', value)
-
     def details(self, model=None):
         return self(model)
 
-    def __call__(self, model=None):
-        model = model or self.payoff_model
-        return TSList(v(model) for v in self)
+    def _repr_html_(self):
+        s = tabulate(self.table, tablefmt="html", headers="firstrow")
+        return s
+
+    def __str__(self):
+        return tabulate(
+            self.table, headers="firstrow", floatfmt="_", intfmt="_")
+
+    def __abs__(self):
+        return self.__class__(v.__abs__() for v in self)
 
     def __neg__(self):
         return self.__class__(v.__neg__() for v in self)
+
+    def __call__(self, model=None):
+        model = model or self.payoff_model
+        return self.__class__(v(model) for v in self)
 
     def __add__(self, other):
         if isinstance(other, list):
@@ -390,18 +393,3 @@ class CashFlowList(TSList):
 
     def __matmul__(self, other):
         return self.__class__(v.__matmul__(other) for v in self)
-
-    def __abs__(self):
-        return self.__class__(v.__abs__() for v in self)
-
-    def __divmod__(self, other):
-        return self.__class__(v.__divmod__() for v in self)
-
-    def __mod__(self, other):
-        return self.__class__(v.__mod__() for v in self)
-
-    def __floordiv__(self, other):
-        return self.__class__(v.__floordiv__() for v in self)
-
-    def __invert__(self):
-        return self.__class__(v.__invert__() for v in self)

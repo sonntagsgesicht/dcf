@@ -60,7 +60,7 @@ class Black76(OptionPricingFormula):
 
     """
 
-    ### vanilla
+    # --- vanilla
 
     def __call__(self, time, strike, forward, volatility):
         vol = volatility * sqrt(time)
@@ -82,7 +82,7 @@ class Black76(OptionPricingFormula):
         d = (log(forward / strike) + (vol ** 2 / 2)) / vol
         return forward * sqrt(time) * normal_pdf(d - vol)
 
-    ### binary
+    # --- binary
 
     def binary(self, time, strike, forward, volatility):
         vol = volatility * sqrt(time)

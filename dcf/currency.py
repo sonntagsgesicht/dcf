@@ -100,7 +100,7 @@ class currency:
         file = 'eurofxref-hist.csv'
         url = 'https://www.ecb.europa.eu/stats/eurofxref/eurofxref.zip'
         file = 'eurofxref.csv'
-        myzip = ZipFile(BytesIO(urlopen(url).read()))  #  nosec B310
+        myzip = ZipFile(BytesIO(urlopen(url).read()))  # nosec B310
         lines = tuple(myzip.open(file).readlines())
         lines = tuple(_.decode().replace(' ', '') for _ in lines)
         d = dict(zip(*reader(lines)))

@@ -55,7 +55,7 @@ class Bachelier(OptionPricingFormula):
 
     """
 
-    ### vanilla
+    # --- vanilla
 
     def __call__(self, time, strike, forward, volatility):
         vol = volatility * sqrt(time)
@@ -77,7 +77,7 @@ class Bachelier(OptionPricingFormula):
         d = (forward - strike) / vol
         return sqrt(time) * normal_pdf(d)
 
-    ### binary
+    # --- binary
 
     def binary(self, time, strike, forward, volatility):
         vol = volatility * sqrt(time)

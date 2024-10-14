@@ -18,7 +18,6 @@ from .payoffmodels import OptionPayOffModel
 from .plans import DEFAULT_AMOUNT
 
 
-
 class CashFlowDetails(dict):
 
     def __float__(self):
@@ -539,8 +538,9 @@ class OptionStrategyCashFlowPayOff(CashFlowPayOff):
         }
         cf = 0.0
         for i, option in enumerate(self._options):
+            dtls = 'cashflow', 'put call', 'long short', 'notional', 'strike'
             for k, v in option(model).items():
-                if k in ('cashflow', 'put call', 'long short', 'notional', 'strike'):
+                if k in dtls:
                     details[f"#{i} {k}"] = v
                 if k == 'cashflow':
                     cf += v

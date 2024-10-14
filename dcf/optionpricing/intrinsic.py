@@ -44,7 +44,7 @@ class Intrinsic(OptionPricingFormula):
 
     """
 
-    ### vanilla
+    # --- vanilla
 
     def __call__(self, time, strike, forward, volatility):
         return max(forward - strike, 0.0)
@@ -61,7 +61,7 @@ class Intrinsic(OptionPricingFormula):
     def theta(self, time, strike, forward, volatility):
         return 0.0
 
-    ### binary
+    # --- binary
 
     def binary(self, time, strike, forward, volatility):
         return 0.0 if forward <= strike else 1.0

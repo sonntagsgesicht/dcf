@@ -40,7 +40,7 @@ class PayOffModel:
         self.forward_curve = forward_curve
         r"""curve for deriving forward values $F(t)$"""
         self.day_count = day_count
-        r"""day count function to calculate year fraction between dates $\tau$"""
+        r"""day count function to calculate year fraction between dates $\tau$"""  # noqa E501
 
     def __call__(self, cashflow_payoff, valuation_date=None):
         _valuation_date = self.valuation_date
@@ -75,7 +75,7 @@ class PayOffModel:
         details['model-id'] = id(self)
         return details
 
-    ### parameter
+    # --- parameter
 
     def time(self, expiry):
         if self.day_count:
@@ -143,7 +143,8 @@ class OptionPayOffModel(PayOffModel):
     @classmethod
     def intrinsic(cls, forward_curve, volatility_curve=None, *,
                   valuation_date=None, day_count=None,
-                  bump_greeks: bool=False, bump_binary: bool=False):
+                  bump_greeks: bool = False,
+                  bump_binary: bool = False):
         option_pricing_formula = Intrinsic()
         return cls(forward_curve, option_pricing_formula,
                    volatility_curve=volatility_curve,
@@ -153,7 +154,8 @@ class OptionPayOffModel(PayOffModel):
     @classmethod
     def bachelier(cls, forward_curve, volatility_curve=None, *,
                   valuation_date=None, day_count=None,
-                  bump_greeks: bool=False, bump_binary: bool=False):
+                  bump_greeks: bool = False,
+                  bump_binary: bool = False):
         option_pricing_formula = Bachelier()
         return cls(forward_curve, option_pricing_formula,
                    volatility_curve=volatility_curve,
@@ -163,7 +165,8 @@ class OptionPayOffModel(PayOffModel):
     @classmethod
     def black76(cls, forward_curve, volatility_curve=None, *,
                 valuation_date=None, day_count=None,
-                bump_greeks: bool=False, bump_binary: bool=False):
+                bump_greeks: bool = False,
+                bump_binary: bool = False):
         option_pricing_formula = Black76()
         return cls(forward_curve, option_pricing_formula,
                    volatility_curve=volatility_curve,
@@ -173,8 +176,10 @@ class OptionPayOffModel(PayOffModel):
     @classmethod
     def displaced_black76(cls, forward_curve, volatility_curve=None, *,
                           displacement=0.0,
-                          valuation_date=None, day_count=None,
-                          bump_greeks: bool=False, bump_binary: bool=False):
+                          valuation_date=None,
+                          day_count=None,
+                          bump_greeks: bool = False,
+                          bump_binary: bool = False):
         option_pricing_formula = DisplacedBlack76(displacement=displacement)
         return cls(forward_curve, option_pricing_formula,
                    volatility_curve=volatility_curve,
@@ -187,8 +192,8 @@ class OptionPayOffModel(PayOffModel):
                  *,
                  valuation_date=None,
                  day_count=None,
-                 bump_greeks: bool=False,
-                 bump_binary: bool=False):
+                 bump_greeks: bool = False,
+                 bump_binary: bool = False):
         r"""option payoff model
 
         :param forward_curve: curve for deriving forward values
@@ -211,9 +216,7 @@ class OptionPayOffModel(PayOffModel):
         super().__init__(
             forward_curve, valuation_date=valuation_date, day_count=day_count)
         self.option_pricing_formula = option_pricing_formula
-        r"""option pricing formula
-            either simple pricing function or |OptionPricingFormula|. 
-            The later provides attributes for Greeks like `delta` etc. """
+        r"""option pricing formula, either simple pricing function or |OptionPricingFormula|. The later provides attributes for Greeks like `delta` etc. """  # noqa E501
         self.volatility_curve = volatility_curve
         r"""parameter curve of option pricing formulas $\nu(t)$"""
         self.bump_greeks = bump_greeks
@@ -239,7 +242,7 @@ class OptionPayOffModel(PayOffModel):
         details['formula'] = getattr(opf, '__name__', str(opf))
         return details
 
-    ### parameter (doesn't make use of 'option_pricing_formula')
+    # --- parameter (doesn't make use of 'option_pricing_formula')
 
     def volatility(self, expiry, strike=None, forward=None):
         if callable(self.volatility_curve):
@@ -249,7 +252,7 @@ class OptionPayOffModel(PayOffModel):
             return volatility
         return self.volatility_curve
 
-    ### binding between model formulas and parameters
+    # --- binding between model formulas and parameters
 
     def _tsfv(self, expiry, strike=None):
         time = self.time(expiry) or 0.0
@@ -258,7 +261,7 @@ class OptionPayOffModel(PayOffModel):
         strike = fwd if strike is None else strike  # atm
         return float(time), float(strike), float(fwd), float(vol)
 
-    ### vanilla (uses only '_tsfv', 'option_pricing_formula' and 'bump_...')
+    # --- vanilla (uses only '_tsfv', 'option_pricing_formula' and 'bump_...')
 
     def call_value(self, expiry, strike=None):
         r""" value of a call option
@@ -305,7 +308,8 @@ class OptionPayOffModel(PayOffModel):
         time, strike, fwd, vol = self._tsfv(expiry, strike)
         if not vol or not time:
             return 0.0 if fwd < strike else 1.0 * scale  # cadlag
-        if not self.bump_greeks and hasattr(self.option_pricing_formula, 'delta'):
+        if not self.bump_greeks \
+                and hasattr(self.option_pricing_formula, 'delta'):
             delta = self.option_pricing_formula.delta(time, strike, fwd, vol)
             if delta is not None:
                 return delta * scale
@@ -351,7 +355,8 @@ class OptionPayOffModel(PayOffModel):
         time, strike, fwd, vol = self._tsfv(expiry, strike)
         if not vol or not time:
             return 0.0
-        if not self.bump_greeks and hasattr(self.option_pricing_formula, 'gamma'):
+        if not self.bump_greeks \
+                and hasattr(self.option_pricing_formula, 'gamma'):
             gamma = self.option_pricing_formula.gamma(time, strike, fwd, vol)
             if gamma is not None:
                 return gamma * (scale ** 2)
@@ -437,7 +442,8 @@ class OptionPayOffModel(PayOffModel):
         time, strike, fwd, vol = self._tsfv(expiry, strike)
         if not vol or not time:
             return 0.0
-        if not self.bump_greeks and hasattr(self.option_pricing_formula, 'theta'):
+        if not self.bump_greeks \
+                and hasattr(self.option_pricing_formula, 'theta'):
             theta = self.option_pricing_formula.theta(expiry, strike, fwd, vol)
             if theta is not None:
                 return theta * scale
@@ -459,7 +465,7 @@ class OptionPayOffModel(PayOffModel):
         """
         return self.call_theta(expiry, strike)
 
-    ### binary (requires only '_tsfv' and 'option_pricing_formula')
+    # --- binary (requires only '_tsfv' and 'option_pricing_formula')
 
     def binary_call(self, expiry, strike=None):
         r""" value of a binary call option
@@ -472,7 +478,8 @@ class OptionPayOffModel(PayOffModel):
         time, strike, fwd, vol = self._tsfv(expiry, strike)
         if not vol or not time:
             return 0.0 if fwd <= strike else 1.0
-        if not self.bump_binary and hasattr(self.option_pricing_formula, 'binary'):
+        if not self.bump_binary \
+                and hasattr(self.option_pricing_formula, 'binary'):
             call = self.option_pricing_formula.binary(time, strike, fwd, vol)
             if call is not None:
                 return call
@@ -517,11 +524,13 @@ class OptionPayOffModel(PayOffModel):
             return 0.0 if fwd < strike else 1.0 * scale  # cadlag
         if not self.bump_greeks and \
                 hasattr(self.option_pricing_formula, 'binary_delta'):
-            delta = self.option_pricing_formula.binary_delta(time, strike, fwd, vol)
+            delta = self.option_pricing_formula.binary_delta(
+                time, strike, fwd, vol)
             if delta is not None:
                 return delta * scale
         shift = self.__class__.DELTA_SHIFT
-        delta = self.option_pricing_formula.binary(time, strike, fwd + shift, vol)
+        delta = \
+            self.option_pricing_formula.binary(time, strike, fwd + shift, vol)
         delta -= self.option_pricing_formula.binary(time, strike, fwd, vol)
         delta = delta / shift
         return delta * scale
@@ -568,9 +577,11 @@ class OptionPayOffModel(PayOffModel):
             if gamma is not None:
                 return gamma * (scale ** 2)
         shift = self.__class__.DELTA_SHIFT
-        gamma = self.option_pricing_formula.binary(time, strike, fwd + shift, vol)
+        gamma = \
+            self.option_pricing_formula.binary(time, strike, fwd + shift, vol)
         gamma -= 2 * self.option_pricing_formula.binary(time, strike, fwd, vol)
-        gamma += self.option_pricing_formula.binary(time, strike, fwd - shift, vol)
+        gamma += \
+            self.option_pricing_formula.binary(time, strike, fwd - shift, vol)
         gamma *= (scale / shift) ** 2
         return gamma
 
@@ -612,7 +623,8 @@ class OptionPayOffModel(PayOffModel):
             if vega is not None:
                 return vega * scale
         shift = self.__class__.VEGA_SHIFT
-        vega = self.option_pricing_formula.binary(time, strike, fwd, vol + shift)
+        vega = \
+            self.option_pricing_formula.binary(time, strike, fwd, vol + shift)
         vega -= self.option_pricing_formula.binary(expiry, strike, fwd, vol)
         vega *= scale / shift
         return vega
@@ -656,7 +668,8 @@ class OptionPayOffModel(PayOffModel):
             if theta is not None:
                 return theta * scale
         shift = self.__class__.THETA_SHIFT
-        theta = self.option_pricing_formula.binary(time + shift, strike, fwd, vol)
+        theta = \
+            self.option_pricing_formula.binary(time + shift, strike, fwd, vol)
         theta -= self.option_pricing_formula.binary(time, strike, fwd, vol)
         return theta * scale
 

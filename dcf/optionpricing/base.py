@@ -47,7 +47,7 @@ class OptionPricingFormula:
 
     """
 
-    ### vanilla
+    # --- vanilla
 
     def __call__(self, time, strike, forward, volatility):
         return 0.0
@@ -64,7 +64,7 @@ class OptionPricingFormula:
     def theta(self, time, strike, forward, volatility):
         return
 
-    ### binary
+    # --- binary
 
     def binary(self, time, strike, forward, volatility):
         return
@@ -102,7 +102,7 @@ class DisplacedOptionPricingFormula(OptionPricingFormula):
         if not isinstance(self._inner, OptionPricingFormula):
             self._inner = FunctionalOptionPricingFormula(self._inner)
 
-    ### vanilla
+    # --- vanilla
 
     def __call__(self, time, strike, forward, volatility):
         strike += self.displacement
@@ -129,7 +129,7 @@ class DisplacedOptionPricingFormula(OptionPricingFormula):
         forward += self.displacement
         return self._inner.theta(time, strike, forward, volatility)
 
-    ### binary
+    # --- binary
 
     def binary(self, time, strike, forward, volatility):
         strike += self.displacement
