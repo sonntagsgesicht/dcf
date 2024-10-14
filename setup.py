@@ -27,7 +27,7 @@ setup(
     url='https://github.com/sonntagsgesicht/dcf',
     license='Apache License 2.0',
     packages=find_packages(),
-    install_requires=('prettyclass', 'curves', 'yieldcurves'),
+    install_requires=('prettyclass', 'curves', 'yieldcurves', 'tabulate'),
     long_description='\n' + codecs.open('README.rst', encoding='utf-8').read(),
     long_description_content_type='text/x-rst',
     platforms='any',
