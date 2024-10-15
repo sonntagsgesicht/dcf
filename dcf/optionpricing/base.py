@@ -11,6 +11,7 @@
 
 from prettyclass import prettyclass
 
+
 @prettyclass()
 class OptionPricingFormula:
     r"""abstract base class for option pricing formulas
