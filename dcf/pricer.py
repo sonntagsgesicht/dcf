@@ -43,9 +43,17 @@ def ecf(cashflow_list: CashFlowPayOff | CashFlowList,
         
     """   # noqa 501
     if isinstance(cashflow_list, CashFlowPayOff):
-        cashflow_list = CashFlowList([cashflow_list])
-    cashflow_list = \
-        CashFlowList(cf for cf in cashflow_list if valuation_date <= cf.__ts__)
+        cashflow_list = [cashflow_list]
+
+    if valuation_date is None and payoff_model is not None:
+        valuation_date = payoff_model.valuation_date
+
+    # only cashflows with remaining payments matter
+    cashflow_list = CashFlowList(
+        cf for cf in cashflow_list if valuation_date <= cf.__ts__
+    )
+
+    # calc expected payoff cashflow
     if payoff_model:
         details_list = payoff_model(cashflow_list, valuation_date)
     else:
@@ -102,12 +110,97 @@ def pv(cashflow_list: CashFlowPayOff | CashFlowList,
     271.677...
 
     """  # noqa 501
-    ecf_dict = ecf(cashflow_list, valuation_date, payoff_model)
-    df, vd = discount_curve, valuation_date
+    df = discount_curve
     if isinstance(discount_curve, float):
-        # todo: review discount_curve as float
         df = (lambda s, t: exp(-float(t - s) * discount_curve))
-    return sum(df(vd, t) * float(cf) for t, cf in ecf_dict.items())
+    if valuation_date is None and payoff_model is not None:
+        valuation_date = payoff_model.valuation_date
+    ecf_dict = ecf(cashflow_list, valuation_date, payoff_model)
+    return sum(df(valuation_date, t) * float(cf) for t, cf in ecf_dict.items())
+
+
+def iac(cashflow_list: CashFlowList,
+        valuation_date: DateType | None = None,
+        payoff_model: PayOffModel | None = None):
+    r""" calculates interest accrued for rate cashflows
+
+        :param cashflow_list: requires a `day_count` property
+        :param valuation_date: calculation date
+        :param payoff_model: payoff model
+            (optional; default: **None**, i.e. model attached to **cashflow_list**)
+        :return: `float` - proportion of interest in current interest period
+
+    Let $t$ be the valuation date
+    and $s, e$ start resp. end date of current rate period,
+    i.e. $s \leq t < e$.
+
+    Let $\tau$ be the day count function to calculate year fractions.
+
+    Finally, let $cf$ be the next interest rate cashflow.
+
+    The accrued interest until $t$ is given as
+    $$cf_{accrued} =  cf \cdot \frac{\tau(s, t)}{\tau(s, e)}.$$
+
+    Note, this function takes even expected payoffs of options
+    incl. caplets and floorlets into account
+    which probably should be excluded.
+
+    Example
+    -------
+
+    >>> from dcf import iac, CashFlowList
+
+    setup 5y coupon bond
+
+    >>> n = 1_000_000
+    >>> coupon_leg = CashFlowList.from_rate_cashflows([1.,2.,3.,4.,5.], amount_list=n, origin=0., fixed_rate=0.001)
+    >>> redemption_leg = CashFlowList.from_fixed_cashflows([5.], amount_list=n)
+    >>> bond = coupon_leg + redemption_leg
+
+    bond with cashflow tables
+
+    >>> print(coupon_leg)
+      pay date    cashflow    notional  pay rec      fixed rate    start date    end date    year fraction
+    ----------  ----------  ----------  ---------  ------------  ------------  ----------  ---------------
+           1.0     1_000.0   1_000_000  pay               0.001           0.0         1.0              1.0
+           2.0     1_000.0   1_000_000  pay               0.001           1.0         2.0              1.0
+           3.0     1_000.0   1_000_000  pay               0.001           2.0         3.0              1.0
+           4.0     1_000.0   1_000_000  pay               0.001           3.0         4.0              1.0
+           5.0     1_000.0   1_000_000  pay               0.001           4.0         5.0              1.0
+
+
+    >>> print(redemption_leg)
+      pay date    cashflow
+    ----------  ----------
+           5.0   1_000_000
+
+
+    >>> iac(bond, valuation_date=3.25)
+    250.0
+
+    >>> iac(bond, valuation_date=3.5)
+    500.0
+
+    >>> iac(bond, valuation_date=4.5)
+    500.0
+
+    >>> # doesn't take fixed cashflows into account
+    >>> iac(redemption_leg, valuation_date=3.25)
+    0.0
+    
+    """  # noqa 501
+    ac = 0.0
+    for cf in cashflow_list:
+        if isinstance(cf, RateCashFlowPayOff):
+            # only interest cash flows entitle to accrued interest
+            if cf.start < valuation_date <= cf.end:
+                ecf_dict = ecf(cf, valuation_date, payoff_model)
+                flow = sum(map(float, ecf_dict.values()))
+                day_count = cf.day_count or _default_day_count
+                remaining = day_count(valuation_date, cf.end)
+                total = day_count(cf.start, cf.end)
+                ac += flow * (1. - remaining / total)
+    return ac
 
 
 def ytm(cashflow_list: CashFlowList,
@@ -201,89 +294,6 @@ def ytm(cashflow_list: CashFlowList,
 
     # run bracketing
     return bisection_method(err, *bounds, precision)
-
-
-def iac(cashflow_list: CashFlowList,
-        valuation_date: DateType | None = None,
-        payoff_model: PayOffModel | None = None):
-    r""" calculates interest accrued for rate cashflows
-
-        :param cashflow_list: requires a `day_count` property
-        :param valuation_date: calculation date
-        :param payoff_model: payoff model
-            (optional; default: **None**, i.e. model attached to **cashflow_list**)
-        :return: `float` - proportion of interest in current interest period
-
-    Let $t$ be the valuation date
-    and $s, e$ start resp. end date of current rate period,
-    i.e. $s \leq t < e$.
-
-    Let $\tau$ be the day count function to calculate year fractions.
-
-    Finally, let $cf$ be the next interest rate cashflow.
-
-    The accrued interest until $t$ is given as
-    $$cf_{accrued} =  cf \cdot \frac{\tau(s, t)}{\tau(s, e)}.$$
-
-    Note, this function takes even expected payoffs of options
-    incl. caplets and floorlets into account
-    which probably should be excluded.
-
-    Example
-    -------
-
-    >>> from dcf import iac, CashFlowList
-
-    setup 5y coupon bond
-
-    >>> n = 1_000_000
-    >>> coupon_leg = CashFlowList.from_rate_cashflows([1.,2.,3.,4.,5.], amount_list=n, origin=0., fixed_rate=0.001)
-    >>> redemption_leg = CashFlowList.from_fixed_cashflows([5.], amount_list=n)
-    >>> bond = coupon_leg + redemption_leg
-
-    bond with cashflow tables
-
-    >>> print(coupon_leg)
-      pay date    cashflow    notional  pay rec      fixed rate    start date    end date    year fraction
-    ----------  ----------  ----------  ---------  ------------  ------------  ----------  ---------------
-           1.0     1_000.0   1_000_000  pay               0.001           0.0         1.0              1.0
-           2.0     1_000.0   1_000_000  pay               0.001           1.0         2.0              1.0
-           3.0     1_000.0   1_000_000  pay               0.001           2.0         3.0              1.0
-           4.0     1_000.0   1_000_000  pay               0.001           3.0         4.0              1.0
-           5.0     1_000.0   1_000_000  pay               0.001           4.0         5.0              1.0
-
-
-    >>> print(redemption_leg)
-      pay date    cashflow
-    ----------  ----------
-           5.0   1_000_000
-
-
-    >>> iac(bond, valuation_date=3.25)
-    250.0
-
-    >>> iac(bond, valuation_date=3.5)
-    500.0
-
-    >>> iac(bond, valuation_date=4.5)
-    500.0
-
-    >>> # doesn't take fixed cashflows into account
-    >>> iac(redemption_leg, valuation_date=3.25)
-    0.0
-    
-    """  # noqa 501
-    ac = 0.0
-    for cf in cashflow_list:
-        if isinstance(cf, RateCashFlowPayOff):
-            # only interest cash flows entitle to accrued interest
-            if cf.start < valuation_date <= cf.end:
-                day_count = cf.day_count or _default_day_count
-                remaining = day_count(valuation_date, cf.end)
-                total = day_count(cf.start, cf.end)
-                flow = float(cf(payoff_model))
-                ac += flow * (1. - remaining / total)
-    return ac
 
 
 def fair(cashflow_list: CashFlowList,
@@ -744,9 +754,10 @@ def fit(cashflow_list: Iterable[CashFlowList],
 
     """  # noqa E501
 
+    _discount_curve_self = getattr(discount_curve, '__self__', None)
     if fitting_grid is None:
-        if isinstance(getattr(discount_curve, '__self__', ''), DateCurve):
-            yf = discount_curve.__self__.year_fraction
+        if isinstance(_discount_curve_self, DateCurve):
+            yf = _discount_curve_self.year_fraction
         else:
             origin = getattr(discount_curve, 'origin', valuation_date)
             yf = (lambda x: _default_day_count(origin, x))
@@ -760,10 +771,9 @@ def fit(cashflow_list: Iterable[CashFlowList],
             yield_curve = YieldCurve(0.0)
             discount_curve = yield_curve.df
             fitting_curve = yield_curve.curve
-        elif isinstance(getattr(discount_curve, '__self__', ''), DateCurve):
-            date_curve = discount_curve.__self__
-            origin = date_curve.origin
-            yield_curve = YieldCurve(date_curve.curve)
+        elif isinstance(_discount_curve_self, DateCurve):
+            origin = _discount_curve_self.origin
+            yield_curve = YieldCurve(_discount_curve_self.curve)
             discount_curve = DateCurve(yield_curve, origin=origin).df
             fitting_curve = yield_curve.curve
         else:
