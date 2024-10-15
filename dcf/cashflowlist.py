@@ -304,7 +304,7 @@ class CashFlowList(TSList):
                     cf.fixed_rate = value
 
     def details(self, model=None):
-        return self(model)
+        return model(self) if model else self()
 
     def _repr_html_(self):
         s = tabulate(self.table, tablefmt="html", headers="firstrow")
