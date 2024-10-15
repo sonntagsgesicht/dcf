@@ -258,7 +258,7 @@ class OptionPayOffModel(PayOffModel):
 
     def _tsfv(self, expiry, strike=None):
         time = self.time(expiry) or 0.0
-        fwd = self.forward_curve(expiry) or 0.0
+        fwd = self.forward(expiry) or 0.0
         vol = self.volatility(expiry, strike, fwd) or 0.0
         strike = fwd if strike is None else strike  # atm
         return float(time), float(strike), float(fwd), float(vol)
