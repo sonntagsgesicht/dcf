@@ -14,7 +14,7 @@ from pprint import pformat
 from prettyclass import prettyclass
 
 from .daycount import day_count as _default_day_count
-from .payoffmodels import OptionPayOffModel
+from .payoffmodels import PayOffModel, OptionPayOffModel
 from .plans import DEFAULT_AMOUNT
 
 
@@ -260,17 +260,15 @@ class RateCashFlowPayOff(CashFlowPayOff):
             if model is None:
                 model = self.forward_curve
 
-            if hasattr(model, 'payoff_model'):
-                model = model.payoff_model
-            if hasattr(model, 'forward_curve'):
-                model = model.forward_curve
-            if callable(model):
+            if isinstance(model, PayOffModel):
+                forward = model.forward(fixing_date)
+            elif callable(model):
                 forward = model(fixing_date)
             else:
-                forward = float(model or 0.0)
+                forward = model
 
             details.update({
-                'forward rate': forward,
+                'forward rate': float(forward or 0.0),
                 'fixing date': fixing_date,
                 'tenor': getattr(model, 'forward_tenor', None),
                 'forward-curve-id': id(model)
