@@ -9,7 +9,9 @@
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
+from prettyclass import prettyclass
 
+@prettyclass()
 class OptionPricingFormula:
     r"""abstract base class for option pricing formulas
 
