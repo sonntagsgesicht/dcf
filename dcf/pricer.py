@@ -13,7 +13,7 @@ from functools import partial
 from math import exp
 from typing import Callable, Tuple, Iterable, Dict, Any as DateType
 
-from curves.numerics import bisection_method
+from curves.numerics import bisection_method, newton_raphson, secant_method
 from yieldcurves import YieldCurve, DateCurve
 from yieldcurves.interpolation import piecewise_linear, fit as _fit
 
@@ -21,6 +21,9 @@ from .cashflowlist import CashFlowList
 from .daycount import day_count as _default_day_count
 from .payoffs import CashFlowPayOff, RateCashFlowPayOff
 from .payoffmodels import PayOffModel
+
+
+TOL = 1e-10
 
 
 def ecf(cashflow_list: CashFlowPayOff | CashFlowList,
@@ -49,15 +52,13 @@ def ecf(cashflow_list: CashFlowPayOff | CashFlowList,
         valuation_date = payoff_model.valuation_date
 
     # only cashflows with remaining payments matter
-    cashflow_list = CashFlowList(
-        cf for cf in cashflow_list if valuation_date <= cf.__ts__
-    )
+    cashflow_list = [cf for cf in cashflow_list if valuation_date <= cf.__ts__]
 
     # calc expected payoff cashflow
     if payoff_model:
         details_list = payoff_model(cashflow_list, valuation_date)
     else:
-        details_list = cashflow_list(valuation_date)
+        details_list = [v.details() for v in cashflow_list]
 
     r = {}
     for d in details_list:
@@ -203,12 +204,70 @@ def iac(cashflow_list: CashFlowList,
     return ac
 
 
+def _solve(f, method='secant_method', *args, **kwargs):
+    """solver providing function
+
+    :param f: (callable) function
+    :param method: (str or callable) solver method
+    :param args: **method*+ arguments
+    :param kwargs: **method*+ keyword arguments
+    :return:
+    """
+    # default arguments
+    if not args:
+        _solve_defaults = {
+            'newton': {'a': 0.01},
+            'secant': {'a': 0.01, 'b': 0.05},
+            'bisec': {'a': -0.1, 'b': 0.2}
+        }
+        for k, val in _solve_defaults.items():
+            if k in str(method):
+                val.update(**kwargs)
+                kwargs = val
+                break
+
+    # todo: remaining to be replaces by 'curves.numerics.solve()'
+
+    if callable(method):
+        return method(f, *args, **kwargs)
+
+    # default method
+    method = str(method) if method else 'secant_method'
+
+    # gather arguments
+    guess = kwargs.get('guess', None)
+    a, b = kwargs.pop('bounds', (guess, None))
+    a = kwargs.pop('a', a)
+    b = kwargs.pop('b', b)
+    if a:
+        kwargs['a'] = a
+    if b:
+        kwargs['b'] = b
+
+    tol = kwargs.pop('tol', None)
+    tol = kwargs.pop('tolerance', tol)
+    tol = kwargs.pop('precision', tol)
+    if tol:
+        kwargs['tol'] = tol
+
+    if 'newton' in method:
+        return newton_raphson(f, *args, **kwargs)
+
+    if 'secant' in method:
+        return secant_method(f, *args, **kwargs)
+
+    if 'bisec' in method:
+        return bisection_method(f, *args, **kwargs)
+
+    raise ValueError(f"unknown method {method}")
+
+
 def ytm(cashflow_list: CashFlowList,
         valuation_date: DateType | None = None,
         present_value: float = 0.0,
         payoff_model: PayOffModel | None = None,
-        precision: float = 1e-7,
-        bounds: Tuple[float, float] = (-0.1, 0.2)):
+        method: str | Callable = 'bisection_method',
+        *args, **kwargs):
     r""" yield-to-maturity or effective interest rate
 
     :param cashflow_list: list of cashflows
@@ -218,10 +277,17 @@ def ytm(cashflow_list: CashFlowList,
         (optional; default: 0.0)
     :param payoff_model: payoff model
         (optional; default: **None**, i.e. model attached to **cashflow_list**)
-    :param precision: max distance of present value to par
-        (optional: default is 1e-7)
-    :param bounds: tuple of lower and upper bound of yield to maturity
-        (optional: default is -0.1 and .2)
+    :param method: solver method
+        If given as string invokes a method from    
+        `curves.numerics <https://curves.readthedocs.io/en/latest/doc.html#module-curves.numerics.solve>`_  # noqa E501
+        otherwise **method** should be a solver impelementing 
+        :code:`method(err, **kwargs)` return float result and 
+        where :code:`err` is the error function to be solved.
+        **kwargs** provide arguments for **method**. 
+        (optional: default is **secant_method** 
+        with lower and upper guess of 0.01 and 0.05 and tolerance of 1e-10)
+    :param args: arguments for **method** 
+    :param kwargs: keyword arguments for **method** 
     :return: `float` - as flat interest rate to discount all future cashflows
         in order to meet given **present_value**
 
@@ -293,7 +359,7 @@ def ytm(cashflow_list: CashFlowList,
         return _pv - present_value
 
     # run bracketing
-    return bisection_method(err, *bounds, precision)
+    return _solve(err, method, *args, **kwargs)
 
 
 def fair(cashflow_list: CashFlowList,
@@ -301,8 +367,8 @@ def fair(cashflow_list: CashFlowList,
          valuation_date: DateType | None = None,
          present_value: float = 0.0,
          payoff_model: PayOffModel | None = None,
-         precision: float = 1e-7,
-         bounds: Tuple[float, float] = (-0.1, 0.2)):
+         method: str | Callable = 'bisec',
+         *args, **kwargs):
     r""" coupon rate to meet given value
 
     :param cashflow_list: list of cashflows
@@ -312,10 +378,17 @@ def fair(cashflow_list: CashFlowList,
         (optional: default: 0.0)
     :param payoff_model: payoff model
         (optional; default: **None**, i.e. model attached to **cashflow_list**)
-    :param precision: max distance of present value to par
-        (optional: default is 1e-7)
-    :param bounds: tuple of lower and upper bound of fair rate
-        (optional: default is -0.1 and .2)
+    :param method: solver method
+        If given as string invokes a method from    
+        `curves.numerics`_ 
+        otherwise **method** should be a solver impolementing 
+        :code:`method(err, **kwargs)` return float result and 
+        where :code:`err` is the error function to be solved.
+        **kwargs** provide arguments for **method**. 
+        (optional: default is **secant_method** 
+        with lower and upper guess of 0.01 and 0.05 and tolerance of 1e-10)
+    :param args: arguments for **method** 
+    :param kwargs: keyword arguments for **method** 
     :return: `float` - the fair coupon rate as
         **fixed_rate** of a |RateCashFlowPayOff()|
 
@@ -359,7 +432,7 @@ def fair(cashflow_list: CashFlowList,
     >>> for cf in coupon_leg: 
     ...     cf.fixed_rate = fair_rate
     >>> pv(bond, curve, 0.0)  
-    999999.900407476
+    1000000.0...
 
     """  # noqa 501
 
@@ -374,7 +447,7 @@ def fair(cashflow_list: CashFlowList,
         return _pv - present_value
 
     # run bracketing
-    par = bisection_method(err, *bounds, precision)
+    par = _solve(err, method, *args, **kwargs)
 
     # restore fixed rate
     for cf, _fixed_rate in zip(cashflow_list, _fixed_rates):
@@ -429,7 +502,7 @@ def bpv(cashflow_list: CashFlowList,
     
     >>> curve = YieldCurve(0.015)
     >>> pv(bond, curve.df, 0.0)
-    932524.5493034504
+    932524.5493...
     
     calculate bpv as bond delta
 

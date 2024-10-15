@@ -21,7 +21,7 @@ from .plans import DEFAULT_AMOUNT
 class CashFlowDetails(dict):
 
     def __float__(self):
-        return float(self.get('cashflow', 0.0))
+        return float(self.get('cashflow', None) or 0.0)
 
     @property
     def __ts__(self):
@@ -43,10 +43,8 @@ class CashFlowPayOff:
     def details(self, model=None):
         return CashFlowDetails()
 
-    def __call__(self, valuation_date=None):
-        if hasattr(self, 'payoff_model') and valuation_date:
-            return self.payoff_model(self, valuation_date)
-        return self.details()
+    def __call__(self, model=None):
+        return self.details(model).get('cashflow', None)
 
     def __copy__(self):
         return self  # added for editor code check
@@ -56,7 +54,7 @@ class CashFlowPayOff:
         return getattr(self, 'pay_date')
 
     def __float__(self):
-        return float(self())
+        return float(self() or 0.0)
 
     def __abs__(self):
         new = self.__copy__()
@@ -120,7 +118,7 @@ class FixedCashFlowPayOff(CashFlowPayOff):
 
         >>> from dcf import FixedCashFlowPayOff
         >>> cf = FixedCashFlowPayOff(0.25, amount=123.456)
-        >>> cf()
+        >>> cf.details()
         CashFlowDetails(
         {'pay date': 0.25, 'cashflow': 123.456}
         )
@@ -129,7 +127,7 @@ class FixedCashFlowPayOff(CashFlowPayOff):
         (which is again just the fixed amount $N$)
         can be obtained by casting to **float**.
 
-        >>> float(cf())
+        >>> cf()
         123.456
 
         """
@@ -162,7 +160,14 @@ class RateCashFlowPayOff(CashFlowPayOff):
         :param fixing_offset: time difference between
             interest rate fixing date
             and interest period payment date $\delta$
-        :param fixed_rate: agreed fixed rate $c$
+        :param fixed_rate: agreed fixed rate $c$ 
+        :param forward_curve: float rate forward curve
+            either as numerical value or function.
+            If **forward_curve** is **None** 
+            no float rate is applied, 
+            even not if |RateCashFlowPayOff().details()| is invoked 
+            with a forward furve or |PayOffModel()|.   
+            (optional; default is None, i.e. no float rate is applied)
 
         A contigent interest rate cashflow payoff $X$
         is given for a float rate $f$ at $T=s-\delta$
@@ -175,9 +180,7 @@ class RateCashFlowPayOff(CashFlowPayOff):
         >>> from dcf import RateCashFlowPayOff
 
         >>> cf = RateCashFlowPayOff(pay_date=1.0, start=1.25, end=1.5, amount=1.0, fixed_rate=0.005, forward_curve=0)
-        >>> f = lambda *_: 0.05
-
-        >>> cf()
+        >>> cf.details()
         CashFlowDetails(
         { 'pay date': 1.0,
           'cashflow': 0.00125,
@@ -193,10 +196,13 @@ class RateCashFlowPayOff(CashFlowPayOff):
           'forward-curve-id': ...}
         )
 
-        >>> float(cf())
+        >>> cf()
         0.00125
 
-        >>> cf.details(f)
+        suppying an iterest forward curve changes float forward rate  
+        
+        >>> forward_curve = 0.05
+        >>> cf.details(forward_curve)
         CashFlowDetails(
         { 'pay date': 1.0,
           'cashflow': 0.01375,
@@ -212,8 +218,24 @@ class RateCashFlowPayOff(CashFlowPayOff):
           'forward-curve-id': ...}
         )
 
-        >>> float(cf.details(f))
+        >>> cf(forward_curve)  # expected cashflow
         0.01375
+
+        If **forward_curve** is **None** (default) no float rate is applied.
+        Even if **forward_curve** is given for details calculation.
+
+        >>> cf = RateCashFlowPayOff(pay_date=1.0, start=1.25, end=1.5, amount=1.0, fixed_rate=0.005)
+        >>> cf.details(forward_curve)
+        CashFlowDetails(
+        { 'pay date': 1.0,
+          'cashflow': 0.00125,
+          'notional': 1.0,
+          'pay rec': 'pay',
+          'fixed rate': 0.005,
+          'start date': 1.25,
+          'end date': 1.5,
+          'year fraction': 0.25}
+        )
 
         """  # noqa 501
         self.pay_date = pay_date
@@ -238,7 +260,6 @@ class RateCashFlowPayOff(CashFlowPayOff):
         day_count = self.day_count or _default_day_count
         yf = day_count(self.start, self.end)
         fixed_rate = self.fixed_rate or 0.0
-
         details = {
             'pay date': self.pay_date,
             'cashflow': 0.0,
@@ -518,7 +539,7 @@ class ContingentRateCashFlowPayOff(RateCashFlowPayOff):
         """  # noqa 501
         super().__init__(pay_date, start, end,
                          amount, day_count,
-                         fixing_offset, fixed_rate, forward_curve=payoff_model)
+                         fixing_offset, fixed_rate, forward_curve=0)
         self.floor_strike = floor_strike
         """floor strike rate"""
         self.cap_strike = cap_strike
@@ -531,11 +552,21 @@ class ContingentRateCashFlowPayOff(RateCashFlowPayOff):
             model = self.payoff_model
 
         details = super().details(model=model)
-        floorlet = caplet = 0.0
+        if self.floor_strike is not None:
+            details.update({
+                'floorlet': 0.0,
+                'floorlet strike': self.floor_strike
+            })
+        if self.cap_strike is not None:
+            details.update({
+                'caplet': 0.0,
+                'caplet strike': self.cap_strike,
+            })
 
         yf = details['year fraction']
         amount = details['notional']
         cf = details['cashflow']
+        floorlet = caplet = 0.0
 
         if isinstance(model, OptionPayOffModel):
             d = None

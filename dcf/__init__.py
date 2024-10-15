@@ -30,12 +30,13 @@ logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 # todo:
 #  [ ] test and doc with full coverage and updated README / HOWTO
-#  [ ] take numerics for curves
-#  [ ] review discount_curve as float in pv
-#  [ ] pricer default arguments (valuation_date, payoff_model, ...)
+#  [x] take numerics for curves
+#  [x] make solver in ytm, fair, fit optional w/- default (yc.nx)
+#  [x] pricer default arguments (valuation_date, payoff_model, ...)
 #  [ ] better ModelUnitTests w/- bumps
 #  [ ] add products (Bond, Swap, Cap, Floor, Collar, Option, Swaption)
 #  [ ] add sabr model
+#  [ ] make use of curve.df if available for discounting ?
 
 
 from . import plans, optionpricing, daycount  # noqa E401 E402

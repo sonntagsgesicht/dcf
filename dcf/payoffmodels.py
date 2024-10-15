@@ -11,7 +11,6 @@
 
 from prettyclass import prettyclass
 
-
 from .daycount import (day_count as _default_day_count,
                        DAYS_IN_YEAR as _DAYS_IN_YEAR)
 from .optionpricing import Intrinsic, Bachelier, Black76, DisplacedBlack76
@@ -47,8 +46,7 @@ class PayOffModel:
         if valuation_date is not None:
             self.valuation_date = valuation_date
         if isinstance(cashflow_payoff, list):
-            cls = cashflow_payoff.__class__
-            result = cls(cf.details(model=self) for cf in cashflow_payoff)
+            result = [cf.details(model=self) for cf in cashflow_payoff]
         else:
             result = cashflow_payoff.details(model=self)
         self.valuation_date = _valuation_date

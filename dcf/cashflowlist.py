@@ -253,20 +253,6 @@ class CashFlowList(TSList):
             payoff_list.append(payoff)
         return cls(payoff_list)
 
-    @property
-    def table(self):
-        details = self.details()
-        header = {}
-        for d in details:
-            header.update(d)
-        header = list(header.keys())
-        rows = [header]
-        for d in details:
-            r = dict.fromkeys(header)
-            r.update(d)
-            rows.append(list(r.values()))
-        return rows
-
     def __init__(self, iterable=(), /):
         """cashflow payoff container
 
@@ -304,15 +290,26 @@ class CashFlowList(TSList):
                     cf.fixed_rate = value
 
     def details(self, model=None):
-        return model(self) if model else self()
+        return [v.details(model) for v in self]
+
+    def _tabulate(self, **kwargs):
+        details = self.details()
+        header = {}
+        for d in details:
+            header.update(d)
+        header = list(header.keys())
+        rows = [header]
+        for d in details:
+            r = dict.fromkeys(header)
+            r.update(d)
+            rows.append(list(r.values()))
+        return tabulate(rows, **kwargs)
 
     def _repr_html_(self):
-        s = tabulate(self.table, tablefmt="html", headers="firstrow")
-        return s
+        return self._tabulate(tablefmt="html", headers="firstrow")
 
     def __str__(self):
-        return tabulate(
-            self.table, headers="firstrow", floatfmt="_", intfmt="_")
+        return self._tabulate(headers="firstrow", floatfmt="_", intfmt="_")
 
     def __abs__(self):
         return self.__class__(v.__abs__() for v in self)
@@ -320,8 +317,8 @@ class CashFlowList(TSList):
     def __neg__(self):
         return self.__class__(v.__neg__() for v in self)
 
-    def __call__(self, valuation_date=None):
-        return TSList(v(valuation_date) for v in self)
+    def __call__(self, model=None):
+        return [v(model) for v in self]
 
     def __add__(self, other):
         if isinstance(other, list):
