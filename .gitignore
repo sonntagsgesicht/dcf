@@ -26,4 +26,5 @@ __pycache__/
 *.json
 *.zip
 my/
+dev.ipynb
 

@@ -31,6 +31,7 @@ logging.getLogger(__name__).addHandler(logging.NullHandler())
 # todo:
 #  [ ] test and doc with full coverage and updated README / HOWTO
 #  [ ] take numerics for curves
+#  [ ] review discount_curve as float in pv
 #  [ ] pricer default arguments (valuation_date, payoff_model, ...)
 #  [ ] better ModelUnitTests w/- bumps
 #  [ ] add products (Bond, Swap, Cap, Floor, Collar, Option, Swaption)
