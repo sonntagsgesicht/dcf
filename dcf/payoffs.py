@@ -567,8 +567,7 @@ class ContingentRateCashFlowPayOff(RateCashFlowPayOff):
 
             if d:
                 details.update({
-                    'time to expiry': d.get('time to expiry', None),
-                    'valuation date': d.get('valuation date', None)
+                    'time to expiry': d.get('time to expiry', None)
                 })
 
         details['cashflow'] = cf + floorlet - caplet
