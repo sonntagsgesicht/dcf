@@ -59,17 +59,18 @@ class PayOffModel:
         :return: dict()
 
         """
-        details = {'valuation date': self.valuation_date}
+        day_count = getattr(self.day_count, '__qualname__', self.day_count)
+        details = {
+            'valuation date': self.valuation_date,
+            'fixing date': expiry,
+            'time to expiry': self.time(expiry),
+            'day count': str(day_count),
+        }
         if self.forward_curve:
             details['forward'] = self.forward(expiry)
             details['forward-curve-id'] = id(self.forward_curve)
             if hasattr(self.forward_curve, 'forward_tenor'):
                 details['tenor'] = self.forward_curve.forward_tenor
-        details['fixing date'] = expiry
-        details['time to expiry'] = self.time(expiry)
-        day_count = getattr(self.day_count, '__qualname__', self.day_count)
-        details['day count'] = str(day_count)
-
         details['model-id'] = id(self)
         return details
 
@@ -232,6 +233,7 @@ class OptionPayOffModel(PayOffModel):
 
         """
         details = super().details(expiry)
+        model_id = details.pop('model-id', None)
         if self.volatility_curve:
             details['volatility'] = self.volatility(expiry, strike)
             details['volatility-curve-id'] = id(self.volatility_curve)
@@ -240,6 +242,8 @@ class OptionPayOffModel(PayOffModel):
         details['strike'] = strike
         opf = self.option_pricing_formula.__class__
         details['formula'] = getattr(opf, '__name__', str(opf))
+        if model_id is not None:
+            details['model-id'] = model_id
         return details
 
     # --- parameter (doesn't make use of 'option_pricing_formula')
