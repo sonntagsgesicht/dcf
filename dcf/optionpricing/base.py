@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 # dcf
 # ---
 # A Python library for generating discounted cashflows.

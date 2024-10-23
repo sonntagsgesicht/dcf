@@ -13,7 +13,7 @@
 from regtest import RegressionTestCase
 
 from dcf.daycount import day_count
-from dcf.payoffmodels import OptionPayOffModel
+from dcf import OptionPricingCurve
 
 
 class ModelRegTests(RegressionTestCase):
@@ -28,9 +28,9 @@ class ModelRegTests(RegressionTestCase):
         self.vol_curve = lambda *_: 0.1
 
         self.kwargs = {
-            'valuation_date': self.val_date,
-            'forward_curve': self.forward_curve,
-            'volatility_curve': self.vol_curve,
+            'origin': self.val_date,
+            'curve': self.forward_curve,
+            'volatility': self.vol_curve,
             'day_count': self.day_count
         }
 
@@ -38,42 +38,42 @@ class ModelRegTests(RegressionTestCase):
         for d in self.dates:
             for s in self.strikes:
                 # price
-                x = first.call_value(d, s) * self.notional
+                x = first.call(d, strike=s) * self.notional
                 self.assertAlmostRegressiveEqual(x, places)
-                x = first.put_value(d, s) * self.notional
+                x = first.put(d, strike=s) * self.notional
                 self.assertAlmostRegressiveEqual(x, places)
                 # delta
-                x = first.call_delta(d, s) * self.notional
+                x = first.call_delta(d, strike=s) * self.notional
                 self.assertAlmostRegressiveEqual(x, places)
-                x = first.put_delta(d, s) * self.notional
+                x = first.put_delta(d, strike=s) * self.notional
                 self.assertAlmostRegressiveEqual(x, places)
                 # gamma
-                x = first.call_delta(d, s) * self.notional
+                x = first.call_delta(d, strike=s) * self.notional
                 self.assertAlmostRegressiveEqual(x, places)
-                x = first.put_delta(d, s) * self.notional
+                x = first.put_delta(d, strike=s) * self.notional
                 self.assertAlmostRegressiveEqual(x, places)
                 # vega
-                x = first.call_vega(d, s) * self.notional
+                x = first.call_vega(d, strike=s) * self.notional
                 self.assertAlmostRegressiveEqual(x, places)
-                x = first.put_vega(d, s) * self.notional
+                x = first.put_vega(d, strike=s) * self.notional
                 self.assertAlmostRegressiveEqual(x, places)
                 # theta
-                x = first.call_theta(d, s) * self.notional
+                x = first.call_theta(d, strike=s) * self.notional
                 self.assertAlmostRegressiveEqual(x, places)
-                x = first.put_theta(d, s) * self.notional
+                x = first.put_theta(d, strike=s) * self.notional
                 self.assertAlmostRegressiveEqual(x, places)
 
     def test_bachelier(self):
-        self._run_tests(OptionPayOffModel.bachelier(**self.kwargs))
+        self._run_tests(OptionPricingCurve.bachelier(**self.kwargs))
 
     def test_black76(self):
-        self._run_tests(OptionPayOffModel.black76(**self.kwargs))
+        self._run_tests(OptionPricingCurve.black76(**self.kwargs))
 
     def test_displaced_black76(self):
         kwargs = self.kwargs
         for d in (0.0, 0.003, 0.03, 0.1):
             kwargs['displacement'] = d
-            self._run_tests(OptionPayOffModel.displaced_black76(**kwargs))
+            self._run_tests(OptionPricingCurve.displaced_black76(**kwargs))
 
     def test_intrinsic(self):
-        self._run_tests(OptionPayOffModel.intrinsic(**self.kwargs))
+        self._run_tests(OptionPricingCurve.intrinsic(**self.kwargs))

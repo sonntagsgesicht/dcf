@@ -13,7 +13,7 @@
 from unittest.case import TestCase
 
 from dcf.daycount import day_count
-from dcf import OptionPayOffModel
+from dcf import OptionPricingCurve
 
 
 class BaseModelUnitTests(TestCase):
@@ -29,9 +29,9 @@ class BaseModelUnitTests(TestCase):
         self.vol_curve = lambda *_: 0.1
 
         self.kwargs = {
-            'valuation_date': self.val_date,
-            'forward_curve': self.forward_curve,
-            'volatility_curve': self.vol_curve,
+            'origin': self.val_date,
+            'curve': self.forward_curve,
+            'volatility': self.vol_curve,
             'day_count': self.day_count
         }
 
@@ -44,48 +44,48 @@ class BaseModelUnitTests(TestCase):
         for d in self.dates:
             for s in strikes or self.strikes:
                 # price
-                x = first.call_value(d, s) * self.notional
-                y = second.call_value(d, s) * self.notional
+                x = first.call(d, strike=s) * self.notional
+                y = second.call(d, strike=s) * self.notional
                 if y:
                     self.assertAlmostEqual(x/y, 1., places)
-                x = first.put_value(d, s) * self.notional
-                y = second.put_value(d, s) * self.notional
+                x = first.put(d, strike=s) * self.notional
+                y = second.put(d, strike=s) * self.notional
                 if y:
                     self.assertAlmostEqual(x/y, 1., places)
                 # delta
-                x = first.call_delta(d, s) * self.notional
-                y = second.call_delta(d, s) * self.notional
+                x = first.call_delta(d, strike=s) * self.notional
+                y = second.call_delta(d, strike=s) * self.notional
                 if y:
                     self.assertAlmostEqual(x/y, 1., places)
-                x = first.put_delta(d, s) * self.notional
-                y = second.put_delta(d, s) * self.notional
+                x = first.put_delta(d, strike=s) * self.notional
+                y = second.put_delta(d, strike=s) * self.notional
                 if y:
                     self.assertAlmostEqual(x/y, 1., places)
                 # gamma
-                x = first.call_delta(d, s) * self.notional
-                y = second.call_delta(d, s) * self.notional
+                x = first.call_delta(d, strike=s) * self.notional
+                y = second.call_delta(d, strike=s) * self.notional
                 if y:
                     self.assertAlmostEqual(x/y, 1., places)
-                x = first.put_delta(d, s) * self.notional
-                y = second.put_delta(d, s) * self.notional
+                x = first.put_delta(d, strike=s) * self.notional
+                y = second.put_delta(d, strike=s) * self.notional
                 if y:
                     self.assertAlmostEqual(x/y, 1., places)
                 # vega
-                x = first.call_vega(d, s) * self.notional
-                y = second.call_vega(d, s) * self.notional
+                x = first.call_vega(d, strike=s) * self.notional
+                y = second.call_vega(d, strike=s) * self.notional
                 if y:
                     self.assertAlmostEqual(x/y, 1., places)
-                x = first.put_vega(d, s) * self.notional
-                y = second.put_vega(d, s) * self.notional
+                x = first.put_vega(d, strike=s) * self.notional
+                y = second.put_vega(d, strike=s) * self.notional
                 if y:
                     self.assertAlmostEqual(x/y, 1., places)
                 # theta
-                x = first.call_theta(d, s) * self.notional
-                y = second.call_theta(d, s) * self.notional
+                x = first.call_theta(d, strike=s) * self.notional
+                y = second.call_theta(d, strike=s) * self.notional
                 if y:
                     self.assertAlmostEqual(x/y, 1., places)
-                x = first.put_theta(d, s) * self.notional
-                y = second.put_theta(d, s) * self.notional
+                x = first.put_theta(d, strike=s) * self.notional
+                y = second.put_theta(d, strike=s) * self.notional
                 if y:
                     self.assertAlmostEqual(x/y, 1., places)
 
@@ -93,48 +93,48 @@ class BaseModelUnitTests(TestCase):
         for d in self.dates:
             for s in strikes or self.strikes:
                 # price
-                x = first.binary_call(d, s) * self.notional
-                y = second.binary_call(d, s) * self.notional
+                x = first.binary_call(d, strike=s) * self.notional
+                y = second.binary_call(d, strike=s) * self.notional
                 if y:
                     self.assertAlmostEqual(x/y, 1., places)
-                x = first.binary_put(d, s) * self.notional
-                y = second.binary_put(d, s) * self.notional
+                x = first.binary_put(d, strike=s) * self.notional
+                y = second.binary_put(d, strike=s) * self.notional
                 if y:
                     self.assertAlmostEqual(x/y, 1., places)
                 # delta
-                x = first.binary_call_delta(d, s) * self.notional
-                y = second.binary_call_delta(d, s) * self.notional
+                x = first.binary_call_delta(d, strike=s) * self.notional
+                y = second.binary_call_delta(d, strike=s) * self.notional
                 if y:
                     self.assertAlmostEqual(x/y, 1., places)
-                x = first.binary_put_delta(d, s) * self.notional
-                y = second.binary_put_delta(d, s) * self.notional
+                x = first.binary_put_delta(d, strike=s) * self.notional
+                y = second.binary_put_delta(d, strike=s) * self.notional
                 if y:
                     self.assertAlmostEqual(x/y, 1., places)
                 # gamma
-                x = first.binary_call_delta(d, s) * self.notional
-                y = second.binary_call_delta(d, s) * self.notional
+                x = first.binary_call_delta(d, strike=s) * self.notional
+                y = second.binary_call_delta(d, strike=s) * self.notional
                 if y:
                     self.assertAlmostEqual(x/y, 1., places)
-                x = first.binary_put_delta(d, s) * self.notional
-                y = second.binary_put_delta(d, s) * self.notional
+                x = first.binary_put_delta(d, strike=s) * self.notional
+                y = second.binary_put_delta(d, strike=s) * self.notional
                 if y:
                     self.assertAlmostEqual(x/y, 1., places)
                 # vega
-                x = first.binary_call_vega(d, s) * self.notional
-                y = second.binary_call_vega(d, s) * self.notional
+                x = first.binary_call_vega(d, strike=s) * self.notional
+                y = second.binary_call_vega(d, strike=s) * self.notional
                 if y:
                     self.assertAlmostEqual(x/y, 1., places)
-                x = first.binary_put_vega(d, s) * self.notional
-                y = second.binary_put_vega(d, s) * self.notional
+                x = first.binary_put_vega(d, strike=s) * self.notional
+                y = second.binary_put_vega(d, strike=s) * self.notional
                 if y:
                     self.assertAlmostEqual(x/y, 1., places)
                 # theta
-                x = first.binary_call_theta(d, s) * self.notional
-                y = second.binary_call_theta(d, s) * self.notional
+                x = first.binary_call_theta(d, strike=s) * self.notional
+                y = second.binary_call_theta(d, strike=s) * self.notional
                 if y:
                     self.assertAlmostEqual(x/y, 1., places)
-                x = first.binary_put_theta(d, s) * self.notional
-                y = second.binary_put_theta(d, s) * self.notional
+                x = first.binary_put_theta(d, strike=s) * self.notional
+                y = second.binary_put_theta(d, strike=s) * self.notional
                 if y:
                     self.assertAlmostEqual(x/y, 1., places)
 
@@ -142,40 +142,42 @@ class BaseModelUnitTests(TestCase):
 
 class IntrinsicModelUnitTests(BaseModelUnitTests):
     def test_bachelier(self):
-        first = OptionPayOffModel.intrinsic(**self.kwargs)
+        first = OptionPricingCurve.intrinsic(**self.kwargs)
         kwargs = dict(self.kwargs)
-        kwargs['volatility_curve'] = lambda *_: 0.0
-        second = OptionPayOffModel.bachelier(**kwargs)
+        kwargs['volatility'] = lambda *_: 0.0
+        second = OptionPricingCurve.bachelier(**kwargs)
         self._run_tests(first, second)
 
     def test_black76(self):
-        first = OptionPayOffModel.intrinsic(**self.kwargs)
+        first = OptionPricingCurve.intrinsic(**self.kwargs)
         kwargs = dict(self.kwargs)
-        kwargs['volatility_curve'] = lambda *_: 0.0
-        second = OptionPayOffModel.black76(**kwargs)
+        kwargs['volatility'] = lambda *_: 0.0
+        second = OptionPricingCurve.black76(**kwargs)
         self._run_tests(first, second)
 
     def test_displaced_black76(self):
-        first = OptionPayOffModel.intrinsic(**self.kwargs)
+        first = OptionPricingCurve.intrinsic(**self.kwargs)
         kwargs = dict(self.kwargs)
         for d in self.displacements:
             kwargs['displacement'] = d
-            kwargs['volatility_curve'] = lambda *_: 0.0
-            second = OptionPayOffModel.displaced_black76(**kwargs)
+            kwargs['volatility'] = lambda *_: 0.0
+            second = OptionPricingCurve.displaced_black76(**kwargs)
             self._run_tests(first, second)
 
 
 
 class BumpGreeksModelUnitTests(BaseModelUnitTests):
     def test_bachelier(self):
-        first = OptionPayOffModel.bachelier(**self.kwargs)
-        second = OptionPayOffModel.bachelier(**self.kwargs, bump_greeks=True)
+        first = OptionPricingCurve.bachelier(**self.kwargs)
+        second = OptionPricingCurve.bachelier(**self.kwargs)
+        second.bump_greeks = True
         second.DELTA_SHIFT = 1e-10
         # self._run_tests(first, second)
 
     def test_black76(self):
-        first = OptionPayOffModel.black76(**self.kwargs)
-        second = OptionPayOffModel.black76(**self.kwargs, bump_greeks=True)
+        first = OptionPricingCurve.black76(**self.kwargs)
+        second = OptionPricingCurve.black76(**self.kwargs)
+        second.bump_greeks = True
         second.DELTA_SHIFT = 1e-10
         # self._run_tests(first, second)
 
@@ -183,8 +185,8 @@ class BumpGreeksModelUnitTests(BaseModelUnitTests):
         kwargs = self.kwargs
         for d in self.displacements:
             kwargs['displacement'] = d
-            first = OptionPayOffModel.displaced_black76(**kwargs)
-            second = OptionPayOffModel.displaced_black76(**kwargs,
-                                                         bump_greeks=True)
+            first = OptionPricingCurve.displaced_black76(**kwargs)
+            second = OptionPricingCurve.displaced_black76(**kwargs)
+            second.bump_greeks = True
             second.DELTA_SHIFT = 1e-10
             # self._run_tests(first, second)

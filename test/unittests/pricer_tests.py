@@ -32,10 +32,10 @@ class PricerUnitTests(TestCase):
             self.swaps.append(swap)
 
             bond = par_bond(self.today, maturity, discount_curve=self.yc.df)
-            self.swaps.append(bond)
+            self.bonds.append(bond)
 
             loan = par_loan(self.today, maturity, discount_curve=self.yc.df)
-            self.swaps.append(loan)
+            self.loans.append(loan)
 
     def test_ecf(self):
         for swap in self.swaps:
@@ -52,24 +52,24 @@ class PricerUnitTests(TestCase):
 
     def test_pv(self):
         for swap in self.swaps:
-            self.assertAlmostEqual(0., pv(swap, self.yc.df, self.today))
+            self.assertAlmostEqual(0., pv(swap, self.today, self.yc.df))
         for bond in self.bonds:
-            self.assertAlmostEqual(0., pv(bond, self.yc.df, self.today))
+            self.assertAlmostEqual(0., pv(bond, self.today, self.yc.df))
         for loan in self.loans:
-            self.assertAlmostEqual(0., pv(loan, self.yc.df, self.today))
+            self.assertAlmostEqual(0., pv(loan, self.today, self.yc.df))
 
     def _test_ytm(self):
         rate = 0.01
         DateCurve.from_interpolation([self.today], [rate])
 
         for swap in self.swaps:
-            self.assertAlmostEqual(0., pv(swap, self.yc.df, self.today))
+            self.assertAlmostEqual(0., pv(swap, self.today, self.yc.df))
             self.assertAlmostEqual(rate, ytm(swap, self.today))
         for bond in self.bonds:
-            self.assertAlmostEqual(0., pv(bond, self.yc.df, self.today))
+            self.assertAlmostEqual(0., pv(bond, self.today, self.yc.df))
             self.assertAlmostEqual(rate, ytm(bond, self.today))
         for loan in self.loans:
-            self.assertAlmostEqual(0., pv(loan, self.yc.df, self.today))
+            self.assertAlmostEqual(0., pv(loan, self.today, self.yc.df))
             self.assertAlmostEqual(rate, ytm(loan, self.today))
 
     def _test_fair(self):
@@ -77,13 +77,13 @@ class PricerUnitTests(TestCase):
         DateCurve.from_interpolation([self.today], [rate])
 
         for swap in self.swaps:
-            self.assertAlmostEqual(0., pv(swap, self.yc.df, self.today))
+            self.assertAlmostEqual(0., pv(swap, self.today, self.yc.df))
             self.assertAlmostEqual(rate, swap.fixed_rate)
         for bond in self.bonds:
-            self.assertAlmostEqual(0., pv(bond, self.yc.df, self.today))
+            self.assertAlmostEqual(0., pv(bond, self.today, self.yc.df))
             self.assertAlmostEqual(rate, bond.fixed_rate)
         for loan in self.loans:
-            self.assertAlmostEqual(0., pv(loan, self.yc.df, self.today))
+            self.assertAlmostEqual(0., pv(loan, self.today, self.yc.df))
             self.assertAlmostEqual(rate, loan.fixed_rate)
 
     def test_iac(self):
@@ -110,19 +110,19 @@ class PricerUnitTests(TestCase):
         total = sum(swp[swp.domain])
         self.assertAlmostEqual(0.0, total)
 
-        bpv1 = bpv(leg1, self.df, self.today, self.df)
-        bpv2 = bpv(leg2, self.df, self.today, self.df)
+        bpv1 = bpv(leg1, self.today, self.df, delta_curve=self.df)
+        bpv2 = bpv(leg2, self.today, self.df, delta_curve=self.df)
         self.assertAlmostEqual(bpv1, -bpv2)
 
         # swap bpv
 
-        bpv3 = bpv(swp, self.df, self.today, self.df)
+        bpv3 = bpv(swp, self.today, self.df, delta_curve=self.df)
         self.assertAlmostEqual(0.0, bpv3)
 
-        bpv4 = bpv(swp, self.df, self.today, self.curve)
+        bpv4 = bpv(swp, self.today, self.df, delta_curve=self.curve)
         self.assertAlmostEqual(585.4121890466267, bpv4)
 
-        bpv5 = bpv(swp, self.curve, self.today, self.curve)
+        bpv5 = bpv(swp, self.today, self.df, delta_curve=self.curve)
         self.assertAlmostEqual(585.2860029102303, bpv5)
 
         # bond bpv

@@ -9,7 +9,11 @@
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
-
-from .intrinsic import Intrinsic # noqa E401 E402
 from .bachelier import Bachelier  # noqa E401 E402
 from .black76 import Black76, DisplacedBlack76  # noqa E401 E402
+from .curve import OptionPricingCurve  # noqa E401 E402
+from .intrinsic import Intrinsic  # noqa E401 E402
+
+intrinsic = Intrinsic()
+bachelier = Bachelier()
+black76 = Black76()

@@ -34,20 +34,22 @@ logging.getLogger(__name__).addHandler(logging.NullHandler())
 #  [x] make solver in ytm, fair, fit optional w/- default (yc.nx)
 #  [x] pricer default arguments (valuation_date, payoff_model, ...)
 #  [ ] better ModelUnitTests w/- bumps
-#  [ ] add products (Bond, Swap, Cap, Floor, Collar, Option, Swaption)
+#  [ ] add products: Bond, Mortgage, Swap, Cap, Floor, Collar, Option, Swaption
 #  [ ] add sabr model
-#  [ ] make use of curve.df if available for discounting ?
+#  [x] CashFlow algebra CF + CF = CFList
+#  [x] replace discount_curve by yield_curve
+#  [x] rework/remove PayOffModel
 
+from . import plans, optionpricing  # noqa E401 E402
 
-from . import plans, optionpricing, daycount  # noqa E401 E402
-
-from .cashflowlist import CashFlowList  # noqa E401 E402
+from .daycount import day_count  # noqa E401 E402
+from .optionpricing import OptionPricingCurve # noqa E401 E402
 from .payoffs import (CashFlowPayOff, # noqa E401 E402
                       FixedCashFlowPayOff, # noqa E401 E402
                       RateCashFlowPayOff, # noqa E401 E402
                       OptionCashFlowPayOff, # noqa E401 E402
-                      ContingentRateCashFlowPayOff)  # noqa E401 E402
-from .payoffmodels import PayOffModel, OptionPayOffModel  # noqa E401 E402
+                      DigitalOptionCashFlowPayOff, # noqa E401 E402
+                      CashFlowList)  # noqa E401 E402
 from .pricer import ecf, pv, ytm, iac, fair, bpv, delta, fit  # noqa E401 E402
 
 from .ratingclass import RatingClass  # noqa E401 E402

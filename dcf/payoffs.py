@@ -10,41 +10,43 @@
 # License:  Apache License 2.0 (see LICENSE file)
 
 from pprint import pformat
+from warnings import warn
 
 from prettyclass import prettyclass
 
+try:
+    from tslist import TSList
+except ImportError:
+    class TSList(list):
+        def __init__(self, seq=()):
+            msg = ("tslist not found. consider 'pip install tslist' "
+                   "for more flexible datetime list operations")
+            warn(msg)
+            super().__init__(seq)
+
+try:
+    from tabulate import tabulate
+except ImportError:
+    def tabulate(x, *_, **__):
+        msg = ("tabulate not found. consider 'pip install tabulate' "
+               "for more flexible table representation")
+        warn(msg)
+        return pformat(x, indent=2, sort_dicts=False)
+
 from .daycount import day_count as _default_day_count
-from .payoffmodels import PayOffModel, OptionPayOffModel
+from .details import Details
 from .plans import DEFAULT_AMOUNT
-
-
-class CashFlowDetails(dict):
-
-    def __float__(self):
-        return float(self.get('cashflow', None) or 0.0)
-
-    @property
-    def __ts__(self):
-        return self.get('pay date')
-
-    def __getattr__(self, item):
-        return self.get(item.replace('_', ' '))
-
-    def __repr__(self):
-        c = self.__class__.__name__
-        s = pformat(dict(self.items()), indent=2, sort_dicts=False)
-        return f"{c}(\n{s}\n)"
 
 
 @prettyclass(init=False)
 class CashFlowPayOff:
     """Cash flow payoff base class"""
 
-    def details(self, model=None):
-        return CashFlowDetails()
+    def details(self, valuation_date=None, **__):
+        return Details()
 
-    def __call__(self, model=None):
-        return self.details(model).get('cashflow', None)
+    def __call__(self, valuation_date=None, **__):
+        return self.details(valuation_date, **__).get('cashflow', None)
 
     def __copy__(self):
         return self  # added for editor code check
@@ -67,18 +69,25 @@ class CashFlowPayOff:
         return new
 
     def __add__(self, other):
+        if isinstance(other, CashFlowPayOff):
+            return CashFlowList([self, other])
         new = self.__copy__()
         new.amount = new.amount.__add__(other)
         return new
 
     def __sub__(self, other):
+        if isinstance(other, CashFlowPayOff):
+            return CashFlowList([self, -other])
         new = self.__copy__()
         new.amount = new.amount.__sub__(other)
         return new
 
     def __mul__(self, other):
         new = self.__copy__()
-        new.amount = new.amount.__mul__(other)
+        if isinstance(other, CashFlowPayOff):
+            new.amount = (other * new.amount)
+        else:
+            new.amount = new.amount.__mul__(other)
         return new
 
     def __truediv__(self, other):
@@ -104,24 +113,29 @@ class CashFlowPayOff:
 
 class FixedCashFlowPayOff(CashFlowPayOff):
 
-    def __init__(self, pay_date, amount=DEFAULT_AMOUNT):
+    def __init__(self, pay_date, amount=DEFAULT_AMOUNT, forward_curve=None):
         r"""fixed cashflow payoff
 
-        :param pay_date: cashflow payment date
-        :param amount: notional amount $N$
+        :param pay_date: cashflow payment date $t$
+        :param amount: notional amount $N$ (might be a callable function)
+        :param forward_curve: price forward curve $P$
 
-        A fixed cashflow payoff $X$
-        is given directly by the notional amount $N$
+        A fixed cashflow payoff $X(t)$ at $t$
+        is given directly by the notional amount $N + P(t)$
 
-        Invoking $X()$ or $X(m)$ with a |OptionPayOffModel()| object $m$
+        Invoking **details** method $X()$ or $X(m)$
+        with a |OptionPayOffModel()| object $m$
         as argument returns the cashflow details as a dict-like object.
 
         >>> from dcf import FixedCashFlowPayOff
         >>> cf = FixedCashFlowPayOff(0.25, amount=123.456)
         >>> cf.details()
-        CashFlowDetails(
+        Details(
         {'pay date': 0.25, 'cashflow': 123.456}
         )
+
+        >>> cf = FixedCashFlowPayOff(0.25, amount=123.456)
+        >>> cf.details()
 
         The actual expected cashflow payoff amount of $X$
         (which is again just the fixed amount $N$)
@@ -132,16 +146,40 @@ class FixedCashFlowPayOff(CashFlowPayOff):
 
         """
         self.pay_date = pay_date
-        """cashflow payment date"""
+        r"""cashflow payment date $t$"""
         self.amount = amount
-        """cashflow notional amount"""
+        r"""cashflow notional amount $N$"""
+        self.forward_curve = forward_curve
+        r"""forward price curve $S(t)$"""
 
-    def details(self, model=None):
+    def details(self, valuation_date=None, *, forward_curve=None, **__):
+        amount = self.amount
+        if callable(amount):
+            amount = amount(valuation_date)
         details = {
             'pay date': self.pay_date,
-            'cashflow': self.amount
+            'cashflow': float(amount or 0.0)
         }
-        return CashFlowDetails(details.items())
+        forward = 0.0
+        if self.forward_curve is not None:
+            if forward_curve is None:
+                forward_curve = self.forward_curve
+
+            if callable(forward_curve):
+                forward = forward_curve(self.pay_date)
+            else:
+                forward = forward_curve
+
+            details.update({
+                'fixed amount': float(amount or 0.0),
+                'forward price': float(forward or 0.0),
+            })
+            if hasattr(forward_curve, 'details'):
+                details.update(forward_curve.details())
+            details['forward-curve-id'] = id(forward_curve)
+
+        details['cashflow'] += forward
+        return Details(details.items())
 
 
 class RateCashFlowPayOff(CashFlowPayOff):
@@ -181,7 +219,7 @@ class RateCashFlowPayOff(CashFlowPayOff):
 
         >>> cf = RateCashFlowPayOff(pay_date=1.0, start=1.25, end=1.5, amount=1.0, fixed_rate=0.005, forward_curve=0)
         >>> cf.details()
-        CashFlowDetails(
+        Details(
         { 'pay date': 1.0,
           'cashflow': 0.00125,
           'notional': 1.0,
@@ -203,7 +241,7 @@ class RateCashFlowPayOff(CashFlowPayOff):
         
         >>> forward_curve = 0.05
         >>> cf.details(forward_curve)
-        CashFlowDetails(
+        Details(
         { 'pay date': 1.0,
           'cashflow': 0.01375,
           'notional': 1.0,
@@ -226,7 +264,7 @@ class RateCashFlowPayOff(CashFlowPayOff):
 
         >>> cf = RateCashFlowPayOff(pay_date=1.0, start=1.25, end=1.5, amount=1.0, fixed_rate=0.005)
         >>> cf.details(forward_curve)
-        CashFlowDetails(
+        Details(
         { 'pay date': 1.0,
           'cashflow': 0.00125,
           'notional': 1.0,
@@ -253,23 +291,30 @@ class RateCashFlowPayOff(CashFlowPayOff):
         self.amount = amount
         """cashflow notional amount"""
         self.fixed_rate = fixed_rate
-        r""" agreed fixed rate $c$ """
+        r"""agreed fixed rate $c$ """
         self.forward_curve = forward_curve
+        r"""forward rate curve $f(t)$"""
 
-    def details(self, model=None):
+    def details(self, valuation_date=None, *, forward_curve=None, **__):
+        amount = self.amount
+        if callable(amount):
+            amount = amount(valuation_date)
         day_count = self.day_count or _default_day_count
         yf = day_count(self.start, self.end)
         fixed_rate = self.fixed_rate or 0.0
         details = {
             'pay date': self.pay_date,
             'cashflow': 0.0,
-            'notional': self.amount,
-            'pay rec': 'pay' if self.amount > 0 else 'rec',
+            'notional': amount,
+            'pay rec': 'pay' if amount > 0 else 'rec',
             'fixed rate': fixed_rate,
             'start date': self.start,
             'end date': self.end,
             'year fraction': yf,
         }
+        if self.day_count:
+            dc = getattr(self.day_count, '__qualname__', str(self.day_count))
+            details['day count'] = dc
 
         forward = 0.0
         if self.forward_curve is not None:
@@ -278,31 +323,34 @@ class RateCashFlowPayOff(CashFlowPayOff):
             if self.fixing_offset:
                 fixing_date -= self.fixing_offset
 
-            if model is None:
-                model = self.forward_curve
-
-            if isinstance(model, PayOffModel):
-                forward = model.forward(fixing_date)
-            elif callable(model):
-                forward = model(fixing_date)
+            if forward_curve is None:
+                forward_curve = self.forward_curve
+            if callable(forward_curve):
+                forward = forward_curve(fixing_date)
             else:
-                forward = model
+                forward = float(forward_curve)
 
             details.update({
                 'forward rate': float(forward or 0.0),
                 'fixing date': fixing_date,
-                'tenor': getattr(model, 'forward_tenor', None),
-                'forward-curve-id': id(model)
             })
-
-        details['cashflow'] = (fixed_rate + forward) * yf * self.amount
-        return CashFlowDetails(details.items())
+            if hasattr(forward_curve, 'details'):
+                details.update(forward_curve.details())
+            details['forward-curve-id'] = id(forward_curve)
+        details['cashflow'] = \
+            (fixed_rate + forward) * yf * float(amount or 0.0)
+        return Details(details.items()).drop(None)
 
 
 class OptionCashFlowPayOff(CashFlowPayOff):
 
+    PUT_TYPES = 'put', 'floor',  # 'floorlet'
+    CALL_TYPES = 'call', 'cap',  # 'caplet'
+    OPTION_TYPES = {k: k for k in PUT_TYPES + CALL_TYPES}
+
     def __init__(self, pay_date, expiry=None, amount=DEFAULT_AMOUNT,
-                 strike=None, is_put=False, payoff_model=None):
+                 strike=None, option_type='call', *,
+                 forward_curve=None, option_curve=None):
         r""" European option payoff function
 
         :param pay_date: cashflow payment date
@@ -312,9 +360,9 @@ class OptionCashFlowPayOff(CashFlowPayOff):
             (optional: default is 1.0)
         :param strike: strike price $K$
             (optional: default is **None** i.e. at-the-money strike)
-        :param is_put: bool **True**
-            for put options and **False** for call options
-            (optional with default **False**)
+        :param option_type: str or **OptionCashFlowPayOff.OPTION_TYPES** enum
+            to prick for option type **call**, **put**, **cap**, **floor**
+            (optional with default **call**)
 
         An European call option $C_K(S(T))$ is the right to buy
         an agreed amount $N$
@@ -346,19 +394,19 @@ class OptionCashFlowPayOff(CashFlowPayOff):
 
         First, setup a classical log-normal *Black-Scholes* model.
 
-        >>> from dcf import OptionPayOffModel
+        >>> from dcf import OptionPricingCurve
         >>> from math import exp
         >>> f = lambda t: 100.0 * exp(t * 0.05)  # spot price 100 and yield of 5%
         >>> v = lambda *_: 0.1  # flat volatility of 10%
-        >>> m = OptionPayOffModel.black76(valuation_date=0.0, forward_curve=f, volatility_curve=v)
+        >>> m = OptionPricingCurve.black76(f, volatility_curve=v)
 
         Then, build a call option payoff.
 
         >>> from dcf import OptionCashFlowPayOff
         >>> c = OptionCashFlowPayOff(pay_date=0.33, expiry=0.25, strike=110.0)
         >>> # get expected option payoff
-        >>> c.details(m)
-        CashFlowDetails(
+        >>> c.details(forward_curve=m)
+        Details(
         { 'pay date': 0.33,
           'cashflow': 0.1072...,
           'put call': 'call',
@@ -378,15 +426,15 @@ class OptionCashFlowPayOff(CashFlowPayOff):
           'formula': 'Black76'}
         )
 
-        >>> float(c.details(m))
+        >>> float(c.details(forward_curve=m))
         0.1072...
 
         And a put option payoff.
 
         >>> p = OptionCashFlowPayOff(pay_date=0.33, expiry=0.25, strike=110.0, is_put=True)
         >>> # get expected option payoff
-        >>> p.details(m)
-        CashFlowDetails(
+        >>> p.details(forward_curve=m)
+        Details(
         { 'pay date': 0.33,
           'cashflow': 8.8494...,
           'put call': 'put',
@@ -406,198 +454,454 @@ class OptionCashFlowPayOff(CashFlowPayOff):
           'formula': 'Black76'}
         )
         
-        >>> float(p.details(m))
+        >>> float(p.details(forward_curve=m))
         8.8494...
 
         """  # noqa E501
         self.pay_date = pay_date
-        self.expiry = pay_date if expiry is None else expiry
+        self.expiry = expiry
         self.amount = amount
         self.strike = strike
-        self.is_put = is_put
-        self.payoff_model = payoff_model
+        self.option_type = str(self.OPTION_TYPES[str(option_type).lower()])
 
-    def details(self, model=None):
+        self.forward_curve = forward_curve
+        self.option_curve = option_curve
+
+    def details(self, valuation_date=None, *,
+                forward_curve=None, option_curve=None, **__):
+        if forward_curve is None:
+            forward_curve = self.forward_curve
+        if option_curve is None:
+            option_curve = self.option_curve
+        amount = self.amount
+        if callable(amount):
+            amount = amount(valuation_date)
+        expiry_date = self.pay_date if self.expiry is None else self.expiry
+        is_put = str(self.option_type) in self.PUT_TYPES
+
         details = {
             'pay date': self.pay_date,
             'cashflow': 0.0,
-            'put call': 'put' if self.is_put else 'call',
-            'long short': 'long' if self.amount > 0 else 'short',
-            'notional': self.amount,
-            'strike': self.strike,
-            'expiry date': self.expiry
+            'option type': str(self.option_type),
+            'is put': is_put,
+            'long short': 'long' if float(amount or 0.0) > 0 else 'short',
+            'notional': float(amount or 0.0),
+            'strike': 'atm' if self.strike is None else self.strike,
+            'forward': None,
+            'tenor': None,
+            'valuation date': valuation_date,
+            'expiry date': expiry_date,
+            'time to expiry': None,
+            'volatility': None,
+            'option model': 'unknown'
         }
-        if model is None:
-            model = self.payoff_model
 
-        if isinstance(model, OptionPayOffModel):
-            amount = self.amount
-            if self.is_put:
-                cf = amount * model.put_value(self.expiry, self.strike)
+        if forward_curve is not None or option_curve is not None:
+            x, y = valuation_date, expiry_date
+
+            # gather further details
+
+            if hasattr(forward_curve, 'details'):
+                details.update(forward_curve.details(x, y))
+            if hasattr(option_curve, 'details'):
+                details.update(option_curve.details(x, y, strike=self.strike))
+
+            # put curve-id details at end
+
+            if forward_curve is not None:
+                details['forward-curve-id'] = \
+                    details.pop('forward-curve-id', id(forward_curve))
+            if option_curve is not None:
+                details['option-curve-id'] = \
+                    details.pop('option-curve-id', id(option_curve))
+
+            # value vanilla option (prio option_curve over forward_curve)
+
+            if hasattr(option_curve, 'call'):
+                option = option_curve.call(x, y, strike=self.strike)
+            elif option_curve is not None:
+                option = option_curve(x, y, strike=self.strike)
+            elif hasattr(forward_curve, 'call'):
+                option = forward_curve.call(x, y, strike=self.strike)
             else:
-                cf = amount * model.call_value(self.expiry, self.strike)
-            details['cashflow'] = cf
-            details.update(
-                model.details(self.expiry, self.strike)
-            )
+                option = 0.0
+                if self.strike is not None:
+                    # fallback to forward_curve
+                    forward = forward_curve
+                    if callable(forward):
+                        forward = forward(y)
+                    details['forward'] = forward = float(forward)
+                    option = max(forward - self.strike, 0.0)
+                details['option model'] = 'no model'
 
-        return CashFlowDetails(details.items())
+            if is_put and self.strike is not None:
+                # put call parity
+                forward = forward_curve
+                if callable(forward):
+                    forward = forward(y)
+                details['forward'] = forward = float(forward)
+                option = self.strike - forward + option
+
+            details['cashflow'] = option * float(amount or 0.0)
+
+        return Details(details.items()).drop(None)
 
 
-class ContingentRateCashFlowPayOff(RateCashFlowPayOff):
+class DigitalOptionCashFlowPayOff(OptionCashFlowPayOff):
 
-    def __init__(self, pay_date, start, end, amount=DEFAULT_AMOUNT,
-                 day_count=None, fixing_offset=None, fixed_rate=None,
-                 floor_strike=None, cap_strike=None, payoff_model=None):
-        r""" contigent but collared interest rate cashflow payoff
+    def details(self, valuation_date=None, *,
+                forward_curve=None, option_curve=None, **__):
 
-        :param pay_date: cashflow payment date
-        :param start: cashflow accrued period start date $s$
-        :param end: cashflow accrued period end date $e$
-        :param amount: notional amount $N$
-        :param day_count: function to calculate
-            accrued period year fraction $\tau$
+        details = super().details(valuation_date, forward_curve=forward_curve,
+                                  option_curve=option_curve, **__)
+        # add 'is digital' flag
+        pos = list(details.keys()).index('is put')
+        items = list(details.items())
+        items.insert(pos, ('is digital', True))
+        details = dict(items)
+
+        # value binary option (prio option_curve over forward_curve)
+
+        if forward_curve is not None or option_curve is not None:
+            x, y = valuation_date, details['expiry date']
+
+            if hasattr(option_curve, 'binary_call'):
+                option = option_curve.binary(x, y, strike=self.strike)
+            elif hasattr(option_curve, 'binary'):
+                option = option_curve.call(x, y, strike=self.strike)
+            elif option_curve is not None:
+                option = option_curve(x, y, strike=self.strike)
+            elif hasattr(forward_curve, 'binary_call'):
+                option = forward_curve.binary_call(x, y, strike=self.strike)
+            elif hasattr(forward_curve, 'binary'):
+                option = forward_curve.binary(x, y, strike=self.strike)
+            else:
+                option = 1.0
+                # fallback to forward_curve
+                forward = forward_curve
+                if callable(forward):
+                    forward = forward(y)
+                details['forward'] = forward = float(forward)
+                if self.strike is not None and forward < self.strike:
+                    option = 0.0
+                details['option model'] = 'no model'
+
+            if details['is put'] and self.strike is not None:
+                # put call parity
+                option = 1.0 - option
+
+            details['cashflow'] = option * details['notional']
+
+
+class CashFlowList(TSList):
+    """cashflow payoff container"""
+
+    @classmethod
+    def from_fixed_cashflows(
+            cls,
+            payment_date_list,
+            amount_list=DEFAULT_AMOUNT,
+            forward_curve=None):
+        """ basic cashflow list object
+
+        :param payment_date_list: list of cashflow payment dates
+        :param amount_list: list of cashflow amounts
+        :param forward_curve: curve to derive forward values
+        """
+        if isinstance(amount_list, (int, float)):
+            amount_list = [amount_list] * len(payment_date_list)
+        ta_list = zip(payment_date_list, amount_list)
+        return cls(FixedCashFlowPayOff(t, a, forward_curve=forward_curve)
+                   for t, a in ta_list)
+
+    @classmethod
+    def from_rate_cashflows(
+            cls,
+            payment_date_list,
+            amount_list=DEFAULT_AMOUNT,
+            origin=None,
+            day_count=None,
+            fixing_offset=None,
+            pay_offset=None,
+            fixed_rate=0.,
+            forward_curve=None):
+        r""" list of interest rate cashflows
+
+        :param payment_date_list: pay dates, assuming that pay dates agree
+            with end dates of interest accrued period
+        :param amount_list: notional amounts
+        :param origin: start date of first interest accrued period
+        :param day_count: day count convention
         :param fixing_offset: time difference between
-            interest rate fixing date
-            and interest period payment date $\delta$
-        :param fixed_rate: agreed fixed rate $c$
-        :param floor_strike: lower interest rate boundary $K$
+            interest rate fixing date and interest period payment date
+        :param pay_offset: time difference between
+            interest period end date and interest payment date
+        :param fixed_rate: agreed fixed rate
+        :param forward_curve: interest rate curve for forward estimation
+
+        Let $t_0$ be the list **origin**
+        and $t_i$ $i=1, \dots n$ the **payment_date_list**
+        with $N_i$ $i=1, \dots n$ the notional **amount_list**.
+
+        Moreover, let $\tau$ be the **day_count** function,
+        $c$ the **fixed_rate** and $f$ the **forward_curve**.
+
+        Then, the rate cashflow $cf_i$ payed at time $t_i$ will be
+        with
+        $s_i = t_{i-1} - \delta$,
+        $e_i = t_i -\delta$
+        as well as
+        $d_i = s_i - \epsilon$
+        for **pay_offset** $\delta$ and **fixing_offset** $\epsilon$,
+
+        $$cf_i = N_i \cdot \tau(s_i,e_i) \cdot (c + f(d_i)).$$
+
+        Note, the **pay_offset** $\delta$ is not applied
+        in case of the first cashflow, then $s_1=t_0$.
+
+        """
+
+        if isinstance(amount_list, (int, float)):
+            amount_list = [amount_list] * len(payment_date_list)
+
+        if origin is not None:
+            start_dates = [origin]
+            start_dates.extend(payment_date_list[:-1])
+        elif origin is None and len(payment_date_list) > 1:
+            step = payment_date_list[1] - payment_date_list[0]
+            start_dates = [payment_date_list[0] - step]
+            start_dates.extend(payment_date_list[:-1])
+        else:
+            start_dates = []
+
+        payoff_list = list()
+        for s, e, a in zip(start_dates, payment_date_list, amount_list):
+            pay_date = e
+            if pay_offset:
+                e -= pay_offset
+                s -= pay_offset
+            payoff = RateCashFlowPayOff(
+                pay_date=pay_date,
+                start=s, end=e, day_count=day_count,
+                fixing_offset=fixing_offset, amount=a,
+                fixed_rate=fixed_rate,
+                forward_curve=forward_curve
+            )
+            payoff_list.append(payoff)
+        return cls(payoff_list)
+
+    @classmethod
+    def from_option_cashflows(
+            cls,
+            payment_date_list,
+            amount_list=DEFAULT_AMOUNT,
+            strike_list=None,
+            option_type='call',
+            is_digital=False,
+            fixing_offset=None,
+            pay_offset=None,
+            forward_curve=None):
+        r""" list of European option payoffs
+
+        :param payment_date_list: list of cashflow payment dates $t_k$
+        :param amount_list: list of option notional amounts $N_k$
+        :param strike_list: list of option strike prices $K_k$
+        :param option_type: enum to prick for option type
+            **call**, **put**, **cap**, **floor**
+            (optional with default **call**)
+        :param is_digital: bool flag if option is digital/binary option
+            (optional with default **False**)
+        :param fixing_offset: offset $\delta$ between
+            underlying fixing date and cashflow end date
+        :param pay_offset: offset $\epsilon$ between
+            cashflow end date and payment date
+        :param forward_curve: curve to derive underlying forward value
+
+        List of |OptionCashFlowPayOff()| or |DigitalOptionCashFlowPayOff()|.
+
+        """
+        if isinstance(amount_list, (int, float)):
+            amount_list = [amount_list] * len(payment_date_list)
+        if isinstance(strike_list, (int, float)) or strike_list is None:
+            strike_list = [strike_list] * len(payment_date_list)
+        if isinstance(option_type, str):
+            option_type = [option_type] * len(payment_date_list)
+
+        payoff_list = list()
+        option_cls = \
+            DigitalOptionCashFlowPayOff if is_digital else OptionCashFlowPayOff
+        for pay_date, amount, strike, o_type in \
+                zip(payment_date_list, amount_list, strike_list, option_type):
+            expiry = pay_date
+            if pay_offset:
+                expiry -= pay_offset
+            if fixing_offset:
+                expiry -= fixing_offset
+            option = option_cls(
+                pay_date=pay_date,
+                expiry=expiry,
+                amount=amount,
+                strike=strike,
+                option_type=o_type,
+                forward_curve=forward_curve
+            )
+            payoff_list.append(option)
+        return cls(payoff_list)
+
+    @classmethod
+    def from_contingent_rate_cashflows(
+            cls,
+            payment_date_list,
+            amount_list=DEFAULT_AMOUNT,
+            origin=None,
+            day_count=None,
+            fixing_offset=None,
+            pay_offset=None,
+            fixed_rate=0.,
+            cap_strike=None,
+            floor_strike=None,
+            forward_curve=None):
+        r""" list of contingent collared rate cashflows
+
+        :param payment_date_list: pay dates, assuming that pay dates agree
+            with end dates of interest accrued period
+        :param amount_list: notional amounts
+        :param origin: start date of first interest accrued period
+        :param day_count: day count convention
+        :param fixing_offset: time difference between
+            interest rate fixing date and interest period payment date
+        :param pay_offset: time difference between
+            interest period end date and interest payment date
+        :param fixed_rate: agreed fixed rate
         :param cap_strike: upper interest rate boundary $L$
+        :param floor_strike: lower interest rate boundary $K$
+        :param forward_curve: curve to derive underlying forward value
 
-        A collared interest rate cashflow payoff $X$
-        is given for a float rate $f$ at $T=s-\delta$
+        Each object consists of a list of
+        |ContingentRateCashFlowPayOff()|, i.e.
+        of collared payoff functions
 
-        $$X(f(T)) = [\max(K, \min(f(T), L)) + c]\ \tau(s,e)\ N$$
+        $$X_i(f(T_i)) = [\max(K, \min(f(T_i), L)) + c]\ \tau(s,e)\ N$$
 
-        The foorlet ($\max(K, \dots)$)
-        or resp. the caplet condition ($\min(\dots, L)$)
-        will be ignored if $K$ is or resp. $L$ is **None**.
+        with, according to a payment date $p_i$,
+        $p_i-\epsilon=e_i$, $e_i=s_{i+1}$ and $s_i-\delta=T_i$.
 
-        Invoking $X(m)$ with a |OptionPayOffModel| object $m$ as argument
-        returns the actual expected cashflow payoff amount of $X$.
+        """
+        if isinstance(amount_list, (int, float)):
+            amount_list = [amount_list] * len(payment_date_list)
 
-        >>> from dcf import ContingentRateCashFlowPayOff
-        >>> from dcf import PayOffModel, OptionPayOffModel
+        if origin:
+            start_dates = [origin]
+            start_dates.extend(payment_date_list[:-1])
+        elif origin is None and len(payment_date_list) > 1:
+            step = payment_date_list[1] - payment_date_list[0]
+            start_dates = [payment_date_list[0] - step]
+            start_dates.extend(payment_date_list[:-1])
+        else:
+            start_dates = []
 
-        evaluate just the fixed rate cashflow
+        payoff_list = list()
+        for s, e, a in zip(start_dates, payment_date_list, amount_list):
+            pay_date = e
+            if pay_offset:
+                e -= pay_offset
+                s -= pay_offset
+            forward = RateCashFlowPayOff(
+                pay_date=pay_date,
+                start=s, end=e, day_count=day_count,
+                fixing_offset=fixing_offset, amount=a, fixed_rate=fixed_rate,
+                # cap_strike=cap_strike, floor_strike=floor_strike,
+                forward_curve=forward_curve
+            )
+            expiry = s
+            if fixing_offset:
+                expiry -= fixing_offset
+            payoff_list.append(forward)
+            floorlet = OptionCashFlowPayOff(
+                pay_date=pay_date, expiry=expiry, amount=a,
+                strike=floor_strike, option_type='floor',
+                forward_curve=forward_curve
+            )
+            payoff_list.append(floorlet)
+            caplet = OptionCashFlowPayOff(
+                pay_date=pay_date, expiry=expiry, amount=a,
+                strike=cap_strike, option_type='cap',
+                forward_curve=forward_curve
+            )
+            payoff_list.append(caplet)
 
-        >>> cf = ContingentRateCashFlowPayOff(pay_date=1.5, start=1.25, end=1.5, amount=1.0, fixed_rate=0.005, floor_strike=0.002, payoff_model=0.0)
-        >>> cf.details()
-        CashFlowDetails(
-        { 'pay date': 1.5,
-          'cashflow': 0.00125,
-          'notional': 1.0,
-          'pay rec': 'pay',
-          'fixed rate': 0.005,
-          'start date': 1.25,
-          'end date': 1.5,
-          'year fraction': 0.25,
-          'forward rate': 0.0,
-          'fixing date': 1.25,
-          'tenor': None,
-          'forward-curve-id': ...}
-        )
+        return cls(payoff_list)
 
-        >>> float(cf.details())
-        0.00125
+    @property
+    def domain(self):
+        """ payment date list """
+        return tuple(getattr(v, 'pay_date', None) for v in self)
 
-        evaluate the fixed rate and float forward rate cashflow
+    @property
+    def origin(self):
+        """ cashflow list start date """
+        origin = min(self.domain, default=None)
+        starts = (getattr(v, 'start', None) for v in self)
+        return min(starts, default=origin)
 
-        >>> f = PayOffModel(valuation_date=0.0, forward_curve=(lambda *_: 0.05))
-        >>> cf.details(f)
-        CashFlowDetails(
-        { 'pay date': 1.5,
-          'cashflow': 0.01375,
-          'notional': 1.0,
-          'pay rec': 'pay',
-          'fixed rate': 0.005,
-          'start date': 1.25,
-          'end date': 1.5,
-          'year fraction': 0.25,
-          'forward rate': 0.05,
-          'fixing date': 1.25,
-          'tenor': None,
-          'forward-curve-id': ...}
-        )
+    def __init__(self, iterable=(), /):
+        """cashflow payoff container
 
-        >>> float(cf.details(f))
-        0.01375
+        :param iterable:
+        """
+        super().__init__(iterable)
 
-        evaluate the fixed rate and float forward rate cashflow plus intrisic option payoff
+    def __call__(self, valuation_date=None, **__):
+        return [v(valuation_date, **__) for v in self]
 
-        >>> i = OptionPayOffModel.intrinsic(valuation_date=0.0, forward_curve=(lambda *_: 0.05))
-        >>> float(cf.details(i))
-        0.01375
+    def details(self, valuation_date=None, **__):
+        return [v.details(valuation_date, **__) for v in self]
 
-        evaluate the fixed rate and float forward rate cashflow plus *Bachelier* model payoff
+    def _tabulate(self, **kwargs):
+        details = self.details()
+        header = {}
+        for d in details:
+            header.update(d)
+        header = list(header.keys())
+        rows = [header]
+        for d in details:
+            r = dict.fromkeys(header)
+            r.update(d)
+            rows.append(list(r.values()))
+        return tabulate(rows, **kwargs)
 
-        >>> v = lambda *_: 0.005
-        >>> m = OptionPayOffModel.bachelier(valuation_date=0.0, forward_curve=(lambda *_: 0.05), volatility_curve=v)
-        >>> float(cf.details(m))
-        0.01375
+    def _repr_html_(self):
+        return self._tabulate(tablefmt="html", headers="firstrow")
 
-        """  # noqa 501
-        super().__init__(pay_date, start, end,
-                         amount, day_count,
-                         fixing_offset, fixed_rate, forward_curve=0)
-        self.floor_strike = floor_strike
-        """floor strike rate"""
-        self.cap_strike = cap_strike
-        """cap strike rate"""
-        self.payoff_model = payoff_model
+    def __str__(self):
+        return self._tabulate(headers="firstrow", floatfmt="_", intfmt="_")
 
-    def details(self, model=None):
-        # works even if the model is the forward_curve
-        if model is None:
-            model = self.payoff_model
+    def __abs__(self):
+        return self.__class__(v.__abs__() for v in self)
 
-        details = super().details(model=model)
-        if self.floor_strike is not None:
-            details.update({
-                'floorlet': 0.0,
-                'floorlet strike': self.floor_strike
-            })
-        if self.cap_strike is not None:
-            details.update({
-                'caplet': 0.0,
-                'caplet strike': self.cap_strike,
-            })
+    def __neg__(self):
+        return self.__class__(v.__neg__() for v in self)
 
-        yf = details['year fraction']
-        amount = details['notional']
-        cf = details['cashflow']
-        floorlet = caplet = 0.0
+    def __add__(self, other):
+        if isinstance(other, list):
+            return self.__class__(super().__add__(other))
+        if isinstance(other, CashFlowPayOff):
+            return self + [other]
+        return self.__class__(v.__add__(other) for v in self)
 
-        if isinstance(model, OptionPayOffModel):
-            d = None
-            if self.floor_strike is not None:
-                fixing_date = details['fixing date']
-                d = model.details(fixing_date, self.floor_strike)
-                floorlet = model.put_value(fixing_date, self.floor_strike)
-                # floorlet -= forward_rate
-                floorlet *= yf * amount
-                details.update({
-                    'floorlet': floorlet,
-                    'floorlet strike': self.floor_strike,
-                    'floorlet volatility': d.get('volatility', None),
-                })
+    def __sub__(self, other):
+        if isinstance(other, list):
+            # lousy hack since other might just be list and not List
+            return self.__neg__().__add__(other).__neg__()
+        if isinstance(other, CashFlowPayOff):
+            return self - [other]
+        return self.__class__(v.__sub__(other) for v in self)
 
-            if self.cap_strike is not None:
-                fixing_date = details['fixing date']
-                d = model.details(fixing_date, self.cap_strike)
-                caplet = model.call_value(fixing_date, self.cap_strike)
-                # caplet += forward_rate
-                caplet *= yf * amount
-                details.update({
-                    'caplet': caplet,
-                    'caplet strike': self.cap_strike,
-                    'caplet volatility': d.get('volatility', None),
-                })
+    def __mul__(self, other):
+        return self.__class__(v.__mul__(other) for v in self)
 
-            if d:
-                details.update({
-                    'time to expiry': d.get('time to expiry', None)
-                })
+    def __truediv__(self, other):
+        return self.__class__(v.__truediv__(other) for v in self)
 
-        details['cashflow'] = cf + floorlet - caplet
-        return CashFlowDetails(details.items())
+    def __matmul__(self, other):
+        return self.__class__(v.__matmul__(other) for v in self)
