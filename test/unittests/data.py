@@ -1,5 +1,4 @@
 
-
 from businessdate import BusinessDate, BusinessSchedule, BusinessPeriod
 
 from dcf import pv, fair, CashFlowList
@@ -7,63 +6,66 @@ from dcf.plans import amortize, outstanding, DEFAULT_AMOUNT
 from yieldcurves import DateCurve
 
 
-def par_swap(start=20212223, maturity='10y', discount_curve=0.01, forward_curve=0.01, step='6m'):
+def par_swap(start=20211223, maturity='10y', discount_curve=0.01, forward_curve=0.01, step='6m'):
     start = BusinessDate(start)
-    schedule = BusinessSchedule(start, start + maturity, step=BusinessPeriod(step))
+    start, *schedule = BusinessSchedule(start, start + maturity, step=BusinessPeriod(step))
 
-    float_leg = CashFlowList.from_rate_cashflows(schedule, forward_curve=forward_curve)
-    fixed_leg = CashFlowList.from_rate_cashflows(schedule[::2], fixed_rate=0.01)
+    interest = CashFlowList.from_rate_cashflows(schedule[1::2], fixed_rate=0.01, origin=start)
+    float_leg = CashFlowList.from_rate_cashflows(schedule, forward_curve=forward_curve, origin=start)
 
     float_pv = pv(float_leg, start, discount_curve)
-    par_rate = fair(fixed_leg, start, discount_curve, present_value=float_pv,
-                    method='bisec', precision=1e-12)
-    for cf in fixed_leg:
-        cf.fixed_rate = par_rate
-
-    return fixed_leg - float_leg
+    par_rate = fair(interest, start, discount_curve, present_value=float_pv, method='bisec', precision=1e-12)
+    interest.fixed_rate = par_rate
+    return interest - float_leg
 
 
-def par_bond(start=20212223, maturity='10y', discount_curve=0.01, step='1y'):
+def par_frn(start=20211223, maturity='10y', discount_curve=0.01, forward_curve=0.01, step='1y'):
     start = BusinessDate(start)
-    schedule = \
-        BusinessSchedule(start, start + maturity, step=BusinessPeriod(step))
-    start_date, payment_dates = schedule[0], schedule[1:]
+    start, *schedule = BusinessSchedule(start, start + maturity, step=BusinessPeriod(step))
 
-    principal = CashFlowList.from_fixed_cashflows([start_date])
-    redemption = CashFlowList.from_fixed_cashflows(payment_dates[-1:])
-    interest = CashFlowList.from_rate_cashflows(payment_dates, fixed_rate=0.01)
+    interest = CashFlowList.from_rate_cashflows(schedule, fixed_rate=0, forward_curve=forward_curve, origin=start)
+    redemption = CashFlowList.from_fixed_cashflows(schedule[-1:])
+    principal = CashFlowList.from_fixed_cashflows([start])
 
     zero_pv = pv(principal - redemption, start, discount_curve)
     par_rate = fair(interest, start, discount_curve, present_value=zero_pv, precision=1e-12)
-    for cf in interest:
-        cf.fixed_rate = par_rate
+    interest.fixed_rate = par_rate
     return interest + redemption - principal
 
 
-def par_loan(start=20212223, maturity='10y', discount_curve=0.01, step='1m'):
+def par_bond(start=20211223, maturity='10y', discount_curve=0.01, step='1y'):
     start = BusinessDate(start)
-    schedule = \
-        BusinessSchedule(start, start + maturity, step=BusinessPeriod(step))
-    start_date, payment_dates = schedule[0], schedule[1:]
+    start, *schedule = BusinessSchedule(start, start + maturity, step=BusinessPeriod(step))
+
+    interest = CashFlowList.from_rate_cashflows(schedule, fixed_rate=0.01, origin=start)
+    redemption = CashFlowList.from_fixed_cashflows(schedule[-1:])
+    principal = CashFlowList.from_fixed_cashflows([start])
+
+    zero_pv = pv(principal - redemption, start, discount_curve)
+    par_rate = fair(interest, start, discount_curve, present_value=zero_pv, precision=1e-12)
+    interest.fixed_rate = par_rate
+    return interest + redemption - principal
+
+
+def par_loan(start=20211223, maturity='10y', discount_curve=0.01, step='1m'):
+    start = BusinessDate(start)
+    start, *schedule = BusinessSchedule(start, start + maturity, step=BusinessPeriod(step))
 
     amount = DEFAULT_AMOUNT
-    plan = amortize(len(payment_dates), amount=amount)
+    plan = amortize(len(schedule), amount=amount)
     out = outstanding(plan, amount=amount)
 
-    principal = CashFlowList.from_fixed_cashflows([start_date],
-                                                  amount_list=amount)
-    redemption = CashFlowList.from_fixed_cashflows(payment_dates, plan)
-    interest = CashFlowList.from_rate_cashflows(payment_dates, out,
-                                                fixed_rate=0.01)
+    interest = CashFlowList.from_rate_cashflows(schedule, out, fixed_rate=0.01, origin=start)
+    redemption = CashFlowList.from_fixed_cashflows(schedule, plan)
+    principal = CashFlowList.from_fixed_cashflows([start], amount_list=amount)
 
     zero_pv = pv(principal - redemption, start, discount_curve)
     par_rate = fair(interest, start, discount_curve, present_value=zero_pv, precision=1e-12)
-    for cf in interest:
-        cf.fixed_rate = par_rate
+    interest.fixed_rate = par_rate
     return interest + redemption - principal
 
 
-def swap_curves(start=20212223):
+def swap_curves(start=20211223):
     term = '1y', '2y', '5y', '10y', '15y', '20y', '30y'
     zeros = 0.0084, 0.0079, 0.0057, 0.0024, 0.0008, 0.0001, 0.0003
 

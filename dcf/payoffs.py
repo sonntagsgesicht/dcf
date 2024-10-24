@@ -301,13 +301,12 @@ class RateCashFlowPayOff(CashFlowPayOff):
             amount = amount(valuation_date)
         day_count = self.day_count or _default_day_count
         yf = day_count(self.start, self.end)
-        fixed_rate = self.fixed_rate or 0.0
         details = {
             'pay date': self.pay_date,
             'cashflow': 0.0,
             'notional': amount,
             'pay rec': 'pay' if amount > 0 else 'rec',
-            'fixed rate': fixed_rate,
+            'fixed rate': self.fixed_rate,
             'start date': self.start,
             'end date': self.end,
             'year fraction': yf,
@@ -328,17 +327,21 @@ class RateCashFlowPayOff(CashFlowPayOff):
             if callable(forward_curve):
                 forward = forward_curve(fixing_date)
             else:
-                forward = float(forward_curve)
+                forward = forward_curve
 
             details.update({
-                'forward rate': float(forward or 0.0),
+                'forward rate': forward,
                 'fixing date': fixing_date,
             })
             if hasattr(forward_curve, 'details'):
                 details.update(forward_curve.details())
             details['forward-curve-id'] = id(forward_curve)
-        details['cashflow'] = \
-            (fixed_rate + forward) * yf * float(amount or 0.0)
+
+        amount = float(amount or 0.0)
+        fixed_rate = float(self.fixed_rate or 0.0)
+        forward = float(forward or 0.0)
+        details['cashflow'] = (fixed_rate + forward) * yf * amount
+
         return Details(details.items()).drop(None)
 
 
@@ -623,7 +626,7 @@ class CashFlowList(TSList):
             day_count=None,
             fixing_offset=None,
             pay_offset=None,
-            fixed_rate=0.,
+            fixed_rate=None,
             forward_curve=None):
         r""" list of interest rate cashflows
 
@@ -757,7 +760,7 @@ class CashFlowList(TSList):
             day_count=None,
             fixing_offset=None,
             pay_offset=None,
-            fixed_rate=0.,
+            fixed_rate=None,
             cap_strike=None,
             floor_strike=None,
             forward_curve=None):
@@ -843,6 +846,24 @@ class CashFlowList(TSList):
         origin = min(self.domain, default=None)
         starts = (getattr(v, 'start', None) for v in self)
         return min(starts, default=origin)
+
+    @property
+    def fixed_rate(self):
+        fixed_rates = (getattr(cf, 'fixed_rate', None) for cf in self)
+        fixed_rates = set(fr for fr in fixed_rates if fr is not None)
+        if len(fixed_rates) == 1:
+            return max(fixed_rates)
+        if len(fixed_rates) == 0:
+            return None
+        raise ValueError(f"list contains various fixed rates:"
+                         f" {', '.join(map(str, fixed_rates))}")
+
+    @fixed_rate.setter
+    def fixed_rate(self, value):
+        if self.fixed_rate is not None and not self.fixed_rate == value:
+            for cf in self:
+                if getattr(cf, 'fixed_rate', None) is not None:
+                    cf.fixed_rate = value
 
     def __init__(self, iterable=(), /):
         """cashflow payoff container

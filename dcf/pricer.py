@@ -13,9 +13,9 @@ from functools import partial
 from math import exp
 from typing import Callable, Iterable, Dict, Any as DateType
 
-from curves.numerics import bisection_method, newton_raphson, secant_method
+from curves.interpolation import piecewise_linear, fit as _fit
+from curves.numerics import solve as _solve
 from yieldcurves import YieldCurve, DateCurve
-from yieldcurves.interpolation import piecewise_linear, fit as _fit
 
 from .daycount import (day_count as _default_day_count,
                        year_fraction as _default_year_fraction)
@@ -27,7 +27,7 @@ TOL = 1e-10
 
 def ecf(cashflow_list: CashFlowPayOff | CashFlowList,
         valuation_date: DateType,
-        *, forward_curve: Callable | dict | None = None):
+        *, forward_curve: Callable | float | dict | None = None):
     r"""expected cashflow payoffs
 
         :param cashflow_list: list of cashflows
@@ -70,7 +70,7 @@ def ecf(cashflow_list: CashFlowPayOff | CashFlowList,
 def pv(cashflow_list: CashFlowPayOff | CashFlowList,
        valuation_date: DateType | None = None,
        discount_curve: Callable | float = 0.0,
-       *, forward_curve: Callable | dict | None = None):
+       *, forward_curve: Callable | float | dict | None = None):
     r""" calculates the present value by discounting cashflows
 
     :param cashflow_list: list of cashflows
@@ -129,7 +129,7 @@ def pv(cashflow_list: CashFlowPayOff | CashFlowList,
 
 def iac(cashflow_list: CashFlowList,
         valuation_date: DateType,
-        *, forward_curve: Callable | dict | None = None):
+        *, forward_curve: Callable | float | dict | None = None):
     r""" calculates interest accrued for rate cashflows
 
         :param cashflow_list: requires a `day_count` property
@@ -211,67 +211,9 @@ def iac(cashflow_list: CashFlowList,
     return ac
 
 
-def _solve(f, method='secant_method', *args, **kwargs):
-    """solver providing function
-
-    :param f: (callable) function
-    :param method: (str or callable) solver method
-    :param args: **method*+ arguments
-    :param kwargs: **method*+ keyword arguments
-    :return:
-    """
-    # default arguments
-    if not args:
-        _solve_defaults = {
-            'newton': {'a': 0.01},
-            'secant': {'a': 0.01, 'b': 0.05},
-            'bisec': {'a': -0.1, 'b': 0.2}
-        }
-        for k, val in _solve_defaults.items():
-            if k in str(method):
-                val.update(**kwargs)
-                kwargs = val
-                break
-
-    # todo: remaining to be replaces by 'curves.numerics.solve()'
-
-    if callable(method):
-        return method(f, *args, **kwargs)
-
-    # default method
-    method = str(method) if method else 'secant_method'
-
-    # gather arguments
-    guess = kwargs.get('guess', None)
-    a, b = kwargs.pop('bounds', (guess, None))
-    a = kwargs.pop('a', a)
-    b = kwargs.pop('b', b)
-    if a:
-        kwargs['a'] = a
-    if b:
-        kwargs['b'] = b
-
-    tol = kwargs.pop('tol', None)
-    tol = kwargs.pop('tolerance', tol)
-    tol = kwargs.pop('precision', tol)
-    if tol:
-        kwargs['tol'] = tol
-
-    if 'newton' in method:
-        return newton_raphson(f, *args, **kwargs)
-
-    if 'secant' in method:
-        return secant_method(f, *args, **kwargs)
-
-    if 'bisec' in method:
-        return bisection_method(f, *args, **kwargs)
-
-    raise ValueError(f"unknown method {method}")
-
-
 def ytm(cashflow_list: CashFlowList,
         valuation_date: DateType,
-        *, forward_curve: Callable | dict | None = None,
+        *, forward_curve: Callable | float | dict | None = None,
         present_value: float = 0.0,
         method: str | Callable = 'secant_method',
         **kwargs):
@@ -362,7 +304,7 @@ def ytm(cashflow_list: CashFlowList,
 
     # set error function
     def err(x):
-        _pv = pv(cashflow_list, x, valuation_date, forward_curve=forward_curve)
+        _pv = pv(cashflow_list, valuation_date, x, forward_curve=forward_curve)
         return _pv - present_value
 
     # run bracketing
@@ -372,7 +314,7 @@ def ytm(cashflow_list: CashFlowList,
 def fair(cashflow_list: CashFlowList,
          valuation_date: DateType | None = None,
          discount_curve: Callable | float = 0.0,
-         *, forward_curve: Callable | dict | None = None,
+         *, forward_curve: Callable | float | dict | None = None,
          present_value: float = 0.0,
          method: str | Callable = 'secant_method',
          **kwargs):
@@ -444,12 +386,13 @@ def fair(cashflow_list: CashFlowList,
     """  # noqa 501
 
     # store fixed rate
-    _fixed_rates = [cf.fixed_rate for cf in cashflow_list]
+    _fixed_rates = [getattr(cf, 'fixed_rate', None) for cf in cashflow_list]
 
     # set error function
     def err(x):
         for cf in cashflow_list:
-            cf.fixed_rate = x
+            if getattr(cf, 'fixed_rate', None) is not None:
+                cf.fixed_rate = x
         _pv = pv(cashflow_list, valuation_date, discount_curve,
                  forward_curve=forward_curve)
         return _pv - present_value
@@ -459,7 +402,8 @@ def fair(cashflow_list: CashFlowList,
 
     # restore fixed rate
     for cf, _fixed_rate in zip(cashflow_list, _fixed_rates):
-        cf.fixed_rate = _fixed_rate
+        if _fixed_rate is not None:
+            cf.fixed_rate = _fixed_rate
 
     return par
 
@@ -467,7 +411,7 @@ def fair(cashflow_list: CashFlowList,
 def bpv(cashflow_list: CashFlowList,
         valuation_date: DateType | None = None,
         discount_curve: Callable | float = 0.0,
-        *, forward_curve: Callable | dict | None = None,
+        *, forward_curve: Callable | float | dict | None = None,
         delta_curve: Callable | Iterable[Callable] | None = None,
         shift: float = 0.0001):
     r""" basis point value (bpv),
@@ -548,7 +492,7 @@ def bpv(cashflow_list: CashFlowList,
 def delta(cashflow_list: CashFlowList,
           valuation_date: DateType | None = None,
           discount_curve: Callable | float = 0.0,
-          *, forward_curve: Callable | dict | None = None,
+          *, forward_curve: Callable | float | dict | None = None,
           delta_curve: Callable | Iterable[Callable] | None = None,
           delta_grid: Iterable[DateType] | None = None,
           shift: float = .0001):
@@ -709,7 +653,7 @@ def delta(cashflow_list: CashFlowList,
 def fit(cashflow_list: Iterable[CashFlowList],
         valuation_date: DateType | None = None,
         discount_curve: Callable | float = 0.0,
-        *, forward_curve: Callable | dict | None = None,
+        *, forward_curve: Callable | float | dict | None = None,
         price_list: Iterable[float] | None = None,
         fitting_curve: Callable | None = None,
         fitting_grid: Iterable[float] | None = None,

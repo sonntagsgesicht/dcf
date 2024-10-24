@@ -13,10 +13,11 @@
 from unittest.case import TestCase
 
 from businessdate import BusinessDate
+
 from dcf import ecf, pv, ytm, fair, iac, bpv, delta, fit, CashFlowList
 from yieldcurves import DateCurve
 
-from .data import swap_curves, par_swap, par_bond, par_loan
+from .data import swap_curves, par_swap, par_bond, par_loan, par_frn
 
 
 class PricerUnitTests(TestCase):
@@ -33,6 +34,9 @@ class PricerUnitTests(TestCase):
 
             bond = par_bond(self.today, maturity, discount_curve=self.yc.df)
             self.bonds.append(bond)
+
+            frn = par_frn(self.today, maturity, discount_curve=self.yc.df)
+            self.frns.append(frn)
 
             loan = par_loan(self.today, maturity, discount_curve=self.yc.df)
             self.loans.append(loan)
@@ -52,39 +56,39 @@ class PricerUnitTests(TestCase):
 
     def test_pv(self):
         for swap in self.swaps:
-            self.assertAlmostEqual(0., pv(swap, self.today, self.yc.df))
+            _pv = pv(swap, self.today, self.yc.df)
+            self.assertAlmostEqual(0., _pv)
         for bond in self.bonds:
-            self.assertAlmostEqual(0., pv(bond, self.today, self.yc.df))
+            _pv = pv(bond, self.today, self.yc.df)
+            self.assertAlmostEqual(0., _pv)
         for loan in self.loans:
-            self.assertAlmostEqual(0., pv(loan, self.today, self.yc.df))
+            _pv = pv(loan, self.today, self.yc.df)
+            self.assertAlmostEqual(0., _pv)
 
-    def _test_ytm(self):
+    def test_ytm(self):
         rate = 0.01
-        DateCurve.from_interpolation([self.today], [rate])
-
-        for swap in self.swaps:
-            self.assertAlmostEqual(0., pv(swap, self.today, self.yc.df))
-            self.assertAlmostEqual(rate, ytm(swap, self.today))
+        df = DateCurve.from_interpolation([self.today], [rate],
+                                          origin=self.today)
         for bond in self.bonds:
-            self.assertAlmostEqual(0., pv(bond, self.today, self.yc.df))
-            self.assertAlmostEqual(rate, ytm(bond, self.today))
+            bond.fixed_rate = rate
+            _pv = pv(bond, self.today, df)
+            _ytm = ytm(bond, self.today, present_value=_pv)
+            self.assertAlmostEqual(0.0, abs(_ytm - rate), places=5)
         for loan in self.loans:
-            self.assertAlmostEqual(0., pv(loan, self.today, self.yc.df))
-            self.assertAlmostEqual(rate, ytm(loan, self.today))
+            _pv = pv(loan, self.today, df)
+            _ytm = ytm(loan, self.today, present_value=_pv)
+            self.assertAlmostEqual(0.0, abs(_ytm - rate), places=5)
 
-    def _test_fair(self):
-        rate = 0.01
-        DateCurve.from_interpolation([self.today], [rate])
-
+    def test_fair(self):
         for swap in self.swaps:
-            self.assertAlmostEqual(0., pv(swap, self.today, self.yc.df))
-            self.assertAlmostEqual(rate, swap.fixed_rate)
+            _fair = fair(swap, self.today, self.yc)
+            self.assertAlmostEqual(_fair, swap.fixed_rate)
         for bond in self.bonds:
-            self.assertAlmostEqual(0., pv(bond, self.today, self.yc.df))
-            self.assertAlmostEqual(rate, bond.fixed_rate)
+            _fair = fair(bond, self.today, self.yc)
+            self.assertAlmostEqual(_fair, bond.fixed_rate)
         for loan in self.loans:
-            self.assertAlmostEqual(0., pv(loan, self.today, self.yc.df))
-            self.assertAlmostEqual(rate, loan.fixed_rate)
+            _fair = fair(loan, self.today, self.yc)
+            self.assertAlmostEqual(_fair, loan.fixed_rate)
 
     def test_iac(self):
         for bond in self.bonds:
@@ -96,72 +100,14 @@ class PricerUnitTests(TestCase):
             self.assertAlmostEqual(0.0, iac(cfs, self.today + '2w2d'))
             self.assertLess(0.0, iac(frn, self.today + '2w2d'))
 
-    def _test_bpv(self):
-        notional = 1e6
-        fix1 = CashFlowList.from_fixed_cashflows([max(self.schedule)], notional)
-        fix2 = CashFlowList.from_fixed_cashflows([max(self.schedule)], notional)
-        leg1 = CashFlowList.from_rate_cashflows(self.schedule, notional, fixed_rate=self.rate)
-        leg2 = CashFlowList.from_rate_cashflows(self.schedule, notional, forward_curve=self.curve)
+    def test_bpv(self):
 
-        swp = leg2 - leg1
-        bnd = fix1 + leg1
-        frn = fix2 + leg2
-
-        total = sum(swp[swp.domain])
-        self.assertAlmostEqual(0.0, total)
-
-        bpv1 = bpv(leg1, self.today, self.df, delta_curve=self.df)
-        bpv2 = bpv(leg2, self.today, self.df, delta_curve=self.df)
-        self.assertAlmostEqual(bpv1, -bpv2)
-
-        # swap bpv
-
-        bpv3 = bpv(swp, self.today, self.df, delta_curve=self.df)
-        self.assertAlmostEqual(0.0, bpv3)
-
-        bpv4 = bpv(swp, self.today, self.df, delta_curve=self.curve)
-        self.assertAlmostEqual(585.4121890466267, bpv4)
-
-        bpv5 = bpv(swp, self.today, self.df, delta_curve=self.curve)
-        self.assertAlmostEqual(585.2860029102303, bpv5)
-
-        # bond bpv
-
-        bpv6 = bpv(bnd, self.df, self.today, self.curve)
-        self.assertAlmostEqual(0.0, bpv6)
-
-        bpv7 = bpv(bnd, self.df, self.today)
-        self.assertAlmostEqual(489.8885466804495, bpv7)
-
-        bpv8 = bpv(bnd, self.curve, self.today)
-        self.assertAlmostEqual(488.69274930632673, bpv8)
-
-        # frn bpv
-
-        bpv9 = bpv(frn, self.df, self.today, self.curve)
-        bucket = delta(
-            frn, self.df, self.today, self.curve, self.schedule)
-        self.assertAlmostEqual(585.4121890466267, bpv9)
-        self.assertAlmostEqual(sum(bucket), bpv9)
-
-        bpv10 = bpv(frn, self.df, self.today)
-        bucket = delta(
-            frn, self.df, self.today, delta_grid=self.schedule)
-        self.assertAlmostEqual(-489.8885466804495, bpv10)
-        self.assertAlmostEqual(sum(bucket), bpv10)
-
-        bpv11 = bpv(frn, self.curve, self.today)
-        bucket = delta(
-            frn, self.curve, self.today, delta_grid=self.schedule)
-        self.assertAlmostEqual(96.59325360390358, bpv11)
-        self.assertAlmostEqual(sum(bucket), bpv11, 2)
-
-        bpv12 = bpv(
-            frn, self.df, self.today, (self.curve, self.df))
-        self.assertAlmostEqual(95.37909696914721, bpv12)
-        bucket = delta(
-            frn, self.df, self.today, (self.curve, self.df), self.schedule)
-        self.assertAlmostEqual(sum(bucket), bpv12, 0)
+        for bond, frn in zip(self.bonds, self.frns):
+            swap = frn[:-2] - bond[:-2]
+            _bpv_swap = bpv(swap, self.today, self.yc, delta_curve=self.yc.curve.curve, forward_curve=self.yc)
+            _bpv_bond = bpv(bond, self.today, self.yc, delta_curve=self.yc.curve.curve, forward_curve=self.yc)
+            _bpv_frn = bpv(frn, self.today, self.yc, delta_curve=self.yc.curve.curve, forward_curve=self.yc)
+            self.assertAlmostEqual(_bpv_swap + _bpv_bond, _bpv_frn)
 
     def _test_discount_curve_fitting(self):
         ...

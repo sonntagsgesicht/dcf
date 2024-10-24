@@ -40,10 +40,10 @@ logging.getLogger(__name__).addHandler(logging.NullHandler())
 #  [x] replace discount_curve by yield_curve
 #  [x] rework/remove PayOffModel
 
-from . import plans, optionpricing  # noqa E401 E402
+from . import plans  # noqa E401 E402
 
 from .daycount import day_count  # noqa E401 E402
-from .optionpricing import OptionPricingCurve # noqa E401 E402
+from .optionpricing.curve import OptionPricingCurve # noqa E401 E402
 from .payoffs import (CashFlowPayOff, # noqa E401 E402
                       FixedCashFlowPayOff, # noqa E401 E402
                       RateCashFlowPayOff, # noqa E401 E402

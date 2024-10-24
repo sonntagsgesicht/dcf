@@ -12,7 +12,9 @@
 
 from regtest import RegressionTestCase
 
-from dcf.optionpricing import Bachelier, Black76, DisplacedBlack76, Intrinsic
+from dcf.optionpricing.bachelier import Bachelier
+from dcf.optionpricing.black76 import Black76, DisplacedBlack76
+from dcf.optionpricing.intrinsic import Intrinsic
 
 
 class OptionPricingRegTests(RegressionTestCase):
