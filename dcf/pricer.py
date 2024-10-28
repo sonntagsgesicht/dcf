@@ -99,11 +99,11 @@ def pv(cashflow_list: CashFlowPayOff | CashFlowList,
     >>> from yieldcurves import YieldCurve
     >>> from dcf import ecf, pv, CashFlowList
 
-    >>> curve = YieldCurve.from_interpolation([0.0], [0.05]).df
+    >>> curve = YieldCurve.from_interpolation([0.0], [0.05])
     >>> cf_list = CashFlowList.from_fixed_cashflows([0, 1, 2, 3], [100, 100, 100, 100])
 
-    >>> sod = pv(cf_list, curve, valuation_date=0.0)
-    >>> sod  
+    >>> sod = pv(cf_list, 0.0, discount_curve=curve)
+    >>> sod
     371.677...
 
     >>> eod = sod - ecf(cf_list, 0.0)[0.0]
@@ -168,19 +168,20 @@ def iac(cashflow_list: CashFlowList,
     bond with cashflow tables
 
     >>> print(coupon_leg)
-      pay date    cashflow    notional  pay rec      fixed rate    start date    end date    year fraction
-    ----------  ----------  ----------  ---------  ------------  ------------  ----------  ---------------
-           1.0     1_000.0   1_000_000  pay               0.001           0.0         1.0              1.0
-           2.0     1_000.0   1_000_000  pay               0.001           1.0         2.0              1.0
-           3.0     1_000.0   1_000_000  pay               0.001           2.0         3.0              1.0
-           4.0     1_000.0   1_000_000  pay               0.001           3.0         4.0              1.0
-           5.0     1_000.0   1_000_000  pay               0.001           4.0         5.0              1.0
+      pay date    cashflow    notional  is rec      fixed rate    start date    end date    year fraction
+    ----------  ----------  ----------  --------  ------------  ------------  ----------  ---------------
+           1.0     1_000.0   1_000_000  True             0.001           0.0         1.0              1.0
+           2.0     1_000.0   1_000_000  True             0.001           1.0         2.0              1.0
+           3.0     1_000.0   1_000_000  True             0.001           2.0         3.0              1.0
+           4.0     1_000.0   1_000_000  True             0.001           3.0         4.0              1.0
+           5.0     1_000.0   1_000_000  True             0.001           4.0         5.0              1.0
+
 
 
     >>> print(redemption_leg)
-      pay date    cashflow
-    ----------  ----------
-           5.0   1_000_000
+      pay date     cashflow
+    ----------  -----------
+           5.0  1_000_000.0
 
 
     >>> iac(bond, valuation_date=3.25)
@@ -260,7 +261,6 @@ def ytm(cashflow_list: CashFlowList,
     yield-to-matrurity of 5y fixed coupon bond
 
     >>> from yieldcurves import YieldCurve
-    >>> from yieldcurves.interpolation import linear
     >>> from dcf import CashFlowList
     >>> from dcf import pv, ytm
 
@@ -273,32 +273,32 @@ def ytm(cashflow_list: CashFlowList,
     bond with cashflow tables
 
     >>> print(coupon_leg)
-      pay date    cashflow    notional  pay rec      fixed rate    start date    end date    year fraction
-    ----------  ----------  ----------  ---------  ------------  ------------  ----------  ---------------
-           1.0     1_000.0   1_000_000  pay               0.001           0.0         1.0              1.0
-           2.0     1_000.0   1_000_000  pay               0.001           1.0         2.0              1.0
-           3.0     1_000.0   1_000_000  pay               0.001           2.0         3.0              1.0
-           4.0     1_000.0   1_000_000  pay               0.001           3.0         4.0              1.0
-           5.0     1_000.0   1_000_000  pay               0.001           4.0         5.0              1.0
+      pay date    cashflow    notional  is rec      fixed rate    start date    end date    year fraction
+    ----------  ----------  ----------  --------  ------------  ------------  ----------  ---------------
+           1.0     1_000.0   1_000_000  True             0.001           0.0         1.0              1.0
+           2.0     1_000.0   1_000_000  True             0.001           1.0         2.0              1.0
+           3.0     1_000.0   1_000_000  True             0.001           2.0         3.0              1.0
+           4.0     1_000.0   1_000_000  True             0.001           3.0         4.0              1.0
+           5.0     1_000.0   1_000_000  True             0.001           4.0         5.0              1.0
 
     >>> print(redemption_leg)
-      pay date    cashflow
-    ----------  ----------
-           5.0   1_000_000 
+      pay date     cashflow
+    ----------  -----------
+           5.0  1_000_000.0 
 
     get yield-to-maturity at par (gives coupon rate)
 
-    >>> ytm(bond, valuation_date=0, present_value=n)  
+    >>> ytm(bond, 0.0, present_value=n)  
     0.0009...
 
     get current yield-to-maturity as given by 1.5% risk free rate (gives risk free rate)
 
-    >>> present_value = pv(bond, curve, valuation_date=0.0)
+    >>> present_value = pv(bond, 0.0, curve)
     >>> present_value  
     783115.0894...
 
-    >>> ytm(bond, valuation_date=0, present_value=present_value)  
-    0.05
+    >>> ytm(bond, 0.0, present_value=present_value)  
+    0.049999...
 
     """  # noqa 501
 
@@ -371,8 +371,8 @@ def fair(cashflow_list: CashFlowList,
 
     find fair rate to give par bond
 
-    >>> present_value = pv(redemption_leg, curve, 0.0)
-    >>> fair_rate = fair(coupon_leg, curve, 0.0, present_value=n-present_value)
+    >>> present_value = pv(redemption_leg, 0.0, curve)
+    >>> fair_rate = fair(coupon_leg, 0.0, curve, present_value=n-present_value)
     >>> fair_rate  
     0.0151...
 
@@ -380,7 +380,7 @@ def fair(cashflow_list: CashFlowList,
 
     >>> for cf in coupon_leg: 
     ...     cf.fixed_rate = fair_rate
-    >>> pv(bond, curve, 0.0)  
+    >>> pv(bond, 0.0, curve)  
     1000000.0...
 
     """  # noqa 501
@@ -459,7 +459,7 @@ def bpv(cashflow_list: CashFlowList,
     calculate bpv as bond delta
 
     >>> yc = YieldCurve(curve)
-    >>> bpv(bond, yc.df, 0.0, delta_curve=yc.curve)  
+    >>> bpv(bond, 0.0, yc.df, delta_curve=yc.curve)  
     -465.1755...
 
     double check by direct valuation
@@ -599,7 +599,7 @@ def delta(cashflow_list: CashFlowList,
     calculate bpv as bond delta
 
     >>> yc = YieldCurve(curve)
-    >>> bucked_bpv = delta(bond, yc.df, 0.0, delta_curve=yc.curve, delta_grid=[0.,1.,2.,3.,4.,5.])  
+    >>> bucked_bpv = delta(bond, 0.0, yc.df, delta_curve=yc.curve, delta_grid=[0.,1.,2.,3.,4.,5.])  
     >>> bucked_bpv
     (0.0, -0.098901..., -0.194458..., -0.289348..., -0.384238..., -468.885034...)
 
@@ -608,7 +608,7 @@ def delta(cashflow_list: CashFlowList,
     >>> sum(bucked_bpv)  
     -469.851981...
     
-    >>> bpv(bond, yc.df, 0.0, delta_curve=yc.curve)  
+    >>> bpv(bond, 0.0, yc.df, delta_curve=yc.curve)  
     -469.851981...
 
     """  # noqa 501
@@ -717,21 +717,21 @@ def fit(cashflow_list: Iterable[CashFlowList],
 
     invoke curve fitting
 
-    >>> fit(cashflow_list, 1.0, today, price_list=targets)
-    {1.0: 0.009999999999989299, 2.0: 0.008999999998175629, 3.0: 0.011999999986343402, 4.0: 0.013999999946028392, 5.0: 0.011000000052247317}
+    >>> fit(cashflow_list, today, 1.0, price_list=targets)
+    {1.0: 0.009999999999999995, 2.0: 0.00900000082473929, 3.0: 0.011999999441079148, 4.0: 0.01400000004983385, 5.0: 0.010999999964484619}
 
     or
 
     >>> yc = YieldCurve(0.0)  # curve to calibrate to
-    >>> rates = fit(cashflow_list, yc.df, today, price_list=targets)  # curve fitting
+    >>> rates = fit(cashflow_list, today, yc.df, price_list=targets)  # curve fitting
     >>> rates
-    {1.0: 0.009999999999989299, 2.0: 0.008999999998175629, 3.0: 0.011999999986343402, 4.0: 0.013999999946028392, 5.0: 0.011000000052247317}
+    {1.0: 0.009999999999999995, 2.0: 0.00900000082473929, 3.0: 0.011999999441079148, 4.0: 0.01400000004983385, 5.0: 0.010999999964484619}
 
     setup new curve
 
     >>> yc2 = YieldCurve.from_interpolation(rates.keys(), rates.values())
     >>> yc2
-    YieldCurve(piecewise_linear([1.0, 2.0, 3.0, 4.0, 5.0], [0.009999999999989299, 0.008999999998175629, 0.011999999986343402, 0.013999999946028392, 0.011000000052247317]))
+    YieldCurve(piecewise_linear([1.0, 2.0, 3.0, 4.0, 5.0], [0.009999999999999995, 0.00900000082473929, 0.011999999441079148, 0.01400000004983385, 0.010999999964484619]))
 
     double check results
 
@@ -743,8 +743,8 @@ def fit(cashflow_list: Iterable[CashFlowList],
 
     >>> yc = DateCurve(YieldCurve(0.0), origin=0.0)
     >>> grid = [yc.year_fraction(max(cf.domain)) for cf in cashflow_list]
-    >>> fit(cashflow_list, yc.df, today, price_list=targets, fitting_curve=yc.curve.curve, fitting_grid=grid)
-    {1.0: 0.009999999999989299, 2.0: 0.008999999998175629, 3.0: 0.011999999986343402, 4.0: 0.013999999946028392, 5.0: 0.011000000052247317}
+    >>> fit(cashflow_list, today, yc.df, price_list=targets, fitting_curve=yc.curve.curve, fitting_grid=grid)
+    {1.0: 0.009999999999999995, 2.0: 0.00900000082473929, 3.0: 0.011999999441079148, 4.0: 0.01400000004983385, 5.0: 0.010999999964484619}
 
     Example (with `BusinessDate()`)
     -------------------------------
@@ -768,15 +768,15 @@ def fit(cashflow_list: Iterable[CashFlowList],
     invoke curve fitting
 
     >>> yc = DateCurve(YieldCurve(0.0), origin=today)
-    >>> fit(cashflow_list, yc.df, today, price_list=targets)
-    {1.002053388090349: 0.00921115674194446, 2.001368925393566: 0.011364476385044318, 3.0006844626967832: 0.013574948656440888, 4.0: 0.011639630397338847, 5.002053388090349: 0.011000000000002444}
+    >>> fit(cashflow_list, today, yc.df, price_list=targets)
+    {1.002053388090349: 0.009175564715305961, 2.001368925393566: 0.011471254191411324, 3.0006844626967832: 0.013646131675799695, 4.0: 0.011532854209070608, 5.002053388090349: 0.011000000002196838}
 
     The above is acctually the same as
 
     >>> yc = DateCurve(YieldCurve(0.0), origin=today)
     >>> grid = [yc.year_fraction(max(cf.domain)) for cf in cashflow_list]
-    >>> fit(cashflow_list, yc.df, today, price_list=targets, fitting_curve=yc.curve.curve, fitting_grid=grid)
-    {1.002053388090349: 0.00921115674194446, 2.001368925393566: 0.011364476385044318, 3.0006844626967832: 0.013574948656440888, 4.0: 0.011639630397338847, 5.002053388090349: 0.011000000000002444}
+    >>> fit(cashflow_list, today, yc.df, price_list=targets, fitting_curve=yc.curve.curve, fitting_grid=grid)
+    {1.002053388090349: 0.009175564715305961, 2.001368925393566: 0.011471254191411324, 3.0006844626967832: 0.013646131675799695, 4.0: 0.011532854209070608, 5.002053388090349: 0.011000000002196838}
 
 
     """  # noqa E501
@@ -789,7 +789,7 @@ def fit(cashflow_list: Iterable[CashFlowList],
     if fitting_curve is None:
         if isinstance(discount_curve, (int, float)):
             if discount_curve - 1:
-                raise ValueError(f"constant discount_curve be 1.0 as"
+                raise ValueError(f"constant discount_curve be 1.0 as "
                                  f"a value of {discount_curve} is ambiguous")
             yield_curve = YieldCurve(0.0)
             discount_curve = yield_curve.df

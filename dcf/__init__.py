@@ -39,11 +39,14 @@ logging.getLogger(__name__).addHandler(logging.NullHandler())
 #  [x] CashFlow algebra CF + CF = CFList
 #  [x] replace discount_curve by yield_curve
 #  [x] rework/remove PayOffModel
+#  [ ] rethink CashFlowPayOff as cf.amount() curve
+#  [ ] better curve-id (str if len < 10 else id?)
+#  [x] move optionpricing to yieldcurves as optioncurve
+
 
 from . import plans  # noqa E401 E402
 
 from .daycount import day_count  # noqa E401 E402
-from .optionpricing.curve import OptionPricingCurve # noqa E401 E402
 from .payoffs import (CashFlowPayOff, # noqa E401 E402
                       FixedCashFlowPayOff, # noqa E401 E402
                       RateCashFlowPayOff, # noqa E401 E402

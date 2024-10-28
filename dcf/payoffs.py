@@ -9,7 +9,6 @@
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
-from pprint import pformat
 from warnings import warn
 
 from prettyclass import prettyclass
@@ -24,17 +23,9 @@ except ImportError:
             warn(msg)
             super().__init__(seq)
 
-try:
-    from tabulate import tabulate
-except ImportError:
-    def tabulate(x, *_, **__):
-        msg = ("tabulate not found. consider 'pip install tabulate' "
-               "for more flexible table representation")
-        warn(msg)
-        return pformat(x, indent=2, sort_dicts=False)
 
 from .daycount import day_count as _default_day_count
-from .details import Details
+from .details import Details, DetailsList, tabulate, latex, html
 from .plans import DEFAULT_AMOUNT
 
 
@@ -42,18 +33,29 @@ from .plans import DEFAULT_AMOUNT
 class CashFlowPayOff:
     """Cash flow payoff base class"""
 
+    @property
+    def __ts__(self):
+        return getattr(self, 'pay_date')
+
     def details(self, valuation_date=None, **__):
         return Details()
 
     def __call__(self, valuation_date=None, **__):
+        if callable(valuation_date):
+            return self @ valuation_date
         return self.details(valuation_date, **__).get('cashflow', None)
 
     def __copy__(self):
         return self  # added for editor code check
 
-    @property
-    def __ts__(self):
-        return getattr(self, 'pay_date')
+    def _repr_html_(self):
+        return html(self.details())
+
+    def __latex__(self):
+        return latex(self.details())
+
+    def __str__(self):
+        return str(self.details())
 
     def __float__(self):
         return float(self() or 0.0)
@@ -118,13 +120,13 @@ class FixedCashFlowPayOff(CashFlowPayOff):
 
         :param pay_date: cashflow payment date $t$
         :param amount: notional amount $N$ (might be a callable function)
-        :param forward_curve: price forward curve $P$
+        :param forward_curve: price forward curve $P(t)$
 
         A fixed cashflow payoff $X(t)$ at $t$
         is given directly by the notional amount $N + P(t)$
 
-        Invoking **details** method $X()$ or $X(m)$
-        with a |OptionPayOffModel()| object $m$
+        Invoking **details** method $X()$ or $X(t, P)$
+        with a **forward_curve** object $P$
         as argument returns the cashflow details as a dict-like object.
 
         >>> from dcf import FixedCashFlowPayOff
@@ -133,9 +135,6 @@ class FixedCashFlowPayOff(CashFlowPayOff):
         Details(
         {'pay date': 0.25, 'cashflow': 123.456}
         )
-
-        >>> cf = FixedCashFlowPayOff(0.25, amount=123.456)
-        >>> cf.details()
 
         The actual expected cashflow payoff amount of $X$
         (which is again just the fixed amount $N$)
@@ -146,13 +145,17 @@ class FixedCashFlowPayOff(CashFlowPayOff):
 
         """
         self.pay_date = pay_date
-        r"""cashflow payment date $t$"""
         self.amount = amount
-        r"""cashflow notional amount $N$"""
         self.forward_curve = forward_curve
-        r"""forward price curve $S(t)$"""
 
     def details(self, valuation_date=None, *, forward_curve=None, **__):
+        """
+
+        :param valuation_date:
+        :param forward_curve:
+        :param __:
+        :return:
+        """
         amount = self.amount
         if callable(amount):
             amount = amount(valuation_date)
@@ -176,7 +179,7 @@ class FixedCashFlowPayOff(CashFlowPayOff):
             })
             if hasattr(forward_curve, 'details'):
                 details.update(forward_curve.details())
-            details['forward-curve-id'] = id(forward_curve)
+            details['forward-curve-id'] = f"id{id(forward_curve)}"
 
         details['cashflow'] += forward
         return Details(details.items())
@@ -190,8 +193,8 @@ class RateCashFlowPayOff(CashFlowPayOff):
         r"""interest rate cashflow payoff
 
         :param pay_date: cashflow payment date
-        :param start: cashflow accrued period start date $s$
-        :param end: cashflow accrued period end date $e$
+        :param start: interst accrued period start date $s$
+        :param end: interst accrued period end date $e$
         :param amount: notional amount $N$
         :param day_count: function to calculate
             accrued period year fraction $\tau$
@@ -204,7 +207,7 @@ class RateCashFlowPayOff(CashFlowPayOff):
             If **forward_curve** is **None** 
             no float rate is applied, 
             even not if |RateCashFlowPayOff().details()| is invoked 
-            with a forward furve or |PayOffModel()|.   
+            with a **forward curve**.   
             (optional; default is None, i.e. no float rate is applied)
 
         A contigent interest rate cashflow payoff $X$
@@ -212,7 +215,7 @@ class RateCashFlowPayOff(CashFlowPayOff):
 
         $$X(f(T)) = (f(T) + c)\ \tau(s,e)\ N$$
 
-        Invoking $X(m)$ with a |OptionPayOffModel| object $m$ as argument
+        Invoking $X(t, f)$ with a **forward_curve** object $f$ as argument
         returns the actual expected cashflow payoff amount of $X$.
 
         >>> from dcf import RateCashFlowPayOff
@@ -223,14 +226,13 @@ class RateCashFlowPayOff(CashFlowPayOff):
         { 'pay date': 1.0,
           'cashflow': 0.00125,
           'notional': 1.0,
-          'pay rec': 'pay',
+          'is rec': True,
           'fixed rate': 0.005,
           'start date': 1.25,
           'end date': 1.5,
           'year fraction': 0.25,
-          'forward rate': 0.0,
+          'forward rate': 0,
           'fixing date': 1.25,
-          'tenor': None,
           'forward-curve-id': ...}
         )
 
@@ -240,35 +242,34 @@ class RateCashFlowPayOff(CashFlowPayOff):
         suppying an iterest forward curve changes float forward rate  
         
         >>> forward_curve = 0.05
-        >>> cf.details(forward_curve)
+        >>> cf.details(forward_curve=forward_curve)
         Details(
         { 'pay date': 1.0,
           'cashflow': 0.01375,
           'notional': 1.0,
-          'pay rec': 'pay',
+          'is rec': True,
           'fixed rate': 0.005,
           'start date': 1.25,
           'end date': 1.5,
           'year fraction': 0.25,
           'forward rate': 0.05,
           'fixing date': 1.25,
-          'tenor': None,
           'forward-curve-id': ...}
         )
 
-        >>> cf(forward_curve)  # expected cashflow
+        >>> cf(forward_curve=forward_curve)  # expected cashflow
         0.01375
 
         If **forward_curve** is **None** (default) no float rate is applied.
         Even if **forward_curve** is given for details calculation.
 
         >>> cf = RateCashFlowPayOff(pay_date=1.0, start=1.25, end=1.5, amount=1.0, fixed_rate=0.005)
-        >>> cf.details(forward_curve)
+        >>> cf.details(forward_curve=forward_curve)
         Details(
         { 'pay date': 1.0,
           'cashflow': 0.00125,
           'notional': 1.0,
-          'pay rec': 'pay',
+          'is rec': True,
           'fixed rate': 0.005,
           'start date': 1.25,
           'end date': 1.5,
@@ -277,25 +278,22 @@ class RateCashFlowPayOff(CashFlowPayOff):
 
         """  # noqa 501
         self.pay_date = pay_date
-        """cashflow payment date"""
         self.start = start
-        """interest accrued period start date"""
         self.end = end
-        """interest accrued period end date"""
         self.day_count = day_count
-        r"""interest accrued period day count method
-        for rate period calculation $\tau$"""
         self.fixing_offset = fixing_offset
-        """time difference between
-        interest rate fixing date and interest period payment date"""
         self.amount = amount
-        """cashflow notional amount"""
         self.fixed_rate = fixed_rate
-        r"""agreed fixed rate $c$ """
         self.forward_curve = forward_curve
-        r"""forward rate curve $f(t)$"""
 
     def details(self, valuation_date=None, *, forward_curve=None, **__):
+        """
+
+        :param valuation_date:
+        :param forward_curve:
+        :param __:
+        :return:
+        """
         amount = self.amount
         if callable(amount):
             amount = amount(valuation_date)
@@ -305,7 +303,7 @@ class RateCashFlowPayOff(CashFlowPayOff):
             'pay date': self.pay_date,
             'cashflow': 0.0,
             'notional': amount,
-            'pay rec': 'pay' if amount > 0 else 'rec',
+            'is rec': float(amount or 0.0) >= 0,
             'fixed rate': self.fixed_rate,
             'start date': self.start,
             'end date': self.end,
@@ -335,7 +333,7 @@ class RateCashFlowPayOff(CashFlowPayOff):
             })
             if hasattr(forward_curve, 'details'):
                 details.update(forward_curve.details())
-            details['forward-curve-id'] = id(forward_curve)
+            details['forward-curve-id'] = f"id{id(forward_curve)}"
 
         amount = float(amount or 0.0)
         fixed_rate = float(self.fixed_rate or 0.0)
@@ -390,75 +388,77 @@ class OptionCashFlowPayOff(CashFlowPayOff):
         requires assumptions on the as randomness understood
         unkown behavior of $S$ until $T$.
 
-        This is provided by **payoff_model**
-        implementing |OptionPayOffModel|
+        This is provided by an **option_curve** instance
+        implementing a option_curve
         and is invoked by calling an
         |OptionCashFlowPayOff()| object.
 
         First, setup a classical log-normal *Black-Scholes* model.
 
-        >>> from dcf import OptionPricingCurve
+        >>> from yieldcurves import OptionPricingCurve
         >>> from math import exp
         >>> f = lambda t: 100.0 * exp(t * 0.05)  # spot price 100 and yield of 5%
         >>> v = lambda *_: 0.1  # flat volatility of 10%
-        >>> m = OptionPricingCurve.black76(f, volatility_curve=v)
+        >>> m = OptionPricingCurve.black76(f, volatility=v)
 
         Then, build a call option payoff.
 
         >>> from dcf import OptionCashFlowPayOff
         >>> c = OptionCashFlowPayOff(pay_date=0.33, expiry=0.25, strike=110.0)
         >>> # get expected option payoff
-        >>> c.details(forward_curve=m)
+        >>> c.details(option_curve=m)
         Details(
         { 'pay date': 0.33,
-          'cashflow': 0.1072...,
-          'put call': 'call',
-          'long short': 'long',
+          'cashflow': 0.107267...,
+          'option type': 'call',
+          'is put': False,
+          'is long': True,
           'notional': 1.0,
           'strike': 110.0,
+          'forward': 101.257845...,
+          'valuation date': 0,
           'expiry date': 0.25,
-          'valuation date': 0.0,
-          'forward': 101.2578...,
-          'forward-curve-id': ...,
-          'fixing date': 0.25,
           'time to expiry': 0.25,
-          'day count': 'None',
-          'model-id': ...,
           'volatility': 0.1,
+          'option model': 'Black76',
+          'forward-curve-id': ...,
           'volatility-curve-id': ...,
-          'formula': 'Black76'}
+          'option-curve-id': ...}
         )
 
+
         >>> float(c.details(forward_curve=m))
-        0.1072...
+        0.107267...
 
         And a put option payoff.
 
-        >>> p = OptionCashFlowPayOff(pay_date=0.33, expiry=0.25, strike=110.0, is_put=True)
+        >>> p = OptionCashFlowPayOff(pay_date=0.33, expiry=0.25, strike=110.0, option_type='put')
         >>> # get expected option payoff
-        >>> p.details(forward_curve=m)
+        >>> p.details(option_curve=m)
         Details(
         { 'pay date': 0.33,
-          'cashflow': 8.8494...,
-          'put call': 'put',
-          'long short': 'long',
+          'cashflow': 8.849422...,
+          'option type': 'put',
+          'is put': True,
+          'is long': True,
           'notional': 1.0,
           'strike': 110.0,
+          'forward': 101.257845...,
+          'valuation date': 0,
           'expiry date': 0.25,
-          'valuation date': 0.0,
-          'forward': 101.2578...,
-          'forward-curve-id': ...,
-          'fixing date': 0.25,
           'time to expiry': 0.25,
-          'day count': 'None',
-          'model-id': ...,
           'volatility': 0.1,
+          'option model': 'Black76',
+          'forward-curve-id': ...,
           'volatility-curve-id': ...,
-          'formula': 'Black76'}
+          'option-curve-id': ...}
         )
         
-        >>> float(p.details(forward_curve=m))
-        8.8494...
+        >>> float(p.details(option_curve=m))
+        8.849422...
+
+        >>> p(option_curve=m)
+        8.849422...
 
         """  # noqa E501
         self.pay_date = pay_date
@@ -466,12 +466,19 @@ class OptionCashFlowPayOff(CashFlowPayOff):
         self.amount = amount
         self.strike = strike
         self.option_type = str(self.OPTION_TYPES[str(option_type).lower()])
-
         self.forward_curve = forward_curve
         self.option_curve = option_curve
 
     def details(self, valuation_date=None, *,
                 forward_curve=None, option_curve=None, **__):
+        """
+
+        :param valuation_date:
+        :param forward_curve:
+        :param option_curve:
+        :param __:
+        :return:
+        """
         if forward_curve is None:
             forward_curve = self.forward_curve
         if option_curve is None:
@@ -480,15 +487,15 @@ class OptionCashFlowPayOff(CashFlowPayOff):
         if callable(amount):
             amount = amount(valuation_date)
         expiry_date = self.pay_date if self.expiry is None else self.expiry
-        is_put = str(self.option_type) in self.PUT_TYPES
+        is_put = str(self.option_type).lower() in self.PUT_TYPES
 
         details = {
             'pay date': self.pay_date,
             'cashflow': 0.0,
             'option type': str(self.option_type),
             'is put': is_put,
-            'long short': 'long' if float(amount or 0.0) > 0 else 'short',
-            'notional': float(amount or 0.0),
+            'is long': float(amount or 0.0) > 0,
+            'notional': amount,
             'strike': 'atm' if self.strike is None else self.strike,
             'forward': None,
             'tenor': None,
@@ -496,55 +503,66 @@ class OptionCashFlowPayOff(CashFlowPayOff):
             'expiry date': expiry_date,
             'time to expiry': None,
             'volatility': None,
-            'option model': 'unknown'
+            'option model': None
         }
 
         if forward_curve is not None or option_curve is not None:
-            x, y = valuation_date, expiry_date
+            x, y = valuation_date or 0, expiry_date
 
             # gather further details
 
             if hasattr(forward_curve, 'details'):
-                details.update(forward_curve.details(x, y))
+                d = forward_curve.details(x, y)
+                d.pop('strike', None)
+                details.update(d)
             if hasattr(option_curve, 'details'):
-                details.update(option_curve.details(x, y, strike=self.strike))
+                d = option_curve.details(x, y, strike=self.strike)
+                d.pop('strike', None)
+                details.update(d)
 
             # put curve-id details at end
 
             if forward_curve is not None:
                 details['forward-curve-id'] = \
-                    details.pop('forward-curve-id', id(forward_curve))
+                    details.pop('forward-curve-id', f"id{id(forward_curve)}")
             if option_curve is not None:
                 details['option-curve-id'] = \
-                    details.pop('option-curve-id', id(option_curve))
+                    details.pop('option-curve-id', f"id{id(option_curve)}")
 
             # value vanilla option (prio option_curve over forward_curve)
 
-            if hasattr(option_curve, 'call'):
-                option = option_curve.call(x, y, strike=self.strike)
-            elif option_curve is not None:
-                option = option_curve(x, y, strike=self.strike)
-            elif hasattr(forward_curve, 'call'):
-                option = forward_curve.call(x, y, strike=self.strike)
-            else:
-                option = 0.0
-                if self.strike is not None:
-                    # fallback to forward_curve
-                    forward = forward_curve
-                    if callable(forward):
-                        forward = forward(y)
-                    details['forward'] = forward = float(forward)
-                    option = max(forward - self.strike, 0.0)
-                details['option model'] = 'no model'
+            put = call = forward = None
+            forward_minus_strike = 0.0
 
-            if is_put and self.strike is not None:
-                # put call parity
+            if self.strike is not None and forward_curve is not None:
+                # only if strike is not atm forward is relevant
                 forward = forward_curve
                 if callable(forward):
                     forward = forward(y)
-                details['forward'] = forward = float(forward)
-                option = self.strike - forward + option
+                forward_minus_strike = float(forward) - float(self.strike)
 
+            if is_put and hasattr(option_curve, 'put'):
+                put = option_curve.put(x, y, strike=self.strike)
+            elif hasattr(option_curve, 'call'):
+                call = option_curve.call(x, y, strike=self.strike)
+            elif option_curve is not None:
+                call = option_curve(x, y, strike=self.strike)
+            elif is_put and hasattr(forward_curve, 'put'):
+                put = forward_curve.call(x, y, strike=self.strike)
+            elif hasattr(forward_curve, 'call'):
+                call = forward_curve.call(x, y, strike=self.strike)
+            else:
+                # fall back to forward_curve forward
+                call = max(forward_minus_strike, 0.0)
+                put = max(-forward_minus_strike, 0.0)
+                details['forward'] = forward
+                details['option model'] = 'no model'
+
+            if is_put and put is None:
+                details['forward'] = forward
+                put = call - forward_minus_strike
+
+            option = put if is_put else call
             details['cashflow'] = option * float(amount or 0.0)
 
         return Details(details.items()).drop(None)
@@ -554,7 +572,14 @@ class DigitalOptionCashFlowPayOff(OptionCashFlowPayOff):
 
     def details(self, valuation_date=None, *,
                 forward_curve=None, option_curve=None, **__):
+        """
 
+        :param valuation_date:
+        :param forward_curve:
+        :param option_curve:
+        :param __:
+        :return:
+        """
         details = super().details(valuation_date, forward_curve=forward_curve,
                                   option_curve=option_curve, **__)
         # add 'is digital' flag
@@ -567,33 +592,46 @@ class DigitalOptionCashFlowPayOff(OptionCashFlowPayOff):
 
         if forward_curve is not None or option_curve is not None:
             x, y = valuation_date, details['expiry date']
+            is_put = details['is put']
 
-            if hasattr(option_curve, 'binary_call'):
-                option = option_curve.binary(x, y, strike=self.strike)
-            elif hasattr(option_curve, 'binary'):
-                option = option_curve.call(x, y, strike=self.strike)
-            elif option_curve is not None:
-                option = option_curve(x, y, strike=self.strike)
-            elif hasattr(forward_curve, 'binary_call'):
-                option = forward_curve.binary_call(x, y, strike=self.strike)
-            elif hasattr(forward_curve, 'binary'):
-                option = forward_curve.binary(x, y, strike=self.strike)
-            else:
-                option = 1.0
-                # fallback to forward_curve
+            put = call = forward = None
+            forward_minus_strike = 0.0
+
+            if self.strike is not None:
+                # only if strike is not atm forward is relevant
                 forward = forward_curve
                 if callable(forward):
                     forward = forward(y)
-                details['forward'] = forward = float(forward)
-                if self.strike is not None and forward < self.strike:
-                    option = 0.0
+                forward_minus_strike = float(forward) - float(self.strike)
+
+            if is_put and hasattr(option_curve, 'binary_put'):
+                put = option_curve.binary_put(x, y, strike=self.strike)
+            elif hasattr(option_curve, 'binary_call'):
+                call = option_curve.binary_call(x, y, strike=self.strike)
+            elif hasattr(option_curve, 'binary'):
+                call = option_curve.binary(x, y, strike=self.strike)
+            elif option_curve is not None:
+                call = option_curve(x, y, strike=self.strike)
+            elif is_put and hasattr(forward_curve, 'binary_put'):
+                put = forward_curve.binary_put(x, y, strike=self.strike)
+            elif hasattr(forward_curve, 'binary_call'):
+                call = forward_curve.binary_call(x, y, strike=self.strike)
+            elif hasattr(forward_curve, 'binary'):
+                call = forward_curve.binary(x, y, strike=self.strike)
+            else:
+                call = 1. if 0 <= forward_minus_strike else 0.
+                put = 1. - call
+                details['forward'] = forward
                 details['option model'] = 'no model'
 
-            if details['is put'] and self.strike is not None:
+            if is_put and put is None:
                 # put call parity
-                option = 1.0 - option
+                put = 1.0 - call
 
+            option = put if is_put else call
             details['cashflow'] = option * details['notional']
+
+        return Details(details.items()).drop(None)
 
 
 class CashFlowList(TSList):
@@ -780,9 +818,10 @@ class CashFlowList(TSList):
         :param floor_strike: lower interest rate boundary $K$
         :param forward_curve: curve to derive underlying forward value
 
-        Each object consists of a list of
-        |ContingentRateCashFlowPayOff()|, i.e.
-        of collared payoff functions
+        Each object consists of a list of |RateCashFlowPayOff()|
+        followed eventually by |OptionCashFlowPayOff()|
+        for any gievn **floor_strike** and/or **cap_strike**,
+        i.e. to add up to a collared payoff functions.
 
         $$X_i(f(T_i)) = [\max(K, \min(f(T_i), L)) + c]\ \tau(s,e)\ N$$
 
@@ -876,9 +915,9 @@ class CashFlowList(TSList):
         return [v(valuation_date, **__) for v in self]
 
     def details(self, valuation_date=None, **__):
-        return [v.details(valuation_date, **__) for v in self]
+        return DetailsList(v.details(valuation_date, **__) for v in self)
 
-    def _tabulate(self, **kwargs):
+    def _tabulate(self, floatrnd=False, **kwargs):
         details = self.details()
         header = {}
         for d in details:
@@ -888,14 +927,23 @@ class CashFlowList(TSList):
         for d in details:
             r = dict.fromkeys(header)
             r.update(d)
+            if floatrnd:
+                for k in header:
+                    # to rounded float
+                    v = r.get(k, 0)
+                    if isinstance(v, float) and 6 < len(str(v).split('.')[-1]):
+                        r[k] = round(v, 6)
             rows.append(list(r.values()))
         return tabulate(rows, **kwargs)
 
     def _repr_html_(self):
-        return self._tabulate(tablefmt="html", headers="firstrow")
+        return html(self.details())
+
+    def __latex__(self):
+        return latex(self.details())
 
     def __str__(self):
-        return self._tabulate(headers="firstrow", floatfmt="_", intfmt="_")
+        return str(self.details())
 
     def __abs__(self):
         return self.__class__(v.__abs__() for v in self)

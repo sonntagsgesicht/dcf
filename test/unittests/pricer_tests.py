@@ -14,16 +14,19 @@ from unittest.case import TestCase
 
 from businessdate import BusinessDate
 
-from dcf import ecf, pv, ytm, fair, iac, bpv, delta, fit, CashFlowList
+from dcf import ecf, pv, iac, ytm, fair, bpv, delta, fit, CashFlowList
 from yieldcurves import DateCurve
 
-from .data import swap_curves, par_swap, par_bond, par_loan, par_frn
+from .data import par_swap, par_bond, par_loan, par_frn, swap_curve, fwd_curve
 
 
 class PricerUnitTests(TestCase):
     def setUp(self):
         self.today = BusinessDate(20161231)
-        self.yc, self.fwd1, self.fwd3, self.fwd6 = swap_curves(self.today)
+        self.yc = swap_curve(self.today)
+        self.fwd1 = fwd_curve(self.today, cash_frequency=12)
+        self.fwd3 = fwd_curve(self.today, cash_frequency=4)
+        self.fwd6 = fwd_curve(self.today, cash_frequency=2)
         self.swaps = []
         self.bonds = []
         self.loans = []
@@ -65,6 +68,16 @@ class PricerUnitTests(TestCase):
             _pv = pv(loan, self.today, self.yc.df)
             self.assertAlmostEqual(0., _pv)
 
+    def test_iac(self):
+        for bond in self.bonds:
+            cfs = CashFlowList.from_fixed_cashflows(bond.domain, 1.)
+            self.assertAlmostEqual(0.0, iac(cfs, self.today + '2w2d'))
+            self.assertLess(0.0, iac(bond, self.today + '2w2d'))
+        for frn in self.frns:
+            cfs = CashFlowList.from_fixed_cashflows(frn.domain, 1.)
+            self.assertAlmostEqual(0.0, iac(cfs, self.today + '2w2d'))
+            self.assertLess(0.0, iac(frn, self.today + '2w2d'))
+
     def test_ytm(self):
         rate = 0.01
         df = DateCurve.from_interpolation([self.today], [rate],
@@ -90,16 +103,6 @@ class PricerUnitTests(TestCase):
             _fair = fair(loan, self.today, self.yc)
             self.assertAlmostEqual(_fair, loan.fixed_rate)
 
-    def test_iac(self):
-        for bond in self.bonds:
-            cfs = CashFlowList.from_fixed_cashflows(bond.domain, 1.)
-            self.assertAlmostEqual(0.0, iac(cfs, self.today + '2w2d'))
-            self.assertLess(0.0, iac(bond, self.today + '2w2d'))
-        for frn in self.frns:
-            cfs = CashFlowList.from_fixed_cashflows(frn.domain, 1.)
-            self.assertAlmostEqual(0.0, iac(cfs, self.today + '2w2d'))
-            self.assertLess(0.0, iac(frn, self.today + '2w2d'))
-
     def test_bpv(self):
 
         for bond, frn in zip(self.bonds, self.frns):
@@ -109,5 +112,8 @@ class PricerUnitTests(TestCase):
             _bpv_frn = bpv(frn, self.today, self.yc, delta_curve=self.yc.curve.curve, forward_curve=self.yc)
             self.assertAlmostEqual(_bpv_swap + _bpv_bond, _bpv_frn)
 
-    def _test_discount_curve_fitting(self):
+    def _test_delta(self):
+        ...
+
+    def _test_fit(self):
         ...
