@@ -28,3 +28,4 @@ __pycache__/
 my/
 dev.ipynb
 doc/doc.ipynb
+dev*.ipynb
