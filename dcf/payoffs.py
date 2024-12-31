@@ -298,7 +298,10 @@ class RateCashFlowPayOff(CashFlowPayOff):
         if callable(amount):
             amount = amount(valuation_date)
         day_count = self.day_count or _default_day_count
-        yf = day_count(self.start, self.end)
+        if isinstance(day_count, float):
+            yf = day_count
+        else:
+            yf = day_count(self.start, self.end)
         details = {
             'pay date': self.pay_date,
             'cashflow': 0.0,
