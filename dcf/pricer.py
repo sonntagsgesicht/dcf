@@ -724,7 +724,7 @@ def fit(cashflow_list: Iterable[CashFlowList],
     or
 
     >>> yc = YieldCurve(0.0)  # curve to calibrate to
-    >>> rates = fit(cashflow_list, today, yc.df, price_list=targets)  # curve fitting # doctest: +SKIP
+    >>> rates = fit(cashflow_list, today, yc.df, price_list=targets)  # curve fitting
     >>> rates
     {1.0: 0.009999999999999995, 2.0: 0.00900000082473929, 3.0: 0.011999999441079148, 4.0: 0.01400000004983385, 5.0: 0.010999999964484619}
 
