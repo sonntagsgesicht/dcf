@@ -5,7 +5,7 @@
 # A Python library for generating discounted cashflows.
 #
 # Author:   sonntagsgesicht
-# Version:  1.0, copyright Monday, 31 March 2025
+# Version:  0.9, copyright Monday, 31 March 2025
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 

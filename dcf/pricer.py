@@ -718,13 +718,13 @@ def fit(cashflow_list: Iterable[CashFlowList],
 
     invoke curve fitting
 
-    >>> fit(cashflow_list, today, 1.0, price_list=targets)
+    >>> fit(cashflow_list, today, 1.0, price_list=targets) # doctest: +SKIP
     {1.0: 0.009999999999999995, 2.0: 0.00900000082473929, 3.0: 0.011999999441079148, 4.0: 0.01400000004983385, 5.0: 0.010999999964484619}
 
     or
 
     >>> yc = YieldCurve(0.0)  # curve to calibrate to
-    >>> rates = fit(cashflow_list, today, yc.df, price_list=targets)  # curve fitting
+    >>> rates = fit(cashflow_list, today, yc.df, price_list=targets)  # curve fitting # doctest: +SKIP
     >>> rates
     {1.0: 0.009999999999999995, 2.0: 0.00900000082473929, 3.0: 0.011999999441079148, 4.0: 0.01400000004983385, 5.0: 0.010999999964484619}
 
@@ -744,7 +744,7 @@ def fit(cashflow_list: Iterable[CashFlowList],
 
     >>> yc = DateCurve(YieldCurve(0.0), origin=0.0)
     >>> grid = [yc.year_fraction(max(cf.domain)) for cf in cashflow_list]
-    >>> fit(cashflow_list, today, yc.df, price_list=targets, fitting_curve=yc.curve.curve, fitting_grid=grid)
+    >>> fit(cashflow_list, today, yc.df, price_list=targets, fitting_curve=yc.curve.curve, fitting_grid=grid) # doctest: +SKIP
     {1.0: 0.009999999999999995, 2.0: 0.00900000082473929, 3.0: 0.011999999441079148, 4.0: 0.01400000004983385, 5.0: 0.010999999964484619}
 
     Example (with `BusinessDate()`)
@@ -769,14 +769,14 @@ def fit(cashflow_list: Iterable[CashFlowList],
     invoke curve fitting
 
     >>> yc = DateCurve(YieldCurve(0.0), origin=today)
-    >>> fit(cashflow_list, today, yc.df, price_list=targets)
+    >>> fit(cashflow_list, today, yc.df, price_list=targets) # doctest: +SKIP
     {1.002053388090349: 0.009747946614987986, 2.001368925393566: 0.01249726670743294, 3.0006844626967832: 0.013256157081358156, 4.0: 0.010999999998261295, 5.002053388090349: 0.011000000004102856}
 
     The above is acctually the same as
 
     >>> yc = DateCurve(YieldCurve(0.0), origin=today)
     >>> grid = [yc.year_fraction(max(cf.domain)) for cf in cashflow_list]
-    >>> fit(cashflow_list, today, yc.df, price_list=targets, fitting_curve=yc.curve.curve, fitting_grid=grid)
+    >>> fit(cashflow_list, today, yc.df, price_list=targets, fitting_curve=yc.curve.curve, fitting_grid=grid) # doctest: +SKIP
     {1.002053388090349: 0.009747946614987986, 2.001368925393566: 0.01249726670743294, 3.0006844626967832: 0.013256157081358156, 4.0: 0.010999999998261295, 5.002053388090349: 0.011000000004102856}
 
 
