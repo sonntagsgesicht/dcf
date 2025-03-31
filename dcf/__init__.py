@@ -11,7 +11,7 @@
 
 
 __doc__ = 'A Python library for generating discounted cashflows.'
-__version__ = '1.0'
+__version__ = '0.99'
 __dev_status__ = '4 - Beta'
 __date__ = 'Monday, 31 March 2025'
 __author__ = 'sonntagsgesicht'

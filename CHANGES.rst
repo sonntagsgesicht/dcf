@@ -1,12 +1,30 @@
 
 These changes are listed in decreasing version number order.
 
-Release 0.8
-===========
+Release 0.99
+============
 
 Release date was |today|
 
-*
+Release 0.99 incorporates major changes focusing and simplifying
+
+* refactor all *yield curves* and *option pricing* mechanics
+  to Python project `yieldcurves <https://pypi.org/project/yieldcurves/>`_
+
+* single style |CashFlowList| of type
+  `tslist <https://pypi.org/project/tslist/>`_
+  with multiple construction classmethods like
+  |CashFlowList.from_fixed_cashflows()|, |CashFlowList.from_rate_cashflows()|,
+  |CashFlowList.from_option_cashflows()|
+  and |CashFlowList.from_contingent_rate_cashflows()|
+
+* restricting to only elementary cashflow types |FixedCashFlowPayOff|,
+  |RateCashFlowPayOff| and |OptionCashFlowPayOff|
+
+* replacing `OptionStrategyCashFlowPayOff` and `ContingentRateCashFlowPayOff`
+
+* more and short pricing functions like |ecf()|, |pv()|, |ytm()|, |iac()|,
+  |fair()|, |bpv()|, |delta()| and |fit()|
 
 
 Release 0.7

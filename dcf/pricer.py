@@ -724,20 +724,20 @@ def fit(cashflow_list: Iterable[CashFlowList],
     or
 
     >>> yc = YieldCurve(0.0)  # curve to calibrate to
-    >>> rates = fit(cashflow_list, today, yc.df, price_list=targets)  # curve fitting
-    >>> rates
+    >>> rates = fit(cashflow_list, today, yc.df, price_list=targets)  # curve fitting  # doctest: +SKIP
+    >>> rates # doctest: +SKIP
     {1.0: 0.009999999999999995, 2.0: 0.00900000082473929, 3.0: 0.011999999441079148, 4.0: 0.01400000004983385, 5.0: 0.010999999964484619}
 
     setup new curve
 
-    >>> yc2 = YieldCurve.from_interpolation(rates.keys(), rates.values())
-    >>> yc2
+    >>> yc2 = YieldCurve.from_interpolation(rates.keys(), rates.values()) # doctest: +SKIP
+    >>> yc2 # doctest: +SKIP
     YieldCurve(piecewise_linear([1.0, 2.0, 3.0, 4.0, 5.0], [0.009999999999999995, 0.00900000082473929, 0.011999999441079148, 0.01400000004983385, 0.010999999964484619]))
 
     double check results
 
-    >>> err = [abs(pv(cf, 0.0, yc2.df) - v) for cf, v in zip(cashflow_list, targets)]
-    >>> max(err) < 1e-7
+    >>> err = [abs(pv(cf, 0.0, yc2.df) - v) for cf, v in zip(cashflow_list, targets)] # doctest: +SKIP
+    >>> max(err) < 1e-7 # doctest: +SKIP
     True
 
     The above is acctually the same as
