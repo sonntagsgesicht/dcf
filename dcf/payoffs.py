@@ -4,10 +4,11 @@
 # ---
 # A Python library for generating discounted cashflows.
 #
-# Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
-# Version:  0.7, copyright Sunday, 22 May 2022
+# Author:   sonntagsgesicht
+# Version:  1.0, copyright Monday, 14 October 2024
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
+
 
 from warnings import warn
 
@@ -201,13 +202,13 @@ class RateCashFlowPayOff(CashFlowPayOff):
         :param fixing_offset: time difference between
             interest rate fixing date
             and interest period payment date $\delta$
-        :param fixed_rate: agreed fixed rate $c$ 
+        :param fixed_rate: agreed fixed rate $c$
         :param forward_curve: float rate forward curve
             either as numerical value or function.
-            If **forward_curve** is **None** 
-            no float rate is applied, 
-            even not if |RateCashFlowPayOff().details()| is invoked 
-            with a **forward curve**.   
+            If **forward_curve** is **None**
+            no float rate is applied,
+            even not if |RateCashFlowPayOff().details()| is invoked
+            with a **forward curve**.
             (optional; default is None, i.e. no float rate is applied)
 
         A contigent interest rate cashflow payoff $X$
@@ -239,8 +240,8 @@ class RateCashFlowPayOff(CashFlowPayOff):
         >>> cf()
         0.00125
 
-        suppying an iterest forward curve changes float forward rate  
-        
+        suppying an iterest forward curve changes float forward rate
+
         >>> forward_curve = 0.05
         >>> cf.details(forward_curve=forward_curve)
         Details(
@@ -278,8 +279,8 @@ class RateCashFlowPayOff(CashFlowPayOff):
 
         """  # noqa 501
         self.pay_date = pay_date
-        self.start = start
-        self.end = end
+        self.start = start  # todo: start_date ?
+        self.end = end  # todo: end_date ?
         self.day_count = day_count
         self.fixing_offset = fixing_offset
         self.amount = amount
@@ -358,8 +359,8 @@ class OptionCashFlowPayOff(CashFlowPayOff):
         r""" European option payoff function
 
         :param pay_date: cashflow payment date
-        :param expiry: option exipry date $T$ 
-            (optional; by default **pay_date**) 
+        :param expiry: option exipry date $T$
+            (optional; by default **pay_date**)
         :param amount: option notional amount $N$
             (optional: default is 1.0)
         :param strike: strike price $K$
@@ -456,7 +457,7 @@ class OptionCashFlowPayOff(CashFlowPayOff):
           'volatility-curve-id': ...,
           'option-curve-id': ...}
         )
-        
+
         >>> float(p.details(option_curve=m))
         8.849422...
 

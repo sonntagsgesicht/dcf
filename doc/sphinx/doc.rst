@@ -12,12 +12,6 @@ Cashflow Objects
 ================
 
 
-Build Functions
----------------
-
-.. automodule:: dcf.plans
-
-
 Cashflow Payoffs
 ----------------
 
@@ -35,8 +29,6 @@ Cashflow Payoffs
 .. autoclass:: RateCashFlowPayOff
 
 .. autoclass:: OptionCashFlowPayOff
-
-.. autoclass:: CashFlowPayOff
 
 
 CashFlow List
@@ -101,6 +93,12 @@ Curve Bootstrapping
 
 Fundamentals
 ============
+
+Build Functions
+---------------
+
+.. automodule:: dcf.plans
+
 
 DayCount
 --------

@@ -4,10 +4,11 @@
 # ---
 # A Python library for generating discounted cashflows.
 #
-# Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
-# Version:  0.7, copyright Sunday, 22 May 2022
+# Author:   sonntagsgesicht
+# Version:  1.0, copyright Monday, 14 October 2024
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
+
 
 from datetime import date, datetime
 from inspect import getsource
@@ -58,9 +59,9 @@ class _DayCount:
 
     def __call__(self, start, end):
         if not start:
-            if type(end) == datetime:
+            if type(end) == datetime:  # noqa E721
                 start = datetime.now()
-            elif type(end) == date:
+            elif type(end) == date:  # noqa E721
                 start = date.today()
             else:
                 start = type(end)()

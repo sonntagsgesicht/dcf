@@ -4,21 +4,21 @@
 # ---
 # A Python library for generating discounted cashflows.
 #
-# Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
-# Version:  0.7, copyright Tuesday, 31 May 2022
+# Author:   sonntagsgesicht
+# Version:  1.0, copyright Monday, 14 October 2024
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
 
 __doc__ = 'A Python library for generating discounted cashflows.'
-__version__ = '0.8'
+__version__ = '1.0'
 __dev_status__ = '4 - Beta'
-__date__ = 'Monday, 14 October 2024'
-__author__ = 'sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]'
+__date__ = 'Monday, 31 March 2025'
+__author__ = 'sonntagsgesicht'
 __email__ = 'sonntagsgesicht@icloud.com'
 __url__ = 'https://github.com/sonntagsgesicht/' + __name__
 __license__ = 'Apache License 2.0'
-__dependencies__ = 'prettyclass', 'curves', 'yieldcurves'
+__dependencies__ = 'prettyclass', 'curves', 'yieldcurves', 'tslist'
 __dependency_links__ = ()
 __data__ = ()
 __scripts__ = ()

@@ -4,10 +4,11 @@
 # ---
 # A Python library for generating discounted cashflows.
 #
-# Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
-# Version:  0.7, copyright Tuesday, 31 May 2022
+# Author:   sonntagsgesicht
+# Version:  1.0, copyright Monday, 14 October 2024
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
+
 
 from functools import partial
 from math import exp
@@ -35,14 +36,14 @@ def ecf(cashflow_list: CashFlowPayOff | CashFlowList,
         :param forward_curve: payoff model
             (optional; default: **None**, i.e. model attached to **cashflow_list**)
         :return: `dict` of expected cashflow payoffs with **pay_date** keys
-        
+
         >>> from dcf import ecf, CashFlowList
-        
+
         >>> cf_list = CashFlowList.from_fixed_cashflows([0., 3.], amount_list=[-100., 100.])
         >>> cf_list += CashFlowList.from_rate_cashflows([0., 1., 2., 3.], amount_list=100., fixed_rate=0.05)
         >>> ecf(cf_list, valuation_date=0.0)
         {0.0: -95.0, 1.0: 5.0, 2.0: 5.0, 3.0: 105.0}
-        
+
     """   # noqa 501
     if isinstance(cashflow_list, CashFlowPayOff):
         cashflow_list = [cashflow_list]
@@ -107,7 +108,7 @@ def pv(cashflow_list: CashFlowPayOff | CashFlowList,
     371.677...
 
     >>> eod = sod - ecf(cf_list, 0.0)[0.0]
-    >>> eod  
+    >>> eod
     271.677...
 
     """  # noqa 501
@@ -196,7 +197,7 @@ def iac(cashflow_list: CashFlowList,
     >>> # doesn't take fixed cashflows into account
     >>> iac(redemption_leg, valuation_date=3.25)
     0.0
-    
+
     """  # noqa 501
     ac = 0.0
     for cf in cashflow_list:
@@ -228,16 +229,16 @@ def ytm(cashflow_list: CashFlowList,
     :param present_value: price to meet by discounting
         (optional; default: 0.0)
     :param method: solver method
-        If given as string invokes a method from    
+        If given as string invokes a method from
         `curves.numerics <https://curves.readthedocs.io/en/latest/doc.html#module-curves.numerics.solve>`_  # noqa E501
-        otherwise **method** should be a solver impelementing 
-        :code:`method(err, **kwargs)` return float result and 
+        otherwise **method** should be a solver impelementing
+        :code:`method(err, **kwargs)` return float result and
         where :code:`err` is the error function to be solved.
-        **kwargs** provide arguments for **method**. 
-        (optional: default is **secant_method** 
+        **kwargs** provide arguments for **method**.
+        (optional: default is **secant_method**
         with lower and upper guess of 0.01 and 0.05 and tolerance of 1e-10)
-    :param args: arguments for **method** 
-    :param kwargs: keyword arguments for **method** 
+    :param args: arguments for **method**
+    :param kwargs: keyword arguments for **method**
     :return: `float` - as flat interest rate to discount all future cashflows
         in order to meet given **present_value**
 
@@ -284,20 +285,20 @@ def ytm(cashflow_list: CashFlowList,
     >>> print(redemption_leg)
       pay date     cashflow
     ----------  -----------
-           5.0  1_000_000.0 
+           5.0  1_000_000.0
 
     get yield-to-maturity at par (gives coupon rate)
 
-    >>> ytm(bond, 0.0, present_value=n)  
+    >>> ytm(bond, 0.0, present_value=n)
     0.0009...
 
     get current yield-to-maturity as given by 1.5% risk free rate (gives risk free rate)
 
     >>> present_value = pv(bond, 0.0, curve)
-    >>> present_value  
+    >>> present_value
     783115.0894...
 
-    >>> ytm(bond, 0.0, present_value=present_value)  
+    >>> ytm(bond, 0.0, present_value=present_value)
     0.049999...
 
     """  # noqa 501
@@ -328,16 +329,16 @@ def fair(cashflow_list: CashFlowList,
     :param present_value: price to meet by discounting
         (optional: default: 0.0)
     :param method: solver method
-        If given as string invokes a method from    
-        `curves.numerics`_ 
-        otherwise **method** should be a solver impolementing 
-        :code:`method(err, **kwargs)` return float result and 
+        If given as string invokes a method from
+        `curves.numerics`_
+        otherwise **method** should be a solver impolementing
+        :code:`method(err, **kwargs)` return float result and
         where :code:`err` is the error function to be solved.
-        **kwargs** provide arguments for **method**. 
-        (optional: default is **secant_method** 
+        **kwargs** provide arguments for **method**.
+        (optional: default is **secant_method**
         with lower and upper guess of 0.01 and 0.05 and tolerance of 1e-10)
-    :param args: arguments for **method** 
-    :param kwargs: keyword arguments for **method** 
+    :param args: arguments for **method**
+    :param kwargs: keyword arguments for **method**
     :return: `float` - the fair coupon rate as
         **fixed_rate** of a |RateCashFlowPayOff()|
 
@@ -373,14 +374,14 @@ def fair(cashflow_list: CashFlowList,
 
     >>> present_value = pv(redemption_leg, 0.0, curve)
     >>> fair_rate = fair(coupon_leg, 0.0, curve, present_value=n-present_value)
-    >>> fair_rate  
+    >>> fair_rate
     0.0151...
 
     check it's a par bond (pv=notional)
 
-    >>> for cf in coupon_leg: 
+    >>> for cf in coupon_leg:
     ...     cf.fixed_rate = fair_rate
-    >>> pv(bond, 0.0, curve)  
+    >>> pv(bond, 0.0, curve)
     1000000.0...
 
     """  # noqa 501
@@ -449,24 +450,24 @@ def bpv(cashflow_list: CashFlowList,
     >>> coupon_leg = CashFlowList.from_rate_cashflows([1.,2.,3.,4.,5.], amount_list=n, origin=0., fixed_rate=0.001)
     >>> redemption_leg = CashFlowList.from_fixed_cashflows([5.], amount_list=n)
     >>> bond = coupon_leg + redemption_leg
-    
+
     together with a flat yield curve
-    
+
     >>> curve = YieldCurve(0.015)
     >>> pv(bond, 0.0, curve.df)
     932524.5493...
-    
+
     calculate bpv as bond delta
 
     >>> yc = YieldCurve(curve)
-    >>> bpv(bond, 0.0, yc.df, delta_curve=yc.curve)  
+    >>> bpv(bond, 0.0, yc.df, delta_curve=yc.curve)
     -465.1755...
 
     double check by direct valuation
 
     >>> present_value = pv(bond, 0.0, curve.df)
     >>> shifted = YieldCurve(0.015 + 0.0001)
-    >>> pv(bond, 0.0, shifted.df) - present_value  
+    >>> pv(bond, 0.0, shifted.df) - present_value
     -465.1755...
 
     """  # noqa 501
@@ -599,16 +600,16 @@ def delta(cashflow_list: CashFlowList,
     calculate bpv as bond delta
 
     >>> yc = YieldCurve(curve)
-    >>> bucked_bpv = delta(bond, 0.0, yc.df, delta_curve=yc.curve, delta_grid=[0.,1.,2.,3.,4.,5.])  
+    >>> bucked_bpv = delta(bond, 0.0, yc.df, delta_curve=yc.curve, delta_grid=[0.,1.,2.,3.,4.,5.])
     >>> bucked_bpv
     (0.0, -0.098901..., -0.194458..., -0.289348..., -0.384238..., -468.885034...)
 
     check by summing up (should give flat bpv)
 
-    >>> sum(bucked_bpv)  
+    >>> sum(bucked_bpv)
     -469.851981...
-    
-    >>> bpv(bond, 0.0, yc.df, delta_curve=yc.curve)  
+
+    >>> bpv(bond, 0.0, yc.df, delta_curve=yc.curve)
     -469.851981...
 
     """  # noqa 501
@@ -739,7 +740,7 @@ def fit(cashflow_list: Iterable[CashFlowList],
     >>> max(err) < 1e-7
     True
 
-    The abouve is acctually the same as
+    The above is acctually the same as
 
     >>> yc = DateCurve(YieldCurve(0.0), origin=0.0)
     >>> grid = [yc.year_fraction(max(cf.domain)) for cf in cashflow_list]
@@ -769,14 +770,14 @@ def fit(cashflow_list: Iterable[CashFlowList],
 
     >>> yc = DateCurve(YieldCurve(0.0), origin=today)
     >>> fit(cashflow_list, today, yc.df, price_list=targets)
-    {1.002053388090349: 0.009175564715305961, 2.001368925393566: 0.011471254191411324, 3.0006844626967832: 0.013646131675799695, 4.0: 0.011532854209070608, 5.002053388090349: 0.011000000002196838}
+    {1.002053388090349: 0.009747946614987986, 2.001368925393566: 0.01249726670743294, 3.0006844626967832: 0.013256157081358156, 4.0: 0.010999999998261295, 5.002053388090349: 0.011000000004102856}
 
     The above is acctually the same as
 
     >>> yc = DateCurve(YieldCurve(0.0), origin=today)
     >>> grid = [yc.year_fraction(max(cf.domain)) for cf in cashflow_list]
     >>> fit(cashflow_list, today, yc.df, price_list=targets, fitting_curve=yc.curve.curve, fitting_grid=grid)
-    {1.002053388090349: 0.009175564715305961, 2.001368925393566: 0.011471254191411324, 3.0006844626967832: 0.013646131675799695, 4.0: 0.011532854209070608, 5.002053388090349: 0.011000000002196838}
+    {1.002053388090349: 0.009747946614987986, 2.001368925393566: 0.01249726670743294, 3.0006844626967832: 0.013256157081358156, 4.0: 0.010999999998261295, 5.002053388090349: 0.011000000004102856}
 
 
     """  # noqa E501
