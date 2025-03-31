@@ -13,7 +13,7 @@ htmlcov/
 .coverage
 coverage.xml
 doc/coverage/
-/dev.py
+dev.py
 /pipeline_info.sh
 /freeze_requirements.txt
 .bin/
@@ -25,4 +25,7 @@ __pycache__/
 .vs/
 *.json
 *.zip
-
+my/
+dev.ipynb
+doc/doc.ipynb
+dev*.ipynb

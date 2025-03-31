@@ -4,11 +4,15 @@
 # ---
 # A Python library for generating discounted cashflows.
 #
-# Author:   sonntagsgesicht, based on a fork of Deutsche Postbank [pbrisk]
-# Version:  0.7, copyright Wednesday, 11 May 2022
+# Author:   sonntagsgesicht
+# Version:  1.0, copyright Monday, 14 October 2024
 # Website:  https://github.com/sonntagsgesicht/dcf
 # License:  Apache License 2.0 (see LICENSE file)
 
+
+from math import log
+
+from curves.numerics import solve, EPS
 
 DEFAULT_AMOUNT = 1.
 FIXED_RATE = 0.01
@@ -53,7 +57,7 @@ def amortize(num, amount=DEFAULT_AMOUNT):
     return [amount / num] * int(num)
 
 
-def annuity(num, amount=DEFAULT_AMOUNT, fixed_rate=FIXED_RATE):
+def _annuity(num, amount=DEFAULT_AMOUNT, fixed_rate=FIXED_RATE):
     r""" fixed rate annuity payment plan
 
     :param num: number of payments $n$
@@ -84,6 +88,11 @@ def consumer(num, amount=DEFAULT_AMOUNT, fixed_rate=FIXED_RATE):
     return [total / num] * int(num)
 
 
+def iam(num, amount=DEFAULT_AMOUNT, fixed_rate=FIXED_RATE):
+    q = 1 + fixed_rate
+    return [amount * fixed_rate * (q ** i) for i in range(num)]
+
+
 def outstanding(plan, amount=DEFAULT_AMOUNT, sign=False):
     r"""sums up plans to remaining oustanding anmount
 
@@ -102,3 +111,73 @@ def outstanding(plan, amount=DEFAULT_AMOUNT, sign=False):
         amount += sgn * p
         out.append(amount)
     return out
+
+
+def annuity(num=None, amount=None, fixed_rate=None, *,
+            redemption_rate=None, annuity_amount=None):
+    f"""list of redemption payments in fixed annuity payments
+
+    :param num: number of periods
+        (optional: if not given **num** will be derived from
+        **fixed_rate** and **redemption_rate**)
+    :param amount: total amount
+        (optional: if neither **amount** nor **annuity_amount**
+        is given, **amount** will be {DEFAULT_AMOUNT} is used)
+    :param fixed_rate: interest rate per period
+        (optional: if not given **fixed_rate** will be derived from
+        **num** and **redemption_rate**.
+        if even **num** or **redemption_rate** are not given,
+        **fixed_rate** will be {FIXED_RATE})
+    :param redemption_rate: initial redemption rate
+        (optional: if not given **redemption_rate** will be derived from
+        **num** and **fixed_rate**)
+    :param annuity_amount: fixed annuity amount
+    :return: list of redemption payments
+
+    """
+
+    def _r(x, n=num):
+        """redemption_rate"""
+        return x / ((x + 1) ** int(n) - 1)
+
+    if num is not None:
+        if redemption_rate is not None:
+            if fixed_rate is None:
+                fixed_rate = solve(_r, a=FIXED_RATE)
+
+            elif abs(_r(fixed_rate) - redemption_rate) < EPS:
+                msg = "inconsistent arguments for " \
+                      "'num', 'fixed_rate' and 'redemption_rate'"
+                raise ValueError(msg)
+
+        elif fixed_rate is not None:
+            redemption_rate = _r(fixed_rate, num)
+
+        else:
+            fixed_rate = FIXED_RATE
+            redemption_rate = _r(fixed_rate, num)
+
+    elif fixed_rate is not None:
+
+        if redemption_rate is not None:
+            num = log(1 + fixed_rate / redemption_rate) / log(1 + fixed_rate)
+
+        elif amount is not None and annuity_amount is not None:
+            redemption_rate = annuity_amount / amount - fixed_rate
+            num = log(1 + fixed_rate / redemption_rate) / log(1 + fixed_rate)
+
+    elif amount is not None and annuity_amount is not None:
+        fixed_rate = annuity_amount / amount - redemption_rate
+        num = log(1 + fixed_rate / redemption_rate) / log(1 + fixed_rate)
+
+    else:
+        msg = "no arguments for 'num', 'fixed_rate' and 'redemption_rate'"
+        raise ValueError(msg)
+
+    if amount is None and annuity_amount is None:
+        amount = DEFAULT_AMOUNT
+
+    elif amount is None:
+        amount = annuity_amount / (fixed_rate + redemption_rate)
+
+    return _annuity(int(num), amount, fixed_rate)

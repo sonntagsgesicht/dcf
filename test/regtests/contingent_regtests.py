@@ -2,13 +2,8 @@
 from regtest import RegressionTestCase
 
 from dcf.daycount import day_count
-from dcf.cashflows.contingent import ContingentCashFlowList, \
-    ContingentRateCashFlowList, OptionCashflowList, OptionStrategyCashflowList
-from dcf.curves.interestratecurve import ZeroRateCurve, CashRateCurve
-from dcf.curves.curve import ForwardCurve
-from dcf.models.bachelier import NormalOptionPayOffModel
-from dcf.models.black76 import LogNormalOptionPayOffModel
-from dcf.pricer import get_present_value
+from dcf import pv, CashFlowList, OptionCashFlowPayOff
+from yieldcurves import YieldCurve, OptionPricingCurve, DateCurve
 
 
 class ContingentCashFlowRegTests(RegressionTestCase):
@@ -16,64 +11,44 @@ class ContingentCashFlowRegTests(RegressionTestCase):
         self.origin = 0.0
         self.zero_rate = 0.02
 
-        self.kwargs = {
-            'valuation_date': self.origin,
-            'forward_curve': ForwardCurve([0.0], [100.0], yield_curve=0.05),
-            'volatility_curve': lambda *_: 0.1,
-            'day_count': day_count
-        }
-
         self.taus = 0.1, 1.0, 2.3, 10.0
         self.strikes = 100, 120, 130
+        self.df = YieldCurve(0.02)
+        fwd = YieldCurve(0.05, spot_price=100.)
+        self.black76 = OptionPricingCurve.black76(fwd.price, 0.1)
+        fwd = YieldCurve.from_interpolation([1, 5], [-0.001, 0.015])
+        self.bachelier = OptionPricingCurve.black76(fwd.cash, 0.1)
+
 
     def test_option_cashflow_list(self):
-        model = LogNormalOptionPayOffModel(**self.kwargs)
+        model = self.black76
         for tau in self.taus:
             for strike in self.strikes:
-                flows = OptionCashflowList([tau],
-                                           strike_list=strike,
-                                           payoff_model=model)
-                for d in flows.domain:
-                    self.assertAlmostRegressiveEqual(flows[d])
-                curve = ZeroRateCurve([self.origin], [self.zero_rate])
-                pv = get_present_value(flows, curve)
-                self.assertAlmostRegressiveEqual(pv)
+                flows = CashFlowList.from_option_cashflows(
+                    [tau], strike_list=strike, forward_curve=model)
+                for cf in flows:
+                    self.assertAlmostRegressiveEqual(cf(forward_curve=model))
+                self.assertAlmostRegressiveEqual(
+                    pv(flows, self.origin, self.df))
 
     def test_option_strategy_cashflow_list(self):
-        model = LogNormalOptionPayOffModel(**self.kwargs)
+        model = self.black76
+        flows = CashFlowList()
         for tau in self.taus:
-            call_amount_list = 1., 1.
-            call_strike_list = 90., 110.,
-            put_amount_list = -2.,
-            put_strike_list = 100.,
-            flows = OptionStrategyCashflowList([tau],
-                                               call_amount_list=call_amount_list,
-                                               call_strike_list=call_strike_list,
-                                               put_amount_list=put_amount_list,
-                                               put_strike_list=put_strike_list,
-                                               payoff_model=model)
-            for d in flows.domain:
-                self.assertAlmostRegressiveEqual(flows[d])
-
-            curve = ZeroRateCurve([self.origin], [self.zero_rate])
-            pv = get_present_value(flows, curve)
-            self.assertAlmostRegressiveEqual(pv)
+            flows.append(OptionCashFlowPayOff(tau, strike=90.))
+            flows.append(OptionCashFlowPayOff(tau, strike=110.))
+            flows.append(OptionCashFlowPayOff(
+                tau, amount=-2, strike=90., option_type='put'))
+            for cf in flows:
+                self.assertAlmostRegressiveEqual(cf(forward_curve=model))
+            self.assertAlmostRegressiveEqual(pv(flows, self.origin, self.df))
 
     def test_contingent_rate_cashflow_list(self):
-        kwargs = dict(**self.kwargs)
-        kwargs['forward_curve'] = \
-            CashRateCurve([1, 5], [-0.001, 0.015])
-        model = NormalOptionPayOffModel(**self.kwargs)
-        flows = ContingentRateCashFlowList(list(range(1,6)),
-                                           origin=0,
-                                           fixed_rate=0.01,
-                                           cap_strike=0.013,
-                                           floor_strike=0.001,
-                                           payoff_model=model)
+        model = self.bachelier
+        flows = CashFlowList.from_contingent_rate_cashflows(
+            list(range(1,6)), origin=0, fixed_rate=0.01,
+            cap_strike=0.013, floor_strike=0.001, forward_curve=model)
 
-        for d in flows.domain:
-            self.assertAlmostRegressiveEqual(flows[d])
-
-        curve = ZeroRateCurve([self.origin], [self.zero_rate])
-        pv = get_present_value(flows, curve)
-        self.assertAlmostRegressiveEqual(pv)
+        for cf in flows:
+            self.assertAlmostRegressiveEqual(float(cf(model)))
+        self.assertAlmostRegressiveEqual(pv(flows, self.origin, self.df))

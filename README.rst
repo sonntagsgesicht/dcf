@@ -2,9 +2,9 @@
 Python library *dcf*
 --------------------
 
-.. image:: https://img.shields.io/codeship/a10d1dd0-a1a0-0137-f00d-1a3bc2cae4aa/master.svg
-   :target: https://codeship.com//projects/359976
-   :alt: Codeship
+.. image:: https://github.com/sonntagsgesicht/dcf/actions/workflows/python-package.yml/badge.svg
+    :target: https://github.com/sonntagsgesicht/dcf/actions/workflows/python-package.yml
+    :alt: GitHubWorkflow
 
 .. image:: https://img.shields.io/readthedocs/dcf
    :target: http://dcf.readthedocs.io
@@ -37,41 +37,6 @@ discounting and fx.
 
 Example Usage
 -------------
-
-
->>> from dcf import ZeroRateCurve
-
->>> time_grid = [0, 2]
->>> rate_grid = [.03, .05]
-
->>> ZeroRateCurve(time_grid, rate_grid).get_zero_rate(0, 1)
-0.04
-
->>> ZeroRateCurve(time_grid, rate_grid).get_discount_factor(0, 1)
-0.9607894391523232
-
-
-Or use `datetime <https://docs.python.org/3/library/datetime.html>`_
-
-
->>> from datetime import date
-
->>> start = date(2013,1,1)
->>> mid = date(2014,1,1)
->>> end = date(2015,1,1)
-
->>> ZeroRateCurve([start, end], [.03, .05]).get_zero_rate(start, mid)
-0.04
-
->>> ZeroRateCurve([start, end], [.03, .05]).get_discount_factor(start, mid)
-0.9608157444936446
-
-
-The framework works fine with native `datetime <https://docs.python.org/3/library/datetime.html>`_
-but we recommend `businessdate <https://pypi.org/project/businessdate/>`_ package
-for more convenient functionality to roll out date schedules.
-
-
 
 >>> from businessdate import BusinessDate, BusinessSchedule
 
@@ -107,16 +72,15 @@ and generate an redemption amount list for paying back the loan notional amount.
 [136.50979913376267, 136.50979913376267, 136.50979913376267, 136.50979913376267, 136.50979913376267, 136.50979913376267, 136.50979913376267, 136.50979913376267]
 
 
-Putting all together and feeding the plan into a `FixedCashFlowList`
-and the list of outstanding into a `RateCashflowList` gives the legs of a loan.
+Putting all together and feeding the plan into a list of `CashFlowPayOff`
+and the list of outstanding into a `CashflowList` gives the legs of a loan.
 
 
 >>> from businessdate import BusinessDate, BusinessSchedule
->>> from dcf import FixedCashFlowList, RateCashFlowList
+>>> from dcf import CashFlowList
 >>> from dcf.plans import amortize, outstanding
 
 Again, build a date schedule.
-
 
 
 >>> today = BusinessDate(20201031)
@@ -138,55 +102,85 @@ the payment plan and list of notional outstanding.
 Finally, create for each leg a `CashFlowList`.
 
 
->>> principal = FixedCashFlowList([start_date], [-notional], origin=start_date)
+>>> principal = CashFlowList.from_fixed_cashflows([start_date], [notional])
 >>> print(principal)
-FixedCashFlowList([BusinessDate(20201031) ... BusinessDate(20201031)], [-1000.0 ... -1000.0], origin=BusinessDate(20201031))
+pay date      cashflow
+----------  ----------
+20201031       1_000.0
 
->>> redemption = FixedCashFlowList(payment_dates, plan, origin=start_date)
+>>> redemption = CashFlowList.from_fixed_cashflows(payment_dates, plan)
 >>> print(redemption)
-FixedCashFlowList([BusinessDate(20210131) ... BusinessDate(20221031)], [125.0 ... 125.0], origin=BusinessDate(20201031))
+pay date      cashflow
+----------  ----------
+20210131         125.0
+20210430         125.0
+20210731         125.0
+20211031         125.0
+20220131         125.0
+20220430         125.0
+20220731         125.0
+20221031         125.0
 
->>> interest = RateCashFlowList(payment_dates, out, origin=start_date, fixed_rate=interest_rate)
+>>> interest = CashFlowList.from_rate_cashflows(payment_dates, out, fixed_rate=interest_rate)
 >>> print(interest)
-RateCashFlowList([BusinessDate(20210131) ... BusinessDate(20221031)], [1000.0 ... 125.0], origin=BusinessDate(20201031))
+pay date      cashflow    notional  is rec      fixed rate  start date    end date      year fraction
+----------  ----------  ----------  --------  ------------  ------------  ----------  ---------------
+20210131      2.518892     1_000.0  True              0.01  20201031      20210131           0.251889
+20210430      2.13216        875.0  True              0.01  20210131      20210430           0.243675
+20210731      1.889169       750.0  True              0.01  20210430      20210731           0.251889
+20211031      1.574307       625.0  True              0.01  20210731      20211031           0.251889
+20220131      1.259446       500.0  True              0.01  20211031      20220131           0.251889
+20220430      0.913783       375.0  True              0.01  20220131      20220430           0.243675
+20220731      0.629723       250.0  True              0.01  20220430      20220731           0.251889
+20221031      0.314861       125.0  True              0.01  20220731      20221031           0.251889
 
-Add those legs to `CashFlowLegList` provides a smart container for valuation (`get_present_value()`).
 
+Add those legs to one `CashFlowList` provides a common container for valuation (`pv()`).
 
->>> from dcf import CashFlowLegList, ZeroRateCurve, get_present_value
+>>> loan = -principal + redemption + interest
 
->>> loan = CashFlowLegList([principal, redemption, interest])
->>> curve = ZeroRateCurve([today, today + '2y'], [-.005, .01])
+We are using the `yieldcurves <http://yieldcurves.readthedocs.io>`_
+package for convenient yield curve construction.
+It can be found on `pypi <https://pypi.org/project/yieldcurves/>`_
+and installed via :code:`$ pip install yieldcurves`.
 
->>> get_present_value(cashflow_list=loan, discount_curve=curve, valuation_date=today)
-4.935421637918839
+>>> from dcf import pv
+>>> from yieldcurves import YieldCurve, DateCurve
+
+>>> yield_curve = YieldCurve.from_interpolation([0.0, 5.0], [0.01, 0.005])
+>>> curve = DateCurve(yield_curve, origin=today)
+
+>>> pv(cashflow_list=loan, discount_curve=curve.df, valuation_date=today)
+1.562873...
 
 Moreover, variable interest derived from float rates as given
-by a forward rate curve, e.g. a `CashRateCurve`, are possible, too.
+by a forward rate curve, e.g. a `curve.cash`, are possible, too.
 
-
->>> from dcf import CashRateCurve, RateCashFlowList
->>> from tabulate import tabulate
-
->>> fwd = CashRateCurve([today, today + '2y'], [-.005, .007])
+>>> fwd = YieldCurve.from_cash_rates.from_interpolation([today, today + '2y'], [-.005, .007])
+>>> fwd = DateCurve(fwd, origin=today)
 >>> spread = .001
->>> float_interest = RateCashFlowList(payment_dates, out, origin=start_date, fixed_rate=spread, forward_curve=fwd, pay_offset='2b', fixing_offset='2b')
+>>> float_interest = CashFlowList.from_rate_cashflows(payment_dates, out, fixed_rate=spread, forward_curve=fwd.cash, pay_offset='2b', fixing_offset='2b')
+>>> pv(cashflow_list=float_interest, discount_curve=curve.df, valuation_date=today)
+8.900765...
 
->>> print(tabulate(float_interest.table, headers='firstrow'))
-  cashflow  pay date      notional  start date    end date      year fraction    fixed rate    forward rate  fixing date    tenor
-----------  ----------  ----------  ------------  ----------  ---------------  ------------  --------------  -------------  -------
- -0.996578  20210131          1000  20201029      20210128           0.249144         0.001    -0.005        20201027       3M
- -0.554077  20210430           875  20210128      20210428           0.246407         0.001    -0.00356986   20210126       3M
- -0.205991  20210731           750  20210428      20210729           0.251882         0.001    -0.00209041   20210426       3M
-  0.065699  20211031           625  20210729      20211028           0.249144         0.001    -0.000578082  20210727       3M
-  0.238906  20220131           500  20211028      20220127           0.249144         0.001     0.000917808  20211026       3M
-  0.318939  20220430           375  20220127      20220428           0.249144         0.001     0.0024137    20220125       3M
-  0.305799  20220731           250  20220428      20220728           0.249144         0.001     0.00390959   20220426       3M
-  0.199486  20221031           125  20220728      20221027           0.249144         0.001     0.00540548   20220726       3M
+>>> print(float_interest)
+pay date      cashflow    notional  is rec      fixed rate  start date    end date      year fraction    forward rate  fixing date    forward-curve-id
+----------  ----------  ----------  --------  ------------  ------------  ----------  ---------------  --------------  -------------  ------------------
+20210131      1.99321      1_000.0  True             0.001  20201029      20210128           0.249151           0.007  20201027       ...
+20210430      1.724893       875.0  True             0.001  20210128      20210428           0.246413           0.007  20210126       ...
+20210731      1.511335       750.0  True             0.001  20210428      20210729           0.251889           0.007  20210426       ...
+20211031      1.245756       625.0  True             0.001  20210729      20211028           0.249151           0.007  20210727       ...
+20220131      0.996605       500.0  True             0.001  20211028      20220127           0.249151           0.007  20211026       ...
+20220430      0.747454       375.0  True             0.001  20220127      20220428           0.249151           0.007  20220125       ...
+20220731      0.498302       250.0  True             0.001  20220428      20220728           0.249151           0.007  20220426       ...
+20221031      0.249151       125.0  True             0.001  20220728      20221027           0.249151           0.007  20220726       ...
 
 
->>> get_present_value(cashflow_list=float_interest, discount_curve=curve, valuation_date=today)
--0.641528888054065
+Documentation
+-------------
+
+More docs can be found on `https://dcf.readthedocs.io <https://dcf.readthedocs.io>`_
+
 
 Install
 -------
