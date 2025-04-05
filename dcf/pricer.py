@@ -26,6 +26,33 @@ from .payoffs import CashFlowPayOff, RateCashFlowPayOff, CashFlowList
 TOL = 1e-10
 
 
+def _discount_curve(discount_curve, valuation_date=None):
+    if isinstance(discount_curve, float):
+        # use float discount_curve as spot rate for discounting
+        def df(t):
+            return exp(-_default_day_count(valuation_date, t) * discount_curve)
+        return df
+    if hasattr(discount_curve, 'discount_factor'):
+        # use 'discount_factor' method for discounting
+        return discount_curve.discount_factor
+    if hasattr(discount_curve, 'df'):
+        # use 'df' method for discounting
+        return discount_curve.df
+    return discount_curve
+
+
+def _day_count(discount_curve, valuation_date=None):
+    if hasattr(discount_curve, 'day_count'):
+        dc = discount_curve.day_count
+    elif hasattr(discount_curve, 'year_fraction'):
+        dc = discount_curve.year_fraction
+    elif hasattr(discount_curve, 'yf'):
+        dc = discount_curve.yf
+    else:
+        dc = _default_day_count
+    return partial(dc, valuation_date)
+
+
 def ecf(cashflow_list: CashFlowPayOff | CashFlowList,
         valuation_date: DateType,
         *, forward_curve: Callable | float | dict | None = None):
@@ -114,16 +141,7 @@ def pv(cashflow_list: CashFlowPayOff | CashFlowList,
     """  # noqa 501
     ecf_dict = ecf(cashflow_list, valuation_date, forward_curve=forward_curve)
     ecf_items = ((t, float(cf or 0.0)) for t, cf in ecf_dict.items())
-    if isinstance(discount_curve, float):
-        # use float discount_curve as spot rate for discounting
-        r, dc = discount_curve, _default_day_count
-        return sum(exp(-dc(valuation_date, t) * r) * cf for t, cf in ecf_items)
-    if hasattr(discount_curve, 'discount_factor'):
-        # use 'discount_factor' method for discounting
-        discount_curve = discount_curve.discount_factor
-    elif hasattr(discount_curve, 'df'):
-        # use 'df' method for discounting
-        discount_curve = discount_curve.df
+    discount_curve = _discount_curve(discount_curve, valuation_date)
     df = discount_curve(valuation_date)
     return sum(discount_curve(t) / df * cf for t, cf in ecf_items)
 
@@ -237,7 +255,6 @@ def ytm(cashflow_list: CashFlowList,
         **kwargs** provide arguments for **method**.
         (optional: default is **secant_method**
         with lower and upper guess of 0.01 and 0.05 and tolerance of 1e-10)
-    :param args: arguments for **method**
     :param kwargs: keyword arguments for **method**
     :return: `float` - as flat interest rate to discount all future cashflows
         in order to meet given **present_value**
@@ -337,7 +354,6 @@ def fair(cashflow_list: CashFlowList,
         **kwargs** provide arguments for **method**.
         (optional: default is **secant_method**
         with lower and upper guess of 0.01 and 0.05 and tolerance of 1e-10)
-    :param args: arguments for **method**
     :param kwargs: keyword arguments for **method**
     :return: `float` - the fair coupon rate as
         **fixed_rate** of a |RateCashFlowPayOff()|
@@ -490,6 +506,100 @@ def bpv(cashflow_list: CashFlowList,
     return (sh - _pv) / shift * .0001
 
 
+def duration(cashflow_list: CashFlowPayOff | CashFlowList,
+             valuation_date: DateType | None = None,
+             discount_curve: Callable | float = 0.0,
+             *, forward_curve: Callable | float | dict | None = None):
+    r""" calculates the present value by discounting cashflows
+
+    :param cashflow_list: list of cashflows
+    :param valuation_date: date to discount to
+    :param discount_curve: discount factors are obtained from this curve
+    :param forward_curve: payoff model
+        (optional; default: **None**, i.e. model attached to **cashflow_list**)
+    :return: `float` - as the sum of all discounted future cashflows
+
+    Let $cf_1 \dots cf_n$ be the list of cashflows
+    with payment dates $t_1, \dots, t_n$.
+
+    Moreover, let $t$ be the valuation date
+    and $T=\{t_i \mid t \leq t_i \}$.
+
+    Then the present value is given as
+
+    $$v(t) = \sum_{t_i \in T} df(t, t_i) \cdot cf_i$$
+
+    with $df(t, t_i)$, the discount factor discounting form $t_i$ to $t$.
+
+    Note, **get_present_value** includes cashflows at valuation date.
+    Therefor it represents a *start-of-day* valuation
+    than a *end-of-day* valuation.
+
+    >>> from yieldcurves import YieldCurve
+    >>> from dcf import ecf, pv, CashFlowList
+
+    >>> curve = YieldCurve.from_interpolation([0.0], [0.05])
+    >>> cf_list = CashFlowList.from_fixed_cashflows([0, 1, 2, 3], [100, 100, 100, 100])
+
+    >>> sod = pv(cf_list, 0.0, discount_curve=curve)
+    >>> sod
+    371.677...
+
+    >>> eod = sod - ecf(cf_list, 0.0)[0.0]
+    >>> eod
+    271.677...
+
+    """  # noqa 501
+    ecf_dict = ecf(cashflow_list, valuation_date, forward_curve=forward_curve)
+    ecf_items = ((t, float(cf or 0.0)) for t, cf in ecf_dict.items())
+    discount_curve = _discount_curve(discount_curve, valuation_date)
+    df = discount_curve(valuation_date)
+    dc = _day_count(discount_curve, valuation_date)
+    return sum(dc(t) * discount_curve(t) / df * cf for t, cf in ecf_items)
+
+
+def convexity(cashflow_list: CashFlowPayOff | CashFlowList,
+              valuation_date: DateType | None = None,
+              discount_curve: Callable | float = 0.0,
+              *, forward_curve: Callable | float | dict | None = None,
+              delta_curve: Callable | Iterable[Callable] | None = None,
+              shift: float = 0.0001):
+    """
+
+    :param cashflow_list:
+    :param valuation_date:
+    :param discount_curve:
+    :param forward_curve:
+    :param delta_curve:
+    :param shift:
+    :return:
+    """
+    _pv = pv(cashflow_list, valuation_date, discount_curve,
+             forward_curve=forward_curve)
+
+    delta_curve = discount_curve if delta_curve is None else delta_curve
+    if not isinstance(delta_curve, (list, tuple)):
+        delta_curve = delta_curve,
+
+    for d in delta_curve:
+        d += shift
+
+    sh_plus = pv(cashflow_list, valuation_date, discount_curve,
+                 forward_curve=forward_curve)
+
+    for d in delta_curve:
+        d -= shift
+        d -= shift
+
+    sh_minus = pv(cashflow_list, valuation_date, discount_curve,
+                  forward_curve=forward_curve)
+
+    for d in delta_curve:
+        d += shift
+
+    return (sh_plus - 2 * _pv + sh_minus) / (shift ** 2) / _pv
+
+
 def delta(cashflow_list: CashFlowList,
           valuation_date: DateType | None = None,
           discount_curve: Callable | float = 0.0,
@@ -632,7 +742,7 @@ def delta(cashflow_list: CashFlowList,
     else:
         first = [delta_grid[0], delta_grid[1]]
         mids = zip(delta_grid[0: -2], delta_grid[1: -1], delta_grid[2:])
-        mids = list(map(list, mids))
+        mids = list(map(lambda x: list(x), mids))
         last = [delta_grid[-2], delta_grid[-1]]
         grids = [first] + mids + [last]
         shifts = [[shift, 0.]] + [[0., shift, 0.]] * len(mids) + [[0., shift]]
@@ -686,12 +796,6 @@ def fit(cashflow_list: Iterable[CashFlowList],
     :param method: root finding method,
         for details see `yieldcurves.tools.numerics`.
         (optional; default: **secant_method**)
-    :param bounds: inital or bounday values (depending on **method**)
-        for details see `yieldcurves.tools.numerics`.
-        (optional; default: (-0.1, 0.2))
-    :param tolerance: zero tolerance
-        for details see `yieldcurves.tools.numerics`.
-        (optional; default: 1e-10)
     :return: dictionary of curve point and value
 
     |fit()| uses the **fit** function in `yieldcurves.interpolation`.
