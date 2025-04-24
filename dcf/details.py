@@ -95,3 +95,10 @@ class DetailsList(list):
     def __str__(self):
         return self._tabulate(headers="firstrow",
                               floatrnd=True, floatfmt="_", intfmt="_")
+
+    def dataframe(self):
+        import pandas as pd
+        df = pd.DataFrame(map(dict, self))
+        df = df.dropna(how='all', axis=1)
+        df = df.set_index('pay date')
+        return df

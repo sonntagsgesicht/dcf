@@ -978,3 +978,10 @@ class CashFlowList(TSList):
 
     def __matmul__(self, other):
         return self.__class__(v.__matmul__(other) for v in self)
+
+    def dataframe(self):
+        import pandas as pd
+        df = pd.DataFrame(map(vars, self))
+        df = df.dropna(how='all', axis=1)
+        df = df.set_index('pay_date')
+        return df
