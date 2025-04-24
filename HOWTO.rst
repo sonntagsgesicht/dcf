@@ -120,6 +120,9 @@ Add those legs to |CashFlowList| provides a smart container for valuation.
 
 .. doctest::
 
+    >>> import dcf
+    >>> dcf.pricer.INCLUDE_VALUATION_DATE = True
+
     >>> from yieldcurves import YieldCurve, DateCurve
     >>> from dcf import pv
 
@@ -128,6 +131,10 @@ Add those legs to |CashFlowList| provides a smart container for valuation.
     >>> curve = DateCurve(yield_curve, origin=today)
     >>> pv(cashflow_list=loan, discount_curve=curve.df, valuation_date=today)
     1.562873826...
+
+    >>> dcf.pricer.INCLUDE_VALUATION_DATE = False
+    >>> pv(cashflow_list=loan, discount_curve=curve.df, valuation_date=today)
+    1001.562873...
 
     >>> print(loan)
     pay date         cashflow    notional  is rec      fixed rate  start date    end date      year fraction

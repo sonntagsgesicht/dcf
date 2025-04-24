@@ -107,16 +107,22 @@ def pv(cashflow_list: CashFlowPayOff | CashFlowList,
 
     >>> from yieldcurves import YieldCurve
     >>> from dcf import ecf, pv, CashFlowList
+    >>> import dcf
 
     >>> curve = YieldCurve.from_interpolation([0.0], [0.05])
     >>> cf_list = CashFlowList.from_fixed_cashflows([0, 1, 2, 3], [100, 100, 100, 100])
 
+    >>> dcf.pricer.INCLUDE_VALUATION_DATE = True
     >>> sod = pv(cf_list, 0.0, discount_curve=curve)
     >>> sod
     371.677...
 
     >>> eod = sod - ecf(cf_list, 0.0)[0.0]
     >>> eod
+    271.677...
+    
+    >>> dcf.pricer.INCLUDE_VALUATION_DATE = False
+    >>> pv(cf_list, 0.0, discount_curve=curve)
     271.677...
 
     """  # noqa 501

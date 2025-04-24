@@ -144,8 +144,12 @@ package for convenient yield curve construction.
 It can be found on `pypi <https://pypi.org/project/yieldcurves/>`_
 and installed via :code:`$ pip install yieldcurves`.
 
+>>> import dcf
+>>> dcf.pricer.INCLUDE_VALUATION_DATE = True
+
 >>> from dcf import pv
 >>> from yieldcurves import YieldCurve, DateCurve
+
 
 >>> yield_curve = YieldCurve.from_interpolation([0.0, 5.0], [0.01, 0.005])
 >>> curve = DateCurve(yield_curve, origin=today)
