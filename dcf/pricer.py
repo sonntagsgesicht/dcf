@@ -24,6 +24,7 @@ from .payoffs import CashFlowPayOff, RateCashFlowPayOff, CashFlowList
 
 
 TOL = 1e-10
+INCLUDE_VALUATION_DATE = True
 
 
 def ecf(cashflow_list: CashFlowPayOff | CashFlowList,
@@ -43,6 +44,11 @@ def ecf(cashflow_list: CashFlowPayOff | CashFlowList,
         >>> cf_list += CashFlowList.from_rate_cashflows([0., 1., 2., 3.], amount_list=100., fixed_rate=0.05)
         >>> ecf(cf_list, valuation_date=0.0)
         {0.0: -95.0, 1.0: 5.0, 2.0: 5.0, 3.0: 105.0}
+        
+        >>> import dcf
+        >>> dcf.pricer.INCLUDE_VALUATION_DATE = False
+        >>> ecf(cf_list, valuation_date=0.0)
+        {1.0: 5.0, 2.0: 5.0, 3.0: 105.0}
 
     """   # noqa 501
     if isinstance(cashflow_list, CashFlowPayOff):
@@ -62,6 +68,8 @@ def ecf(cashflow_list: CashFlowPayOff | CashFlowList,
         ts = cf.__ts__
         # only for cashflows with remaining payments matter
         if valuation_date <= ts:
+            if valuation_date == ts and not INCLUDE_VALUATION_DATE:
+                continue
             # calc expected payoff cashflow
             # and aggregate multiple cf values with same ts
             r[ts] = r.get(ts, 0.0) + float(cf(**kw) or 0)
