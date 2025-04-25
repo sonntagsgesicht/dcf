@@ -1,10 +1,23 @@
 
 These changes are listed in decreasing version number order.
 
+Release 0.99.1
+==============
+
+Release date was |today|
+
+* make INCLUDE_VALUATION_DATE optional in `dcf.pricer`
+  to either include or exclude cashflows at valuation date
+
+* added dataframe conversion for |CashFlowList| and |DetailsList|
+
+* added compounding_frequency to `ytm`
+
+
 Release 0.99
 ============
 
-Release date was |today|
+Release date was Monday, 31 March 2025
 
 Release 0.99 incorporates major changes focusing and simplifying
 
