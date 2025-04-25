@@ -21,7 +21,7 @@ except ImportError:
 setup(
     name='dcf',
     description='A Python library for generating discounted cashflows.',
-    version='0.99.1',
+    version='0.99.2',
     author='sonntagsgesicht',
     author_email='sonntagsgesicht@icloud.com',
     url='https://github.com/sonntagsgesicht/dcf',

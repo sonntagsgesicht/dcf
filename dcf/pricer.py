@@ -24,7 +24,10 @@ from .payoffs import CashFlowPayOff, RateCashFlowPayOff, CashFlowList
 
 
 TOL = 1e-10
+"""solver precision"""
+
 INCLUDE_VALUATION_DATE = True
+"""flag for including cashflows at valuation date in pricing"""
 
 
 def ecf(cashflow_list: CashFlowPayOff | CashFlowList,
@@ -217,7 +220,8 @@ def iac(cashflow_list: CashFlowList,
     for cf in cashflow_list:
         if isinstance(cf, RateCashFlowPayOff):
             # only interest cash flows entitle to accrued interest
-            if cf.start < valuation_date <= cf.end:
+            if (cf.start <= valuation_date < cf.end if INCLUDE_VALUATION_DATE
+                    else cf.start < valuation_date <= cf.end):
                 ecf_dict = ecf(cf, valuation_date, forward_curve=forward_curve)
                 flow = sum(map(float, ecf_dict.values()))
                 day_count = cf.day_count or _default_day_count
@@ -244,7 +248,7 @@ def ytm(cashflow_list: CashFlowList,
     :param present_value: price to meet by discounting
         (optional; default: 0.0)
     :param compounding_frequency: compounding frequency
-        (optional; default: None, i.e. continous compounding)
+        (optional; default: **None**, i.e. continous compounding)
     :param method: solver method
         If given as string invokes a method from
         `curves.numerics <https://curves.readthedocs.io/en/latest/doc.html#module-curves.numerics.solve>`_  # noqa E501
@@ -270,8 +274,11 @@ def ytm(cashflow_list: CashFlowList,
 
     $$\hat{v} = \sum_{t_i \in T} df(t, t_i) \cdot cf_i$$
 
-    with $df(t, t_i) = \exp(-y \cdot (t_i-t))$,
-    the discount factor discounting form $t_i$ to $t$.
+    with the discount factor 
+    either $df(t, t_i) = \exp(-y \cdot (t_i-t))$
+    or $\frac{1}{(1 + y / \tau)^{\tau \cdot (t_i-t)}}$, 
+    depending on **compounding_frequency** $\tau$,
+    discounting from $t_i$ to $t$.
 
     Example
     -------

@@ -6,12 +6,13 @@ Release 0.99.1
 
 Release date was |today|
 
-* make INCLUDE_VALUATION_DATE optional in `dcf.pricer`
+* introduced optional |INCLUDE_VALUATION_DATE|
   to either include or exclude cashflows at valuation date
+  in |ecf()| and consequently in |pv()|, ... too.
 
 * added dataframe conversion for |CashFlowList| and |DetailsList|
 
-* added compounding_frequency to `ytm`
+* added **compounding_frequency** to |ytm()| as argument
 
 
 Release 0.99
