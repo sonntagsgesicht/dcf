@@ -11,9 +11,9 @@
 
 
 __doc__ = 'A Python library for generating discounted cashflows.'
-__version__ = '0.99'
+__version__ = '0.99.01'
 __dev_status__ = '4 - Beta'
-__date__ = 'Monday, 31 March 2025'
+__date__ = 'Friday, 25 April 2025'
 __author__ = 'sonntagsgesicht'
 __email__ = 'sonntagsgesicht@icloud.com'
 __url__ = 'https://github.com/sonntagsgesicht/' + __name__

@@ -15,7 +15,8 @@ from unittest.case import TestCase
 from businessdate import BusinessDate
 
 from dcf import ecf, pv, iac, ytm, fair, bpv, delta, fit, CashFlowList
-from yieldcurves import DateCurve
+from dcf.daycount import day_count
+from yieldcurves import DateCurve, YieldCurve
 
 from .data import par_swap, par_bond, par_loan, par_frn, swap_curve, fwd_curve
 
@@ -79,18 +80,32 @@ class PricerUnitTests(TestCase):
             self.assertLess(0.0, iac(frn, self.today + '2w2d'))
 
     def test_ytm(self):
+        comp_freq = None, 250, 12, 4, 2, 1, 0
         rate = 0.01
-        df = DateCurve.from_interpolation([self.today], [rate],
-                                          origin=self.today)
+        yc = DateCurve(YieldCurve(rate), origin=self.today, yf=day_count)
+
         for bond in self.bonds:
             bond.fixed_rate = rate
-            _pv = pv(bond, self.today, df)
-            _ytm = ytm(bond, self.today, present_value=_pv)
-            self.assertAlmostEqual(0.0, abs(_ytm - rate), places=5)
-        for loan in self.loans:
-            _pv = pv(loan, self.today, df)
-            _ytm = ytm(loan, self.today, present_value=_pv)
-            self.assertAlmostEqual(0.0, abs(_ytm - rate), places=5)
+            v = pv(bond, self.today, yc)
+            res = [ytm(bond, self.today, present_value=v,
+                       compounding_frequency=f) for f in comp_freq]
+            for s, e in zip(res, res[1:]):
+                self.assertLessEqual(s, e)
+
+        for f in comp_freq:
+            yc = DateCurve(YieldCurve.from_zero_rates(rate, frequency=f),
+                           origin=self.today, yf=day_count)
+            for bond in self.bonds:
+                bond.fixed_rate = rate
+                v = pv(bond, self.today, yc)
+                y = ytm(bond, self.today,
+                        present_value=v, compounding_frequency=f)
+                self.assertAlmostEqual(0.0, abs(y - rate), places=5)
+            for loan in self.loans:
+                v = pv(loan, self.today, yc)
+                y = ytm(loan, self.today,
+                        present_value=v, compounding_frequency=f)
+                self.assertAlmostEqual(0.0, abs(y - rate), places=5)
 
     def test_fair(self):
         for swap in self.swaps:

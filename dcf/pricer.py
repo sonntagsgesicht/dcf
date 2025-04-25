@@ -231,6 +231,7 @@ def ytm(cashflow_list: CashFlowList,
         valuation_date: DateType,
         *, forward_curve: Callable | float | dict | None = None,
         present_value: float = 0.0,
+        compounding_frequency: int | None = None,
         method: str | Callable = 'secant_method',
         **kwargs):
     r""" yield-to-maturity or effective interest rate
@@ -242,6 +243,8 @@ def ytm(cashflow_list: CashFlowList,
         (optional; default: **None**, i.e. model attached to **cashflow_list**)
     :param present_value: price to meet by discounting
         (optional; default: 0.0)
+    :param compounding_frequency: compounding frequency
+        (optional; default: None, i.e. continous compounding)
     :param method: solver method
         If given as string invokes a method from
         `curves.numerics <https://curves.readthedocs.io/en/latest/doc.html#module-curves.numerics.solve>`_  # noqa E501
@@ -319,8 +322,16 @@ def ytm(cashflow_list: CashFlowList,
 
     # set error function
     def err(x):
-        _pv = pv(cashflow_list, valuation_date, x, forward_curve=forward_curve)
-        return _pv - present_value
+        def df(t):
+            tau = _default_day_count(valuation_date, t)
+            if compounding_frequency is None:
+                return exp(-tau * x)
+            if compounding_frequency == 0:
+                return 1 / (1 + x * tau)
+            tau *= compounding_frequency
+            return (1 + x / compounding_frequency) ** -tau
+        v = pv(cashflow_list, valuation_date, df, forward_curve=forward_curve)
+        return v - present_value
 
     # run bracketing
     return _solve(err, method, **kwargs)
